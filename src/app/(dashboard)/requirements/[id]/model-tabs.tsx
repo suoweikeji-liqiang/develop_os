@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
-import { parsePartialJson } from 'ai'
+import { parsePartialJson } from '@/lib/parse-partial-json'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -113,27 +113,21 @@ export function ModelTabs({ requirementId, rawInput, initialModel, initialConfid
 
           accumulated += decoder.decode(value, { stream: true })
 
-          try {
-            const { value: parsed } = await parsePartialJson(accumulated)
-            if (parsed && typeof parsed === 'object') {
-              setModel(parsed as Partial<FiveLayerModel>)
-            }
-          } catch {
-            // Partial JSON not yet parseable — continue
+          const result = parsePartialJson(accumulated)
+          if (result?.value && typeof result.value === 'object') {
+            setModel(result.value as Partial<FiveLayerModel>)
           }
         }
 
         // Final parse
         if (!cancelled) {
-          try {
-            const { value: finalParsed } = await parsePartialJson(accumulated)
-            if (finalParsed && typeof finalParsed === 'object') {
-              const finalModel = finalParsed as FiveLayerModel
-              setModel(finalModel)
-              setCompleted(true)
-              await persistModel(finalModel)
-            }
-          } catch {
+          const finalResult = parsePartialJson(accumulated)
+          if (finalResult?.value && typeof finalResult.value === 'object') {
+            const finalModel = finalResult.value as FiveLayerModel
+            setModel(finalModel)
+            setCompleted(true)
+            await persistModel(finalModel)
+          } else {
             setError('AI 输出解析失败')
           }
         }
