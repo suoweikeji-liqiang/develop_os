@@ -5,33 +5,33 @@
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** 在实现之前暴露误解，让团队对"要做什么"达成结构化共识
-**Current focus:** Phase 1: Foundation
+**Current focus:** Phase 2: Core AI Structuring
 
 ## Current Position
 
-Phase: 1 of 10 (Foundation)
-Plan: 3 of 3 in current phase
-Status: Executing Phase 1 plans
-Last activity: 2026-02-28 — Completed 01-02 (Authentication and role management)
+Phase: 2 of 10 (Core AI Structuring)
+Plan: 0 of 3 in current phase
+Status: Context gathered, ready to plan
+Last activity: 2026-02-28 — Completed 01-04 gap closure (PostgreSQL + event bus wiring)
 
-Progress: [███░░░░░░░] 10%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 3
-- Average duration: 7min
-- Total execution time: 0.4 hours
+- Total plans completed: 4
+- Average duration: 8min
+- Total execution time: 0.5 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Foundation | 3/3 | 21min | 7min |
+| 1. Foundation | 4/4 | 32min | 8min |
 
 **Recent Trend:**
-- Last 5 plans: 12min, 1min, 8min
-- Trend: improving
+- Last 5 plans: 12min, 1min, 8min, 11min
+- Trend: stable
 
 *Updated after each plan completion*
 
@@ -52,6 +52,8 @@ Recent decisions affecting current work:
 - [01-02]: Used fetch-based tRPC calls in admin client instead of full React Query setup
 - [01-02]: Split auth pages into server component + client form for server-side validation
 - [01-02]: force-dynamic export on pages with direct DB calls to prevent build-time prerender failures
+- [01-04]: PostgreSQL 16 installed via winget, devos database created, migration applied
+- [01-04]: Event bus wired - 6 emit calls added across auth actions and tRPC routers
 
 ### Pending Todos
 
@@ -59,7 +61,6 @@ None yet.
 
 ### Blockers/Concerns
 
-- PostgreSQL not running locally — migration pending, must be resolved before runtime testing
 - Chinese language NLP validation needed in Phase 2 (from research)
 - LLM provider selection needed before Phase 2 ships (from research)
 - Conflict detection feasibility spike needed before Phase 10 planning (from research)
@@ -67,5 +68,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 01-02-PLAN.md
-Resume file: .planning/phases/01-foundation/01-02-SUMMARY.md
+Stopped at: Phase 02 context gathered
+Resume file: .planning/phases/02-core-ai-structuring/02-CONTEXT.md
+
+**Next Step:** /gsd:plan-phase 02 — create execution plans
