@@ -7,6 +7,7 @@ import { hashPassword, verifyPassword } from '@/server/auth/password'
 import { createSession, deleteSession } from '@/server/auth/session'
 import { validateInvite, markInviteUsed } from '@/server/auth/invite'
 import { Role } from '@/generated/prisma/client'
+import { eventBus } from '@/server/events/bus'
 
 export async function login(_prevState: unknown, formData: FormData) {
   const parsed = LoginSchema.safeParse({
@@ -21,6 +22,7 @@ export async function login(_prevState: unknown, formData: FormData) {
   }
 
   await createSession(user.id)
+  eventBus.emit('session.created', { sessionId: user.id, userId: user.id })
   redirect('/dashboard')
 }
 
@@ -43,6 +45,7 @@ export async function registerFirstUser(_prevState: unknown, formData: FormData)
       })
     })
     await createSession(user.id)
+    eventBus.emit('user.registered', { userId: user.id, email: parsed.data.email })
   } catch (e) {
     if (e instanceof Error && e.message === 'INVITE_ONLY') {
       return { error: '仅限邀请注册' }
@@ -78,6 +81,7 @@ export async function registerWithInvite(_prevState: unknown, formData: FormData
 
   await markInviteUsed(invite.id)
   await createSession(user.id)
+  eventBus.emit('user.registered', { userId: user.id, email: parsed.data.email })
   redirect('/dashboard')
 }
 
