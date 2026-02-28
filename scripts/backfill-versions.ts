@@ -1,4 +1,4 @@
-import { PrismaClient } from '../src/generated/prisma/client'
+import { PrismaClient, Prisma } from '../src/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 
 async function main() {
@@ -6,7 +6,7 @@ async function main() {
   const prisma = new PrismaClient({ adapter })
 
   const requirements = await prisma.requirement.findMany({
-    where: { model: { not: null } },
+    where: { model: { not: Prisma.DbNull } },
     select: {
       id: true,
       model: true,

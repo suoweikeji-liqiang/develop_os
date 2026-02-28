@@ -56,15 +56,43 @@ export const requirementRouter = createTRPCRouter({
       id: z.string(),
       model: FiveLayerModelSchema,
       confidence: z.record(z.string(), z.number()).optional(),
+      changeSource: z.enum(['manual', 'ai-structure', 'ai-converse', 'assumption']).default('manual'),
     }))
     .mutation(async ({ input, ctx }) => {
-      const requirement = await prisma.requirement.update({
-        where: { id: input.id },
-        data: {
-          model: input.model,
-          confidence: input.confidence ?? undefined,
-          version: { increment: 1 },
-        },
+      const requirement = await prisma.$transaction(async (tx) => {
+        const current = await tx.requirement.findUniqueOrThrow({
+          where: { id: input.id },
+          select: { model: true, version: true, confidence: true },
+        })
+
+        if (current.model !== null) {
+          await tx.requirementVersion.create({
+            data: {
+              requirementId: input.id,
+              version: current.version,
+              model: current.model,
+              confidence: current.confidence ?? undefined,
+              changeSource: input.changeSource,
+              createdBy: ctx.session.userId,
+            },
+          })
+        }
+
+        return tx.requirement.update({
+          where: { id: input.id },
+          data: {
+            model: input.model,
+            confidence: input.confidence ?? undefined,
+            version: { increment: 1 },
+          },
+        })
+      })
+
+      eventBus.emit('requirement.version.created', {
+        requirementId: requirement.id,
+        version: requirement.version,
+        previousVersion: requirement.version - 1,
+        createdBy: ctx.session.userId,
       })
 
       eventBus.emit('requirement.updated', {
