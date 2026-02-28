@@ -61,15 +61,28 @@ model Invite {
 }
 
 model Requirement {
-  id         String   @id @default(cuid())
-  title      String
-  rawInput   String   @db.Text
-  model      Json?
-  confidence Json?
-  status     String   @default("draft")
-  attempts   Int      @default(1)
-  version    Int      @default(1)
-  createdBy  String
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id            String                @id @default(cuid())
+  title         String
+  rawInput      String                @db.Text
+  model         Json?
+  confidence    Json?
+  status        String                @default("draft")
+  attempts      Int                   @default(1)
+  version       Int                   @default(1)
+  createdBy     String
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+  conversations ConversationMessage[]
+}
+
+model ConversationMessage {
+  id            String      @id @default(cuid())
+  requirementId String
+  role          String      // "user" | "assistant"
+  content       Json        // UIMessage parts array
+  createdAt     DateTime    @default(now())
+
+  requirement   Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@index([requirementId, createdAt])
 }
