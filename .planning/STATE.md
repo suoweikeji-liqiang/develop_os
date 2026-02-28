@@ -10,27 +10,28 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 ## Current Position
 
 Phase: 2 of 10 (Core AI Structuring)
-Plan: 0 of 3 in current phase
-Status: Context gathered, ready to plan
-Last activity: 2026-02-28 — Completed 01-04 gap closure (PostgreSQL + event bus wiring)
+Plan: 1 of 3 in current phase
+Status: Executing phase 2 plans
+Last activity: 2026-02-28 — Completed 02-01 data contracts & storage (schema + router + events)
 
 Progress: [██████████] 100%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 4
-- Average duration: 8min
-- Total execution time: 0.5 hours
+- Total plans completed: 5
+- Average duration: 7min
+- Total execution time: 0.6 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
 | 1. Foundation | 4/4 | 32min | 8min |
+| 2. Core AI Structuring | 1/3 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 12min, 1min, 8min, 11min
+- Last 5 plans: 12min, 1min, 8min, 11min, 5min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -54,6 +55,9 @@ Recent decisions affecting current work:
 - [01-02]: force-dynamic export on pages with direct DB calls to prevent build-time prerender failures
 - [01-04]: PostgreSQL 16 installed via winget, devos database created, migration applied
 - [01-04]: Event bus wired - 6 emit calls added across auth actions and tRPC routers
+- [02-01]: Zod .describe() on every schema field to guide LLM structured output
+- [02-01]: confidence stored as Json? (flexible per-layer scores) rather than single numeric
+- [02-01]: version field with increment pattern for future Phase 4 versioning
 
 ### Pending Todos
 
@@ -68,7 +72,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Phase 02 context gathered
-Resume file: .planning/phases/02-core-ai-structuring/02-CONTEXT.md
+Stopped at: Completed 02-01-PLAN.md
+Resume file: .planning/phases/02-core-ai-structuring/02-01-SUMMARY.md
 
-**Next Step:** /gsd:plan-phase 02 — create execution plans
+**Next Step:** /gsd:execute-phase 02 — execute plan 02-02

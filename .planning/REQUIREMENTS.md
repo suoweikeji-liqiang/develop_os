@@ -7,11 +7,11 @@
 
 ### AI 核心引擎
 
-- [ ] **AI-01**: 用户可输入自然语言需求（中英文），AI 自动生成五层结构化模型（目标/假设/行为/场景/可验证性）
+- [x] **AI-01**: 用户可输入自然语言需求（中英文），AI 自动生成五层结构化模型（目标/假设/行为/场景/可验证性）
 - [ ] **AI-02**: 用户可通过对话方式修正和精炼 AI 生成的结构化模型
 - [ ] **AI-03**: AI 自动识别需求中的隐含假设并标注置信度
 - [ ] **AI-04**: AI 自动检测需求之间、假设与行为之间的矛盾冲突
-- [ ] **AI-05**: AI 输出必须经过 schema 验证，失败自动重试
+- [x] **AI-05**: AI 输出必须经过 schema 验证，失败自动重试
 
 ### 需求模型管理
 
@@ -66,11 +66,11 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| AI-01 | Phase 2: Core AI Structuring | Pending |
+| AI-01 | Phase 2: Core AI Structuring | Complete |
 | AI-02 | Phase 3: Conversational Refinement | Pending |
 | AI-03 | Phase 3: Conversational Refinement | Pending |
 | AI-04 | Phase 10: Conflict Detection & Agent Architecture | Pending |
-| AI-05 | Phase 2: Core AI Structuring | Pending |
+| AI-05 | Phase 2: Core AI Structuring | Complete |
 | MOD-01 | Phase 4: Model Versioning | Pending |
 | MOD-02 | Phase 4: Model Versioning | Pending |
 | MOD-03 | Phase 5: Workflow & Search | Pending |
