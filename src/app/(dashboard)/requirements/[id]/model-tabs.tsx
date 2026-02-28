@@ -6,7 +6,10 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Badge } from '@/components/ui/badge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { LayerEditor } from './layer-editor'
+import { AssumptionCard } from './assumption-card'
+import type { PendingAssumption } from './assumption-card'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
+import type { ConversationResponse } from '@/lib/schemas/conversation'
 
 const LAYER_TABS = [
   { key: 'goal', label: '目标' },
@@ -24,6 +27,11 @@ interface Props {
   initialModel?: FiveLayerModel
   initialConfidence?: Record<string, number>
   mode: 'generate' | 'view'
+  pendingPatches?: ConversationResponse['patches'] | null
+  pendingAssumptions?: PendingAssumption[]
+  onApplyPatch?: (layer: string, proposedData: unknown) => void
+  onRejectPatch?: (layer: string) => void
+  onAssumptionAction?: (id: string, action: { type: 'accept' | 'reject'; finalContent?: string; rejectReason?: string }) => void
 }
 
 function confidenceBadge(level?: string) {
@@ -61,7 +69,7 @@ function getLayerConfidence(model: Partial<FiveLayerModel> | null, layer: LayerK
   return undefined
 }
 
-export function ModelTabs({ requirementId, rawInput, initialModel, initialConfidence, mode }: Props) {
+export function ModelTabs({ requirementId, rawInput, initialModel, initialConfidence, mode, pendingPatches, pendingAssumptions, onApplyPatch, onRejectPatch, onAssumptionAction }: Props) {
   const [model, setModel] = useState<Partial<FiveLayerModel> | null>(initialModel ?? null)
   const [streaming, setStreaming] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -174,6 +182,9 @@ export function ModelTabs({ requirementId, rawInput, initialModel, initialConfid
           {LAYER_TABS.map(({ key, label }) => (
             <TabsTrigger key={key} value={key} className="gap-2">
               {label}
+              {pendingPatches?.[key as keyof typeof pendingPatches] && (
+                <span className="ml-1 h-2 w-2 rounded-full bg-amber-400 inline-block" />
+              )}
               {hasLayer(key) && confidenceBadge(
                 confidence[key] !== undefined
                   ? (confidence[key] >= 0.8 ? 'high' : confidence[key] >= 0.5 ? 'medium' : 'low')
@@ -185,13 +196,23 @@ export function ModelTabs({ requirementId, rawInput, initialModel, initialConfid
 
         {LAYER_TABS.map(({ key, label }) => (
           <TabsContent key={key} value={key}>
+            {key === 'assumption' && pendingAssumptions?.map(assumption => (
+              <AssumptionCard
+                key={assumption.id}
+                assumption={assumption}
+                onAction={(action) => onAssumptionAction?.(assumption.id, action)}
+              />
+            ))}
             {hasLayer(key) ? (
               <LayerEditor
                 layerName={label}
                 layerKey={key}
                 data={model![key]!}
                 requirementId={requirementId}
-                readOnly={streaming}
+                readOnly={streaming || !!pendingPatches?.[key as keyof typeof pendingPatches]}
+                pendingData={pendingPatches?.[key as keyof typeof pendingPatches] as Record<string, unknown> | undefined}
+                onConfirmDiff={() => onApplyPatch?.(key, pendingPatches![key as keyof typeof pendingPatches])}
+                onRejectDiff={() => onRejectPatch?.(key)}
                 onUpdate={(data) => handleLayerUpdate(key, data)}
               />
             ) : (
