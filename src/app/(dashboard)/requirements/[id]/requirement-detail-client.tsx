@@ -3,6 +3,7 @@
 import { useState, useRef, useCallback } from 'react'
 import { ModelTabs } from './model-tabs'
 import { ChatPanel } from './chat-panel'
+import { VersionHistory } from './version-history'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import type { ConversationResponse } from '@/lib/schemas/conversation'
 import type { UIMessage } from 'ai'
@@ -33,6 +34,7 @@ export function RequirementDetailClient({
   const [pendingPatches, setPendingPatches] = useState<ConversationResponse['patches'] | null>(null)
   const [pendingAssumptions, setPendingAssumptions] = useState<PendingAssumption[]>([])
   const [showUndo, setShowUndo] = useState(false)
+  const [showVersionHistory, setShowVersionHistory] = useState(false)
   const previousModelRef = useRef<FiveLayerModel | null>(null)
 
   const handlePatchProposed = useCallback((response: ConversationResponse) => {
@@ -126,12 +128,34 @@ export function RequirementDetailClient({
             状态: {status} | 版本: v{version}
           </p>
         </div>
-        {showUndo && (
-          <button onClick={handleUndo} className="text-sm text-muted-foreground underline">
-            撤销上次变更
-          </button>
-        )}
+        <div className="flex items-center gap-3">
+          {model && (
+            <button
+              onClick={() => setShowVersionHistory(prev => !prev)}
+              className={`text-sm px-3 py-1 rounded border ${
+                showVersionHistory
+                  ? 'bg-primary text-primary-foreground'
+                  : 'text-muted-foreground hover:bg-muted'
+              }`}
+            >
+              版本历史
+            </button>
+          )}
+          {showUndo && (
+            <button onClick={handleUndo} className="text-sm text-muted-foreground underline">
+              撤销上次变更
+            </button>
+          )}
+        </div>
       </div>
+
+      {showVersionHistory && model && (
+        <VersionHistory
+          requirementId={requirementId}
+          currentVersion={version}
+          currentModel={model}
+        />
+      )}
 
       <div className={model ? 'grid grid-cols-[1fr_380px] gap-6 items-start' : 'max-w-4xl'}>
         <ModelTabs
