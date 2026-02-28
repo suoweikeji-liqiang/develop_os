@@ -11,4 +11,5 @@ export interface EventMap {
   'requirement.structuring.failed': { requirementId: string; attempts: number; error: string }
   'requirement.updated': { requirementId: string; updatedBy: string; field: string }
   'conversation.message.saved': { requirementId: string }
+  'requirement.version.created': { requirementId: string; version: number; previousVersion: number; createdBy: string }
 }

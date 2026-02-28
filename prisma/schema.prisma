@@ -73,6 +73,23 @@ model Requirement {
   createdAt     DateTime              @default(now())
   updatedAt     DateTime              @updatedAt
   conversations ConversationMessage[]
+  versions      RequirementVersion[]
+}
+
+model RequirementVersion {
+  id            String      @id @default(cuid())
+  requirementId String
+  version       Int
+  model         Json
+  confidence    Json?
+  changeSource  String      @default("manual") // "manual" | "ai-structure" | "ai-converse" | "assumption"
+  createdBy     String
+  createdAt     DateTime    @default(now())
+
+  requirement   Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@unique([requirementId, version])
+  @@index([requirementId, createdAt])
 }
 
 model ConversationMessage {
