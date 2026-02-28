@@ -1,0 +1,162 @@
+'use client'
+
+import { useState, useRef, useCallback } from 'react'
+import { ModelTabs } from './model-tabs'
+import { ChatPanel } from './chat-panel'
+import type { FiveLayerModel } from '@/lib/schemas/requirement'
+import type { ConversationResponse } from '@/lib/schemas/conversation'
+import type { UIMessage } from 'ai'
+import type { PendingAssumption } from './assumption-card'
+
+interface Props {
+  requirementId: string
+  title: string
+  status: string
+  version: number
+  rawInput: string
+  initialModel: FiveLayerModel | undefined
+  initialConfidence: Record<string, number> | undefined
+  initialMessages: UIMessage[]
+}
+
+export function RequirementDetailClient({
+  requirementId,
+  title,
+  status,
+  version,
+  rawInput,
+  initialModel,
+  initialConfidence,
+  initialMessages,
+}: Props) {
+  const [model, setModel] = useState<FiveLayerModel | undefined>(initialModel)
+  const [pendingPatches, setPendingPatches] = useState<ConversationResponse['patches'] | null>(null)
+  const [pendingAssumptions, setPendingAssumptions] = useState<PendingAssumption[]>([])
+  const [showUndo, setShowUndo] = useState(false)
+  const previousModelRef = useRef<FiveLayerModel | null>(null)
+
+  const handlePatchProposed = useCallback((response: ConversationResponse) => {
+    if (response.patches) {
+      setPendingPatches(response.patches)
+    }
+    if (response.newAssumptions?.length) {
+      setPendingAssumptions(prev => [
+        ...prev,
+        ...response.newAssumptions!.map(a => ({
+          id: crypto.randomUUID(),
+          ...a,
+        })),
+      ])
+    }
+  }, [])
+
+  const handleApplyPatch = useCallback(async (layer: string, proposedData: unknown) => {
+    previousModelRef.current = model ?? null
+    setShowUndo(true)
+    const updatedModel = model ? { ...model, [layer]: proposedData } as FiveLayerModel : undefined
+    setModel(updatedModel)
+    if (updatedModel) {
+      await fetch('/api/trpc/requirement.updateModel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ json: { id: requirementId, model: updatedModel } }),
+      })
+    }
+    setPendingPatches(prev => {
+      if (!prev) return null
+      const next = { ...prev }
+      delete next[layer as keyof typeof next]
+      return Object.keys(next).length === 0 ? null : next
+    })
+  }, [model, requirementId])
+
+  const handleRejectPatch = useCallback((layer: string) => {
+    setPendingPatches(prev => {
+      if (!prev) return null
+      const next = { ...prev }
+      delete next[layer as keyof typeof next]
+      return Object.keys(next).length === 0 ? null : next
+    })
+  }, [])
+
+  function handleUndo() {
+    if (previousModelRef.current) {
+      setModel(previousModelRef.current)
+      previousModelRef.current = null
+      setShowUndo(false)
+    }
+  }
+
+  const handleAssumptionAction = useCallback(async (
+    id: string,
+    action: { type: 'accept' | 'reject'; finalContent?: string; rejectReason?: string },
+  ) => {
+    if (action.type === 'accept') {
+      const assumption = pendingAssumptions.find(a => a.id === id)
+      if (assumption && model) {
+        const currentItems = (model.assumption?.items as Array<{ content: string; confidence: string; rationale: string }>) ?? []
+        const updatedModel = {
+          ...model,
+          assumption: {
+            ...model.assumption,
+            items: [...currentItems, {
+              content: action.finalContent ?? assumption.content,
+              confidence: assumption.confidence,
+              rationale: assumption.rationale,
+            }],
+          },
+        } as FiveLayerModel
+        setModel(updatedModel)
+        await fetch('/api/trpc/requirement.updateModel', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ json: { id: requirementId, model: updatedModel } }),
+        })
+      }
+    }
+    setPendingAssumptions(prev => prev.filter(a => a.id !== id))
+  }, [model, pendingAssumptions, requirementId])
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold">{title}</h1>
+          <p className="text-sm text-muted-foreground">
+            状态: {status} | 版本: v{version}
+          </p>
+        </div>
+        {showUndo && (
+          <button onClick={handleUndo} className="text-sm text-muted-foreground underline">
+            撤销上次变更
+          </button>
+        )}
+      </div>
+
+      <div className={model ? 'grid grid-cols-[1fr_380px] gap-6 items-start' : 'max-w-4xl'}>
+        <ModelTabs
+          requirementId={requirementId}
+          rawInput={rawInput}
+          initialModel={model}
+          initialConfidence={initialConfidence}
+          mode={model ? 'view' : 'generate'}
+          pendingPatches={pendingPatches}
+          pendingAssumptions={pendingAssumptions}
+          onApplyPatch={handleApplyPatch}
+          onRejectPatch={handleRejectPatch}
+          onAssumptionAction={handleAssumptionAction}
+        />
+        {model && (
+          <ChatPanel
+            requirementId={requirementId}
+            currentModel={model}
+            initialMessages={initialMessages}
+            autoOpen={initialMessages.length > 0}
+            onPatchProposed={handlePatchProposed}
+            hasPendingDiff={pendingPatches !== null}
+          />
+        )}
+      </div>
+    </div>
+  )
+}
