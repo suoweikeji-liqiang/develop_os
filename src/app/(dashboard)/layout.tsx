@@ -9,7 +9,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
     <div className="min-h-screen">
       <header className="flex items-center justify-between border-b px-6 py-3">
         <div className="flex items-center gap-6">
-          <Link href="/dashboard" className="font-bold hover:opacity-80">DevOS</Link>
+          <Link href="/" className="font-bold hover:opacity-80">DevOS</Link>
           <nav className="flex items-center gap-4 text-sm">
             <Link href="/requirements" className="hover:underline">
               需求列表

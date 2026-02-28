@@ -23,7 +23,7 @@ export async function login(_prevState: unknown, formData: FormData) {
 
   await createSession(user.id)
   eventBus.emit('session.created', { sessionId: user.id, userId: user.id })
-  redirect('/dashboard')
+  redirect('/')
 }
 
 export async function registerFirstUser(_prevState: unknown, formData: FormData) {
@@ -53,7 +53,7 @@ export async function registerFirstUser(_prevState: unknown, formData: FormData)
     throw e
   }
 
-  redirect('/dashboard')
+  redirect('/')
 }
 
 export async function registerWithInvite(_prevState: unknown, formData: FormData) {
@@ -82,7 +82,7 @@ export async function registerWithInvite(_prevState: unknown, formData: FormData
   await markInviteUsed(invite.id)
   await createSession(user.id)
   eventBus.emit('user.registered', { userId: user.id, email: parsed.data.email })
-  redirect('/dashboard')
+  redirect('/')
 }
 
 export async function logout() {

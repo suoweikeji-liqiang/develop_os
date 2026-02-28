@@ -1,0 +1,22 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(cd:*)",
+      "Bash(head:*)",
+      "WebSearch",
+      "Bash(winget install:*)",
+      "Bash(export PATH=\"/c/Program Files/PostgreSQL/16/bin:$PATH\" && pg_isready -h localhost -p 5432 2>&1)",
+      "Bash(createdb -h localhost -U postgres devos 2>&1 || psql -h localhost -U postgres -c \"CREATE DATABASE devos;\" 2>&1)",
+      "Bash(\"/c/Program Files/PostgreSQL/16/bin/createdb.exe\":*)",
+      "Bash(export PGPASSWORD=\"\" && \"/c/Program Files/PostgreSQL/16/bin/psql.exe\" -h localhost -U postgres -c \"CREATE DATABASE devos;\" 2>&1)",
+      "Bash(cmd.exe:*)",
+      "Bash(\"/c/Program Files/PostgreSQL/16/bin/psql.exe\":*)",
+      "Bash(\"/c/Program Files/PostgreSQL/16/bin/pg_ctl.exe\" reload:*)",
+      "Bash(net stop postgresql-x-16 && net start postgresql-x-16 2>&1)",
+      "Bash(sc query:*)",
+      "Bash(net stop postgresql-x64-16 && net start postgresql-x64-16 2>&1)",
+      "Bash(powershell:*)",
+      "Skill(gsd:plan-phase)"
+    ]
+  }
+}
