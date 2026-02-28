@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-02-28T16:38:13.332Z"
+status: in-progress
+last_updated: "2026-02-28T17:14:46.000Z"
 progress:
-  total_phases: 3
+  total_phases: 4
   completed_phases: 3
-  total_plans: 11
-  completed_plans: 11
+  total_plans: 13
+  completed_plans: 12
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** 在实现之前暴露误解，让团队对"要做什么"达成结构化共识
-**Current focus:** Phase 3: Conversational Refinement
+**Current focus:** Phase 4: Model Versioning
 
 ## Current Position
 
-Phase: 3 of 10 (Conversational Refinement)
-Plan: 4 of 4 in current phase
-Status: Phase 3 complete
-Last activity: 2026-02-28 — Completed 03-04 Model Update Pipeline
+Phase: 4 of 10 (Model Versioning)
+Plan: 1 of 2 in current phase
+Status: Plan 04-01 complete
+Last activity: 2026-02-28 — Completed 04-01 Version Snapshot Infrastructure
 
-Progress: [██████████] 100%
+Progress: [████████████░░░░░░░░] 92%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 11
+- Total plans completed: 12
 - Average duration: 6min
-- Total execution time: 1.2 hours
+- Total execution time: 1.3 hours
 
 **By Phase:**
 
@@ -43,9 +43,10 @@ Progress: [██████████] 100%
 | 1. Foundation | 4/4 | 32min | 8min |
 | 2. Core AI Structuring | 3/3 | 24min | 8min |
 | 3. Conversational Refinement | 4/4 | 16min | 4min |
+| 4. Model Versioning | 1/2 | 5min | 5min |
 
 **Recent Trend:**
-- Last 5 plans: 12min, 2min, 3min, 6min, 5min
+- Last 5 plans: 2min, 3min, 6min, 5min, 5min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -89,6 +90,10 @@ Recent decisions affecting current work:
 - [03-04]: Client wrapper pattern: RequirementDetailClient holds shared state, page.tsx is thin server component
 - [03-04]: Undo is ephemeral (useRef snapshot, no DB write) — keeps it simple and fast
 - [03-04]: Field-level diff with JSON.stringify comparison — no external diff library needed
+- [04-01]: Snapshot-on-write inside $transaction ensures atomicity of version creation + model update
+- [04-01]: version.list returns metadata only (no model JSON) for lightweight history display
+- [04-01]: version.getTwo supports fetching current requirement model directly when version matches latest
+- [04-01]: changeSource enum tracks origin of each model change (manual/ai-structure/ai-converse/assumption)
 
 ### Pending Todos
 
@@ -103,7 +108,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 03-04-PLAN.md — Phase 3 complete
-Resume file: .planning/phases/03-conversational-refinement/03-04-SUMMARY.md
+Stopped at: Completed 04-01-PLAN.md — Version Snapshot Infrastructure
+Resume file: .planning/phases/04-model-versioning/04-01-SUMMARY.md
 
-**Next Step:** Begin Phase 4 planning
+**Next Step:** Execute Phase 4 Plan 02 (Version Diff UI)
