@@ -84,8 +84,8 @@
 | KB-01 | Phase 9: Knowledge Base | Pending |
 | KB-02 | Phase 9: Knowledge Base | Pending |
 | KB-03 | Phase 9: Knowledge Base | Pending |
-| INF-01 | Phase 1: Foundation | Pending |
-| INF-02 | Phase 1: Foundation | Pending |
+| INF-01 | Phase 1: Foundation | In Progress |
+| INF-02 | Phase 1: Foundation | In Progress |
 | INF-03 | Phase 10: Conflict Detection & Agent Architecture | Pending |
 
 **Coverage:**
