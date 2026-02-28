@@ -34,7 +34,7 @@ Decimal phases appear between their surrounding integers in numeric order.
   2. Admin can assign roles (product/dev/test/UI/external) to users
   3. Modules communicate through the event bus without direct coupling
   4. Database schema is deployed and accepts requirement model data
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
 - [x] 01-01: Project scaffolding and database setup
@@ -50,12 +50,12 @@ Plans:
   2. AI output conforms to the defined schema; malformed output is automatically retried without user intervention
   3. User can view each layer of the generated model separately
   4. Generated model is persisted and retrievable after page refresh
-**Plans**: TBD
+**Plans**: 3 plans
 
 Plans:
-- [ ] 02-01: Five-layer model schema and storage
-- [ ] 02-02: LLM integration with Zod validation and retry loop
-- [ ] 02-03: Structuring UI (input and model display)
+- [ ] 02-01-PLAN.md — Five-layer model Zod schema, Prisma migration, event types, tRPC CRUD router
+- [ ] 02-02-PLAN.md — AI SDK 6 install, structuring engine with retry loop, streaming API route
+- [ ] 02-03-PLAN.md — Requirement input page, tab-based model display, inline editing, auto-save
 
 ### Phase 3: Conversational Refinement
 **Goal**: Users can refine AI-generated models through dialogue, and the AI proactively surfaces hidden assumptions with confidence scores
