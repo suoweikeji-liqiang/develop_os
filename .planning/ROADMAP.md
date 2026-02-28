@@ -82,11 +82,11 @@ Plans:
   2. User can browse the version history of any requirement model
   3. User can select two versions and see a structured diff (goal/scenario/state-level changes, not text-level)
   4. Previous versions are read-only and cannot be modified
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 04-01: Version snapshot creation and storage
-- [ ] 04-02: Structured diff computation and display
+- [ ] 04-01-PLAN.md — RequirementVersion schema, snapshot-on-write in updateModel, version tRPC router
+- [ ] 04-02-PLAN.md — microdiff install, layer-aware diff engine, version history and diff UI components
 
 ### Phase 5: Workflow & Search
 **Goal**: Requirements follow a defined lifecycle (draft through completion) and users can find any requirement through search and filters
