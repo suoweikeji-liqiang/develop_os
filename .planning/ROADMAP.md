@@ -15,7 +15,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 1: Foundation** - User auth, role management, event bus, database schema, project scaffolding
 - [x] **Phase 2: Core AI Structuring** - Natural language input transformed into five-layer structured model with schema validation
 - [x] **Phase 3: Conversational Refinement** - Dialogue-based model correction and AI assumption surfacing with confidence scores (completed 2026-02-28)
-- [ ] **Phase 4: Model Versioning** - Immutable version snapshots and structured diff views for requirement models
+- [x] **Phase 4: Model Versioning** - Immutable version snapshots and structured diff views for requirement models
 - [ ] **Phase 5: Workflow & Search** - Requirement status flow (draft to done) and full-text search with filtering
 - [ ] **Phase 6: Role Views & Consensus** - Role-specific requirement views and multi-role sign-off workflow
 - [ ] **Phase 7: Communication** - Comments, @mentions, async discussion, in-app and external notifications
@@ -85,8 +85,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 04-01-PLAN.md — RequirementVersion schema, snapshot-on-write in updateModel, version tRPC router
-- [ ] 04-02-PLAN.md — microdiff install, layer-aware diff engine, version history and diff UI components
+- [x] 04-01-PLAN.md — RequirementVersion schema, snapshot-on-write in updateModel, version tRPC router
+- [x] 04-02-PLAN.md — microdiff install, layer-aware diff engine, version history and diff UI components
 
 ### Phase 5: Workflow & Search
 **Goal**: Requirements follow a defined lifecycle (draft through completion) and users can find any requirement through search and filters
@@ -190,7 +190,7 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 | 1. Foundation | 2/3 | In progress | - |
 | 2. Core AI Structuring | 3/3 | Complete | 2026-02-28 |
 | 3. Conversational Refinement | 4/4 | Complete   | 2026-02-28 |
-| 4. Model Versioning | 0/2 | Not started | - |
+| 4. Model Versioning | 2/2 | Complete | 2026-02-28 |
 | 5. Workflow & Search | 0/2 | Not started | - |
 | 6. Role Views & Consensus | 0/2 | Not started | - |
 | 7. Communication | 0/2 | Not started | - |
