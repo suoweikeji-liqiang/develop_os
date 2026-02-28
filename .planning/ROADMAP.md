@@ -97,11 +97,11 @@ Plans:
   2. Invalid status transitions are blocked by the system
   3. User can search requirements by full-text query and find matching results
   4. User can filter requirements by status, tag, role, and date
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 05-01: Status state machine and transition rules
-- [ ] 05-02: Full-text search and filtering UI
+- [ ] 05-01-PLAN.md — Status enum migration, typed state machine, transitionStatus mutation, status control UI
+- [ ] 05-02-PLAN.md — Search tRPC query with ILIKE, filter bar UI, requirements list with URL-synced filters
 
 ### Phase 6: Role Views & Consensus
 **Goal**: Each role sees a tailored view of the same requirement model, and all required roles must sign off before status advances
