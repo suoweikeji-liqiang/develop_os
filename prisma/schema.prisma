@@ -61,11 +61,15 @@ model Invite {
 }
 
 model Requirement {
-  id        String   @id @default(cuid())
-  title     String
-  model     Json?
-  status    String   @default("draft")
-  createdBy String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id         String   @id @default(cuid())
+  title      String
+  rawInput   String   @db.Text
+  model      Json?
+  confidence Json?
+  status     String   @default("draft")
+  attempts   Int      @default(1)
+  version    Int      @default(1)
+  createdBy  String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
 }
