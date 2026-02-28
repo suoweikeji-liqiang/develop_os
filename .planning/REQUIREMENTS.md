@@ -66,12 +66,33 @@
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| (To be filled by roadmapper) | | |
+| AI-01 | Phase 2: Core AI Structuring | Pending |
+| AI-02 | Phase 3: Conversational Refinement | Pending |
+| AI-03 | Phase 3: Conversational Refinement | Pending |
+| AI-04 | Phase 10: Conflict Detection & Agent Architecture | Pending |
+| AI-05 | Phase 2: Core AI Structuring | Pending |
+| MOD-01 | Phase 4: Model Versioning | Pending |
+| MOD-02 | Phase 4: Model Versioning | Pending |
+| MOD-03 | Phase 5: Workflow & Search | Pending |
+| MOD-04 | Phase 5: Workflow & Search | Pending |
+| COL-01 | Phase 6: Role Views & Consensus | Pending |
+| COL-02 | Phase 6: Role Views & Consensus | Pending |
+| COL-03 | Phase 7: Communication | Pending |
+| COL-04 | Phase 7: Communication | Pending |
+| EXT-01 | Phase 8: External Intake | Pending |
+| EXT-02 | Phase 8: External Intake | Pending |
+| KB-01 | Phase 9: Knowledge Base | Pending |
+| KB-02 | Phase 9: Knowledge Base | Pending |
+| KB-03 | Phase 9: Knowledge Base | Pending |
+| INF-01 | Phase 1: Foundation | Pending |
+| INF-02 | Phase 1: Foundation | Pending |
+| INF-03 | Phase 10: Conflict Detection & Agent Architecture | Pending |
 
 **Coverage:**
 - v1 requirements: 20 total
-- Mapped to phases: 0
-- Unmapped: 20 ⚠️
+- Mapped to phases: 20
+- Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-28*
+*Traceability updated: 2026-02-28*
