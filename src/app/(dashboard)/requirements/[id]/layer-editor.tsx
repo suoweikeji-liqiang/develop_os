@@ -11,10 +11,13 @@ interface Props {
   data: Record<string, unknown>
   requirementId: string
   readOnly?: boolean
+  pendingData?: Record<string, unknown>
+  onConfirmDiff?: () => void
+  onRejectDiff?: () => void
   onUpdate: (data: Record<string, unknown>) => void
 }
 
-export function LayerEditor({ layerName, layerKey, data, readOnly, onUpdate }: Props) {
+export function LayerEditor({ layerName, layerKey, data, readOnly, pendingData, onConfirmDiff, onRejectDiff, onUpdate }: Props) {
   const [local, setLocal] = useState(data)
 
   function update(patch: Record<string, unknown>) {
@@ -26,6 +29,26 @@ export function LayerEditor({ layerName, layerKey, data, readOnly, onUpdate }: P
   return (
     <div className="space-y-4 rounded-md border p-4">
       <h3 className="text-lg font-semibold">{layerName}</h3>
+      {pendingData && (
+        <div className="mb-4 rounded-md border border-amber-300 bg-amber-50 p-3 space-y-2">
+          <p className="text-sm font-medium text-amber-800">AI 建议变更此层</p>
+          <DiffSummary current={data as Record<string, unknown>} proposed={pendingData} />
+          <div className="flex gap-2">
+            <button
+              onClick={onConfirmDiff}
+              className="text-sm px-3 py-1 rounded bg-green-600 text-white hover:bg-green-700"
+            >
+              接受变更
+            </button>
+            <button
+              onClick={onRejectDiff}
+              className="text-sm px-3 py-1 rounded bg-red-100 text-red-700 hover:bg-red-200"
+            >
+              拒绝变更
+            </button>
+          </div>
+        </div>
+      )}
       {layerKey === 'goal' && <GoalEditor data={local} readOnly={readOnly} onChange={update} />}
       {layerKey === 'assumption' && <AssumptionEditor data={local} readOnly={readOnly} onChange={update} />}
       {layerKey === 'behavior' && <BehaviorEditor data={local} readOnly={readOnly} onChange={update} />}
@@ -307,6 +330,41 @@ function VerifiabilityEditor({ data, readOnly, onChange }: SubEditorProps) {
           </div>
         ))}
       </div>
+    </div>
+  )
+}
+
+// --- Diff Helpers ---
+
+function DiffSummary({ current, proposed }: { current: Record<string, unknown>; proposed: Record<string, unknown> }) {
+  const allKeys = new Set([...Object.keys(current), ...Object.keys(proposed)])
+  const changedKeys = [...allKeys].filter(k => JSON.stringify(current[k]) !== JSON.stringify(proposed[k]))
+
+  if (changedKeys.length === 0) return <p className="text-sm text-muted-foreground">无变更</p>
+
+  return (
+    <div className="space-y-1">
+      {changedKeys.map(key => (
+        <DiffField key={key} fieldName={key} current={current[key]} proposed={proposed[key]} />
+      ))}
+    </div>
+  )
+}
+
+function DiffField({ fieldName, current, proposed }: { fieldName: string; current: unknown; proposed: unknown }) {
+  const currentStr = typeof current === 'string' ? current : JSON.stringify(current)
+  const proposedStr = typeof proposed === 'string' ? proposed : JSON.stringify(proposed)
+
+  return (
+    <div className="text-xs space-y-0.5">
+      <span className="font-medium text-muted-foreground">{fieldName}: </span>
+      {current !== undefined && (
+        <span className="bg-red-100 line-through text-red-700 px-1 rounded">{currentStr}</span>
+      )}
+      {' \u2192 '}
+      {proposed !== undefined && (
+        <span className="bg-green-100 text-green-700 px-1 rounded">{proposedStr}</span>
+      )}
     </div>
   )
 }
