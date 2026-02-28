@@ -12,25 +12,25 @@ See: .planning/PROJECT.md (updated 2026-02-28)
 Phase: 1 of 10 (Foundation)
 Plan: 3 of 3 in current phase
 Status: Executing Phase 1 plans
-Last activity: 2026-02-28 — Completed 01-03 (Event bus infrastructure)
+Last activity: 2026-02-28 — Completed 01-02 (Authentication and role management)
 
-Progress: [██░░░░░░░░] 8%
+Progress: [███░░░░░░░] 10%
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 2
+- Total plans completed: 3
 - Average duration: 7min
-- Total execution time: 0.2 hours
+- Total execution time: 0.4 hours
 
 **By Phase:**
 
 | Phase | Plans | Total | Avg/Plan |
 |-------|-------|-------|----------|
-| 1. Foundation | 2/3 | 13min | 7min |
+| 1. Foundation | 3/3 | 21min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 12min, 1min
+- Last 5 plans: 12min, 1min, 8min
 - Trend: improving
 
 *Updated after each plan completion*
@@ -49,6 +49,9 @@ Recent decisions affecting current work:
 - [01-01]: Zod 4 installed (latest) — API compatible with v3 patterns
 - [01-03]: globalThis singleton pattern for EventEmitter3 (same as Prisma client)
 - [01-03]: 7 Phase 1 events defined with domain.entity.action naming convention
+- [01-02]: Used fetch-based tRPC calls in admin client instead of full React Query setup
+- [01-02]: Split auth pages into server component + client form for server-side validation
+- [01-02]: force-dynamic export on pages with direct DB calls to prevent build-time prerender failures
 
 ### Pending Todos
 
@@ -56,7 +59,7 @@ None yet.
 
 ### Blockers/Concerns
 
-- PostgreSQL not running locally — migration pending, must be resolved before Plan 01-02
+- PostgreSQL not running locally — migration pending, must be resolved before runtime testing
 - Chinese language NLP validation needed in Phase 2 (from research)
 - LLM provider selection needed before Phase 2 ships (from research)
 - Conflict detection feasibility spike needed before Phase 10 planning (from research)
@@ -64,5 +67,5 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 01-03-PLAN.md
-Resume file: .planning/phases/01-foundation/01-03-SUMMARY.md
+Stopped at: Completed 01-02-PLAN.md
+Resume file: .planning/phases/01-foundation/01-02-SUMMARY.md
