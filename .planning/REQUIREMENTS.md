@@ -41,7 +41,7 @@
 ### 基础设施
 
 - [ ] **INF-01**: 用户认证与角色管理（产品/开发/测试/UI/外部）
-- [ ] **INF-02**: 事件驱动架构，模块间通过事件总线通信
+- [x] **INF-02**: 事件驱动架构，模块间通过事件总线通信
 - [ ] **INF-03**: Agent 插件接口预留，当前实现澄清 Agent，未来可扩展
 
 ## v2 Requirements
@@ -85,7 +85,7 @@
 | KB-02 | Phase 9: Knowledge Base | Pending |
 | KB-03 | Phase 9: Knowledge Base | Pending |
 | INF-01 | Phase 1: Foundation | In Progress |
-| INF-02 | Phase 1: Foundation | In Progress |
+| INF-02 | Phase 1: Foundation | Complete |
 | INF-03 | Phase 10: Conflict Detection & Agent Architecture | Pending |
 
 **Coverage:**

@@ -39,7 +39,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 Plans:
 - [x] 01-01: Project scaffolding and database setup
 - [ ] 01-02: Authentication and role management
-- [ ] 01-03: Event bus infrastructure
+- [x] 01-03: Event bus infrastructure
 
 ### Phase 2: Core AI Structuring
 **Goal**: Users can input fuzzy natural language requirements and receive a structured five-layer model (goal/assumption/behavior/scenario/verifiability)
@@ -187,7 +187,7 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 1/3 | In progress | - |
+| 1. Foundation | 2/3 | In progress | - |
 | 2. Core AI Structuring | 0/3 | Not started | - |
 | 3. Conversational Refinement | 0/3 | Not started | - |
 | 4. Model Versioning | 0/2 | Not started | - |
