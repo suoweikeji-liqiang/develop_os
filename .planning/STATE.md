@@ -8,7 +8,7 @@ progress:
   total_phases: 3
   completed_phases: 2
   total_plans: 8
-  completed_plans: 8
+  completed_plans: 9
 ---
 
 # Project State
@@ -32,8 +32,8 @@ Progress: [████████░░] 80%
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 8
-- Average duration: 7min
+- Total plans completed: 9
+- Average duration: 6min
 - Total execution time: 1.0 hours
 
 **By Phase:**
@@ -42,10 +42,10 @@ Progress: [████████░░] 80%
 |-------|-------|-------|----------|
 | 1. Foundation | 4/4 | 32min | 8min |
 | 2. Core AI Structuring | 3/3 | 24min | 8min |
-| 3. Conversational Refinement | 1/4 | 2min | 2min |
+| 3. Conversational Refinement | 2/4 | 5min | 3min |
 
 **Recent Trend:**
-- Last 5 plans: 11min, 5min, 7min, 12min, 2min
+- Last 5 plans: 5min, 7min, 12min, 2min, 3min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -81,6 +81,8 @@ Recent decisions affecting current work:
 - [03-01]: ConversationMessage content stored as Json to hold UIMessage parts array
 - [03-01]: ModelPatchSchema built from FiveLayerModelSchema.shape with optional layers
 - [03-01]: Prompt instructs AI to match output language to user input language
+- [03-02]: convertToModelMessages returns Promise in AI SDK 6 — must be awaited
+- [03-02]: tRPC root file is router.ts not root.ts — followed existing project convention
 
 ### Pending Todos
 
@@ -95,7 +97,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-02-28
-Stopped at: Completed 03-01-PLAN.md
-Resume file: .planning/phases/03-conversational-refinement/03-01-SUMMARY.md
+Stopped at: Completed 03-02-PLAN.md
+Resume file: .planning/phases/03-conversational-refinement/03-02-SUMMARY.md
 
-**Next Step:** Continue Phase 3 — execute 03-02-PLAN.md
+**Next Step:** Continue Phase 3 — execute 03-03-PLAN.md
