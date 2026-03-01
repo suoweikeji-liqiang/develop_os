@@ -84,6 +84,12 @@ export const requirementRouter = createTRPCRouter({
       changeSource: z.enum(['manual', 'ai-structure', 'ai-converse', 'assumption']).default('manual'),
     }))
     .mutation(async ({ input, ctx }) => {
+      // Capture status before the transaction to decide if sign-offs should be invalidated
+      const reqStatus = await prisma.requirement.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { status: true },
+      })
+
       const requirement = await prisma.$transaction(async (tx) => {
         const current = await tx.requirement.findUniqueOrThrow({
           where: { id: input.id },
@@ -112,6 +118,17 @@ export const requirementRouter = createTRPCRouter({
           },
         })
       })
+
+      // Invalidate stale sign-offs when model changes during review
+      if (reqStatus.status === 'IN_REVIEW') {
+        await prisma.reviewSignoff.deleteMany({
+          where: { requirementId: input.id },
+        })
+        eventBus.emit('requirement.signoff.invalidated', {
+          requirementId: input.id,
+          reason: 'model-updated',
+        })
+      }
 
       eventBus.emit('requirement.version.created', {
         requirementId: requirement.id,
@@ -146,10 +163,35 @@ export const requirementRouter = createTRPCRouter({
         })
       }
 
+      // Gate: all four reviewer roles must have signed off before entering CONSENSUS
+      const REQUIRED_ROLES = ['PRODUCT', 'DEV', 'TEST', 'UI'] as const
+
+      if (current.status === 'IN_REVIEW' && input.to === 'CONSENSUS') {
+        const signoffs = await prisma.reviewSignoff.findMany({
+          where: { requirementId: input.id },
+          select: { role: true },
+        })
+        const signedRoles = new Set(signoffs.map((s) => s.role))
+        const missing = REQUIRED_ROLES.filter((r) => !signedRoles.has(r))
+        if (missing.length > 0) {
+          throw new TRPCError({
+            code: 'PRECONDITION_FAILED',
+            message: `缺少以下角色的签字确认: ${missing.join(', ')}`,
+          })
+        }
+      }
+
       const updated = await prisma.requirement.update({
         where: { id: input.id, status: current.status },
         data: { status: input.to },
       })
+
+      // Clear sign-offs when reverting from CONSENSUS back to IN_REVIEW
+      if (current.status === 'CONSENSUS' && input.to === 'IN_REVIEW') {
+        await prisma.reviewSignoff.deleteMany({
+          where: { requirementId: input.id },
+        })
+      }
 
       eventBus.emit('requirement.status.changed', {
         requirementId: updated.id,
