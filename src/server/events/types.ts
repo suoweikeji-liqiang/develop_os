@@ -13,4 +13,6 @@ export interface EventMap {
   'conversation.message.saved': { requirementId: string }
   'requirement.version.created': { requirementId: string; version: number; previousVersion: number; createdBy: string }
   'requirement.status.changed': { requirementId: string; from: string; to: string; changedBy: string }
+  'requirement.signoff.submitted': { requirementId: string; role: string; userId: string }
+  'requirement.signoff.invalidated': { requirementId: string; reason: 'model-updated' }
 }

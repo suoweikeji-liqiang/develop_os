@@ -24,15 +24,16 @@ enum Role {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  email     String     @unique
+  id        String         @id @default(cuid())
+  email     String         @unique
   password  String
   name      String
-  isAdmin   Boolean    @default(false)
+  isAdmin   Boolean        @default(false)
   roles     UserRole[]
   sessions  Session[]
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
+  signoffs  ReviewSignoff[]
+  createdAt DateTime       @default(now())
+  updatedAt DateTime       @updatedAt
 }
 
 model UserRole {
@@ -83,6 +84,7 @@ model Requirement {
   updatedAt     DateTime              @updatedAt
   conversations ConversationMessage[]
   versions      RequirementVersion[]
+  signoffs      ReviewSignoff[]
 
   @@index([status])
   @@index([createdBy])
@@ -115,4 +117,19 @@ model ConversationMessage {
   requirement   Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
 
   @@index([requirementId, createdAt])
+}
+
+model ReviewSignoff {
+  id            String      @id @default(cuid())
+  requirementId String
+  role          Role
+  userId        String
+  checklist     Json        // { items: [{ key: string, label: string, checked: boolean }] }
+  signedAt      DateTime    @default(now())
+
+  requirement   Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  user          User        @relation(fields: [userId], references: [id])
+
+  @@unique([requirementId, role])
+  @@index([requirementId])
 }
