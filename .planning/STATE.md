@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: in-progress
-last_updated: "2026-03-01T00:09:30.000Z"
+last_updated: "2026-03-01T00:15:30.000Z"
 progress:
   total_phases: 5
-  completed_phases: 4
-  total_plans: 14
-  completed_plans: 14
+  completed_phases: 5
+  total_plans: 16
+  completed_plans: 16
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** 在实现之前暴露误解，让团队对"要做什么"达成结构化共识
-**Current focus:** Phase 5: Workflow & Search
+**Current focus:** Phase 5: Workflow & Search (COMPLETE)
 
 ## Current Position
 
-Phase: 5 of 10 (Workflow & Search)
-Plan: 1 of 2 in current phase
-Status: Plan 05-01 complete
-Last activity: 2026-03-01 — Completed 05-01 Status Lifecycle
+Phase: 5 of 10 (Workflow & Search) — COMPLETE
+Plan: 2 of 2 in current phase
+Status: Phase 5 complete
+Last activity: 2026-03-01 — Completed 05-02 Search & Filtering
 
-Progress: [██████████████░░░░░░] 50% (Phase 5, Plan 1/2)
+Progress: [████████████████████] 100% (Phase 5, Plan 2/2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 14
+- Total plans completed: 16
 - Average duration: 6min
-- Total execution time: 1.45 hours
+- Total execution time: 1.48 hours
 
 **By Phase:**
 
@@ -44,10 +44,10 @@ Progress: [██████████████░░░░░░] 50% (Ph
 | 2. Core AI Structuring | 3/3 | 24min | 8min |
 | 3. Conversational Refinement | 4/4 | 16min | 4min |
 | 4. Model Versioning | 2/2 | 9min | 4.5min |
-| 5. Workflow & Search | 1/2 | 6min | 6min |
+| 5. Workflow & Search | 2/2 | 8min | 4min |
 
 **Recent Trend:**
-- Last 5 plans: 6min, 5min, 5min, 4min, 6min
+- Last 5 plans: 5min, 5min, 4min, 6min, 2min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -102,6 +102,10 @@ Recent decisions affecting current work:
 - [05-01]: Zod enum mirrors Prisma enum for shared validation between client and server
 - [05-01]: Optimistic lock on status update (WHERE status = current) prevents race conditions
 - [05-01]: Backward transitions allowed one step except DONE which is terminal
+- [05-02]: Prisma contains with mode insensitive for text search (ILIKE) — works for Chinese and English
+- [05-02]: Role filter via UserRole subquery join rather than denormalized field on Requirement
+- [05-02]: Date serialization to ISO strings when passing from server component to client component
+- [05-02]: useDeferredValue for search input debounce instead of manual setTimeout
 
 ### Pending Todos
 
@@ -116,7 +120,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 05-01-PLAN.md — Status Lifecycle (Phase 5, Plan 1/2)
-Resume file: .planning/phases/05-workflow-search/05-01-SUMMARY.md
+Stopped at: Completed 05-02-PLAN.md — Search & Filtering (Phase 5, Plan 2/2) — Phase 5 COMPLETE
+Resume file: .planning/phases/05-workflow-search/05-02-SUMMARY.md
 
-**Next Step:** Execute Phase 5 Plan 2 (Search & Filtering)
+**Next Step:** Execute Phase 6 (Collaboration)
