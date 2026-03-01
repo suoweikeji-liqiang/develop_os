@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Conversational Refinement** - Dialogue-based model correction and AI assumption surfacing with confidence scores (completed 2026-02-28)
 - [x] **Phase 4: Model Versioning** - Immutable version snapshots and structured diff views for requirement models
 - [ ] **Phase 5: Workflow & Search** - Requirement status flow (draft to done) and full-text search with filtering
-- [ ] **Phase 6: Role Views & Consensus** - Role-specific requirement views and multi-role sign-off workflow
+- [x] **Phase 6: Role Views & Consensus** - Role-specific requirement views and multi-role sign-off workflow (completed 2026-03-01)
 - [ ] **Phase 7: Communication** - Comments, @mentions, async discussion, in-app and external notifications
 - [ ] **Phase 8: External Intake** - Public submission form for outside departments and progress tracking
 - [ ] **Phase 9: Knowledge Base** - Document upload, code repo integration, and historical context accumulation
@@ -192,7 +192,7 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 | 3. Conversational Refinement | 4/4 | Complete   | 2026-02-28 |
 | 4. Model Versioning | 2/2 | Complete | 2026-02-28 |
 | 5. Workflow & Search | 1/2 | In Progress|  |
-| 6. Role Views & Consensus | 1/2 | In Progress|  |
+| 6. Role Views & Consensus | 2/2 | Complete   | 2026-03-01 |
 | 7. Communication | 0/2 | Not started | - |
 | 8. External Intake | 0/2 | Not started | - |
 | 9. Knowledge Base | 0/3 | Not started | - |
