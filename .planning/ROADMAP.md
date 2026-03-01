@@ -112,11 +112,11 @@ Plans:
   2. Each role has a role-appropriate review checklist
   3. Status cannot advance past "in review" until all required roles have signed off
   4. User can see which roles have signed off and which are pending
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 06-01: Role-specific requirement views
-- [ ] 06-02: Consensus sign-off workflow
+- [ ] 06-01-PLAN.md — ReviewSignoff Prisma model, signoffRouter tRPC API, consensus gate, sign-off invalidation
+- [ ] 06-02-PLAN.md — Role-view config maps, RoleViewTabs, SignoffPanel with checklists, ConsensusStatus display
 
 ### Phase 7: Communication
 **Goal**: Team members can discuss requirements asynchronously and receive timely notifications about relevant changes
