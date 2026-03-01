@@ -7,6 +7,29 @@ import { eventBus } from '@/server/events/bus'
 import { assertTransition, RequirementStatusEnum } from '@/lib/workflow/status-machine'
 import type { RequirementStatus } from '@/lib/workflow/status-machine'
 
+const RoleEnum = z.enum(['PRODUCT', 'DEV', 'TEST', 'UI', 'EXTERNAL'])
+
+const SearchInputSchema = z.object({
+  query: z.string().optional(),
+  status: RequirementStatusEnum.optional(),
+  tags: z.array(z.string()).optional(),
+  role: RoleEnum.optional(),
+  dateFrom: z.coerce.date().optional(),
+  dateTo: z.coerce.date().optional(),
+}).optional()
+
+const searchSelect = {
+  id: true,
+  title: true,
+  rawInput: true,
+  status: true,
+  tags: true,
+  createdBy: true,
+  createdAt: true,
+  updatedAt: true,
+  version: true,
+} as const
+
 export const requirementRouter = createTRPCRouter({
   create: protectedProcedure
     .input(CreateRequirementSchema)
@@ -136,5 +159,79 @@ export const requirementRouter = createTRPCRouter({
       })
 
       return updated
+    }),
+
+  search: protectedProcedure
+    .input(SearchInputSchema)
+    .query(async ({ input }) => {
+      const filters = input ?? {}
+      const conditions: Record<string, unknown>[] = []
+
+      if (filters.query) {
+        conditions.push({
+          OR: [
+            { title: { contains: filters.query, mode: 'insensitive' } },
+            { rawInput: { contains: filters.query, mode: 'insensitive' } },
+          ],
+        })
+      }
+
+      if (filters.status) {
+        conditions.push({ status: filters.status })
+      }
+
+      if (filters.tags && filters.tags.length > 0) {
+        conditions.push({ tags: { hasSome: filters.tags } })
+      }
+
+      if (filters.role) {
+        const userRoles = await prisma.userRole.findMany({
+          where: { role: filters.role },
+          select: { userId: true },
+        })
+        const userIds = userRoles.map((ur) => ur.userId)
+        conditions.push({ createdBy: { in: userIds } })
+      }
+
+      if (filters.dateFrom) {
+        conditions.push({ createdAt: { gte: filters.dateFrom } })
+      }
+
+      if (filters.dateTo) {
+        conditions.push({ createdAt: { lte: filters.dateTo } })
+      }
+
+      const where = conditions.length > 0 ? { AND: conditions } : undefined
+
+      return prisma.requirement.findMany({
+        where,
+        orderBy: { updatedAt: 'desc' },
+        select: searchSelect,
+      })
+    }),
+
+  addTag: protectedProcedure
+    .input(z.object({ id: z.string(), tag: z.string().min(1).max(50) }))
+    .mutation(async ({ input }) => {
+      return prisma.requirement.update({
+        where: { id: input.id },
+        data: { tags: { push: input.tag } },
+      })
+    }),
+
+  removeTag: protectedProcedure
+    .input(z.object({ id: z.string(), tag: z.string() }))
+    .mutation(async ({ input }) => {
+      const requirement = await prisma.requirement.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { tags: true },
+      })
+
+      const updatedTags = requirement.tags.filter((t) => t !== input.tag)
+
+      return prisma.requirement.update({
+        where: { id: input.id },
+        data: { tags: updatedTags },
+      })
     }),
 })
