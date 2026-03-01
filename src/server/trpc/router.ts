@@ -4,6 +4,7 @@ import { userRouter } from './routers/user'
 import { requirementRouter } from './routers/requirement'
 import { conversationRouter } from './routers/conversation'
 import { versionRouter } from './routers/version'
+import { signoffRouter } from './routers/signoff'
 
 export const appRouter = createTRPCRouter({
   auth: authRouter,
@@ -11,6 +12,7 @@ export const appRouter = createTRPCRouter({
   requirement: requirementRouter,
   conversation: conversationRouter,
   version: versionRouter,
+  signoff: signoffRouter,
 })
 
 export type AppRouter = typeof appRouter
