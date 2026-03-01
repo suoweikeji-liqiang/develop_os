@@ -192,7 +192,7 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 | 3. Conversational Refinement | 4/4 | Complete   | 2026-02-28 |
 | 4. Model Versioning | 2/2 | Complete | 2026-02-28 |
 | 5. Workflow & Search | 1/2 | In Progress|  |
-| 6. Role Views & Consensus | 0/2 | Not started | - |
+| 6. Role Views & Consensus | 1/2 | In Progress|  |
 | 7. Communication | 0/2 | Not started | - |
 | 8. External Intake | 0/2 | Not started | - |
 | 9. Knowledge Base | 0/3 | Not started | - |

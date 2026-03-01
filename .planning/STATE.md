@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-01T00:21:35.231Z"
+last_updated: "2026-03-01T13:48:40.815Z"
 progress:
-  total_phases: 5
+  total_phases: 6
   completed_phases: 5
-  total_plans: 15
-  completed_plans: 15
+  total_plans: 17
+  completed_plans: 16
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** 在实现之前暴露误解，让团队对"要做什么"达成结构化共识
-**Current focus:** Phase 5: Workflow & Search (COMPLETE)
+**Current focus:** Phase 6: Role Views & Consensus (In Progress)
 
 ## Current Position
 
-Phase: 5 of 10 (Workflow & Search) — COMPLETE
-Plan: 2 of 2 in current phase
-Status: Phase 5 complete
-Last activity: 2026-03-01 — Completed 05-02 Search & Filtering
+Phase: 6 of 10 (Role Views & Consensus) — In Progress
+Plan: 1 of 2 in current phase — COMPLETE
+Status: Phase 6, Plan 1 complete
+Last activity: 2026-03-01 — Completed 06-01 ReviewSignoff Model and Consensus API
 
-Progress: [████████████████████] 100% (Phase 5, Plan 2/2)
+Progress: [████████████████████] 50% (Phase 6, Plan 1/2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 16
+- Total plans completed: 17
 - Average duration: 6min
-- Total execution time: 1.48 hours
+- Total execution time: 1.65 hours
 
 **By Phase:**
 
@@ -45,9 +45,10 @@ Progress: [████████████████████] 100% (P
 | 3. Conversational Refinement | 4/4 | 16min | 4min |
 | 4. Model Versioning | 2/2 | 9min | 4.5min |
 | 5. Workflow & Search | 2/2 | 8min | 4min |
+| 6. Role Views & Consensus | 1/2 | 10min | 10min |
 
 **Recent Trend:**
-- Last 5 plans: 5min, 5min, 4min, 6min, 2min
+- Last 5 plans: 5min, 4min, 6min, 2min, 10min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -106,6 +107,9 @@ Recent decisions affecting current work:
 - [05-02]: Role filter via UserRole subquery join rather than denormalized field on Requirement
 - [05-02]: Date serialization to ISO strings when passing from server component to client component
 - [05-02]: useDeferredValue for search input debounce instead of manual setTimeout
+- [Phase 06-01]: ReviewSignoff uses compound unique key [requirementId, role] enabling idempotent upserts per role
+- [Phase 06-01]: Sign-off invalidation captures status before transaction to avoid extra read inside transaction
+- [Phase 06-01]: CONSENSUS->IN_REVIEW backward transition clears sign-offs, requiring re-review cycle
 
 ### Pending Todos
 
@@ -120,7 +124,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-01
-Stopped at: Completed 05-02-PLAN.md — Search & Filtering (Phase 5, Plan 2/2) — Phase 5 COMPLETE
-Resume file: .planning/phases/05-workflow-search/05-02-SUMMARY.md
+Stopped at: Completed 06-01-PLAN.md — ReviewSignoff Model and Consensus API (Phase 6, Plan 1/2)
+Resume file: .planning/phases/06-role-views-consensus/06-01-SUMMARY.md
 
-**Next Step:** Execute Phase 6 (Collaboration)
+**Next Step:** Execute Phase 6 Plan 2 (Role Views UI)
