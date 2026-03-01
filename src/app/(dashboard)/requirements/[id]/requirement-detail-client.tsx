@@ -4,6 +4,7 @@ import { useState, useRef, useCallback } from 'react'
 import { ModelTabs } from './model-tabs'
 import { ChatPanel } from './chat-panel'
 import { VersionHistory } from './version-history'
+import { StatusControl } from './status-control'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import type { ConversationResponse } from '@/lib/schemas/conversation'
 import type { UIMessage } from 'ai'
@@ -30,6 +31,7 @@ export function RequirementDetailClient({
   initialConfidence,
   initialMessages,
 }: Props) {
+  const [currentStatus, setCurrentStatus] = useState(status)
   const [model, setModel] = useState<FiveLayerModel | undefined>(initialModel)
   const [pendingPatches, setPendingPatches] = useState<ConversationResponse['patches'] | null>(null)
   const [pendingAssumptions, setPendingAssumptions] = useState<PendingAssumption[]>([])
@@ -124,9 +126,16 @@ export function RequirementDetailClient({
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold">{title}</h1>
-          <p className="text-sm text-muted-foreground">
-            状态: {status} | 版本: v{version}
-          </p>
+          <div className="mt-1 flex items-center gap-3">
+            <StatusControl
+              requirementId={requirementId}
+              currentStatus={currentStatus}
+              onStatusChanged={setCurrentStatus}
+            />
+            <span className="text-sm text-muted-foreground">
+              版本: v{version}
+            </span>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {model && (
