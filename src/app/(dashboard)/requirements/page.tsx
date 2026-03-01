@@ -1,13 +1,33 @@
 import Link from 'next/link'
 import { verifySession } from '@/lib/dal'
 import { prisma } from '@/server/db/client'
+import { RequirementsListClient } from './requirements-list-client'
+
+export const dynamic = 'force-dynamic'
 
 export default async function RequirementsPage() {
   await verifySession()
 
   const requirements = await prisma.requirement.findMany({
     orderBy: { updatedAt: 'desc' },
+    select: {
+      id: true,
+      title: true,
+      rawInput: true,
+      status: true,
+      tags: true,
+      createdBy: true,
+      createdAt: true,
+      updatedAt: true,
+      version: true,
+    },
   })
+
+  const serialized = requirements.map((req) => ({
+    ...req,
+    createdAt: req.createdAt.toISOString(),
+    updatedAt: req.updatedAt.toISOString(),
+  }))
 
   return (
     <div className="space-y-6">
@@ -21,34 +41,7 @@ export default async function RequirementsPage() {
         </Link>
       </div>
 
-      {requirements.length === 0 ? (
-        <div className="rounded-lg border border-dashed p-10 text-center">
-          <p className="text-gray-500">暂无需求</p>
-          <Link href="/requirements/new" className="mt-2 inline-block text-sm underline">
-            创建第一个需求
-          </Link>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {requirements.map((req) => (
-            <Link
-              key={req.id}
-              href={`/requirements/${req.id}`}
-              className="block rounded-lg border p-4 hover:border-black transition-colors"
-            >
-              <div className="flex items-center justify-between">
-                <h2 className="font-medium">{req.title}</h2>
-                <span className="text-xs text-gray-400">
-                  {req.updatedAt.toLocaleDateString('zh-CN')}
-                </span>
-              </div>
-              <p className="mt-1 text-sm text-gray-600 line-clamp-2">
-                {req.rawInput}
-              </p>
-            </Link>
-          ))}
-        </div>
-      )}
+      <RequirementsListClient initialRequirements={serialized} />
     </div>
   )
 }
