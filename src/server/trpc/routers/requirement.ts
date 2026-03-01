@@ -4,6 +4,8 @@ import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { FiveLayerModelSchema, CreateRequirementSchema } from '@/lib/schemas/requirement'
 import { eventBus } from '@/server/events/bus'
+import { assertTransition, RequirementStatusEnum } from '@/lib/workflow/status-machine'
+import type { RequirementStatus } from '@/lib/workflow/status-machine'
 
 export const requirementRouter = createTRPCRouter({
   create: protectedProcedure
@@ -43,7 +45,7 @@ export const requirementRouter = createTRPCRouter({
     }),
 
   list: protectedProcedure
-    .input(z.object({ status: z.string().optional() }).optional())
+    .input(z.object({ status: RequirementStatusEnum.optional() }).optional())
     .query(async ({ input }) => {
       return prisma.requirement.findMany({
         where: input?.status ? { status: input.status } : undefined,
@@ -102,5 +104,37 @@ export const requirementRouter = createTRPCRouter({
       })
 
       return requirement
+    }),
+
+  transitionStatus: protectedProcedure
+    .input(z.object({ id: z.string(), to: RequirementStatusEnum }))
+    .mutation(async ({ input, ctx }) => {
+      const current = await prisma.requirement.findUniqueOrThrow({
+        where: { id: input.id },
+        select: { id: true, status: true },
+      })
+
+      try {
+        assertTransition(current.status as RequirementStatus, input.to)
+      } catch (err) {
+        throw new TRPCError({
+          code: 'BAD_REQUEST',
+          message: err instanceof Error ? err.message : 'Invalid status transition',
+        })
+      }
+
+      const updated = await prisma.requirement.update({
+        where: { id: input.id, status: current.status },
+        data: { status: input.to },
+      })
+
+      eventBus.emit('requirement.status.changed', {
+        requirementId: updated.id,
+        from: current.status,
+        to: input.to,
+        changedBy: ctx.session.userId,
+      })
+
+      return updated
     }),
 })

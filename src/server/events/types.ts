@@ -12,4 +12,5 @@ export interface EventMap {
   'requirement.updated': { requirementId: string; updatedBy: string; field: string }
   'conversation.message.saved': { requirementId: string }
   'requirement.version.created': { requirementId: string; version: number; previousVersion: number; createdBy: string }
+  'requirement.status.changed': { requirementId: string; from: string; to: string; changedBy: string }
 }
