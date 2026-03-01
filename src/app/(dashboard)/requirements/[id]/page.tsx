@@ -12,7 +12,7 @@ export default async function RequirementDetailPage({
 }: {
   params: Promise<{ id: string }>
 }) {
-  await verifySession()
+  const session = await verifySession()
   const { id } = await params
 
   const requirement = await prisma.requirement.findUnique({
@@ -42,6 +42,7 @@ export default async function RequirementDetailPage({
       initialModel={requirement.model ? (requirement.model as FiveLayerModel) : undefined}
       initialConfidence={requirement.confidence as Record<string, number> | undefined}
       initialMessages={initialMessages}
+      userRoles={session.roles}
     />
   )
 }

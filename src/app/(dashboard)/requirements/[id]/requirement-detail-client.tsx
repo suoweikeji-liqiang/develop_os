@@ -2,6 +2,9 @@
 
 import { useState, useRef, useCallback } from 'react'
 import { ModelTabs } from './model-tabs'
+import { RoleViewTabs } from './role-view-tabs'
+import { SignoffPanel } from './signoff-panel'
+import { ConsensusStatus } from './consensus-status'
 import { ChatPanel } from './chat-panel'
 import { VersionHistory } from './version-history'
 import { StatusControl } from './status-control'
@@ -19,6 +22,7 @@ interface Props {
   initialModel: FiveLayerModel | undefined
   initialConfidence: Record<string, number> | undefined
   initialMessages: UIMessage[]
+  userRoles: string[]
 }
 
 export function RequirementDetailClient({
@@ -30,6 +34,7 @@ export function RequirementDetailClient({
   initialModel,
   initialConfidence,
   initialMessages,
+  userRoles,
 }: Props) {
   const [currentStatus, setCurrentStatus] = useState(status)
   const [model, setModel] = useState<FiveLayerModel | undefined>(initialModel)
@@ -167,18 +172,37 @@ export function RequirementDetailClient({
       )}
 
       <div className={model ? 'grid grid-cols-[1fr_380px] gap-6 items-start' : 'max-w-4xl'}>
-        <ModelTabs
-          requirementId={requirementId}
-          rawInput={rawInput}
-          initialModel={model}
-          initialConfidence={initialConfidence}
-          mode={model ? 'view' : 'generate'}
-          pendingPatches={pendingPatches}
-          pendingAssumptions={pendingAssumptions}
-          onApplyPatch={handleApplyPatch}
-          onRejectPatch={handleRejectPatch}
-          onAssumptionAction={handleAssumptionAction}
-        />
+        <div className="space-y-4">
+          {model ? (
+            <RoleViewTabs
+              requirementId={requirementId}
+              model={model}
+              userRoles={userRoles}
+              confidence={initialConfidence}
+              pendingPatches={pendingPatches as Record<string, unknown> | null}
+              pendingAssumptions={pendingAssumptions}
+              readOnly={false}
+              onApplyPatch={handleApplyPatch}
+              onRejectPatch={handleRejectPatch}
+              onAssumptionAction={handleAssumptionAction}
+            />
+          ) : (
+            <ModelTabs
+              requirementId={requirementId}
+              rawInput={rawInput}
+              initialModel={model}
+              initialConfidence={initialConfidence}
+              mode="generate"
+              pendingPatches={pendingPatches}
+              pendingAssumptions={pendingAssumptions}
+              onApplyPatch={handleApplyPatch}
+              onRejectPatch={handleRejectPatch}
+              onAssumptionAction={handleAssumptionAction}
+            />
+          )}
+          <ConsensusStatus requirementId={requirementId} currentStatus={currentStatus} />
+          <SignoffPanel requirementId={requirementId} userRoles={userRoles} currentStatus={currentStatus} />
+        </div>
         {model && (
           <ChatPanel
             requirementId={requirementId}
