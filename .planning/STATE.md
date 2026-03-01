@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-02-28T17:31:11.714Z"
+status: in-progress
+last_updated: "2026-03-01T00:09:30.000Z"
 progress:
-  total_phases: 4
+  total_phases: 5
   completed_phases: 4
-  total_plans: 13
-  completed_plans: 13
+  total_plans: 14
+  completed_plans: 14
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** 在实现之前暴露误解，让团队对"要做什么"达成结构化共识
-**Current focus:** Phase 4: Model Versioning
+**Current focus:** Phase 5: Workflow & Search
 
 ## Current Position
 
-Phase: 4 of 10 (Model Versioning)
-Plan: 2 of 2 in current phase
-Status: Phase 04 complete
-Last activity: 2026-02-28 — Completed 04-02 Version Diff UI
+Phase: 5 of 10 (Workflow & Search)
+Plan: 1 of 2 in current phase
+Status: Plan 05-01 complete
+Last activity: 2026-03-01 — Completed 05-01 Status Lifecycle
 
-Progress: [█████████████░░░░░░░] 100% (Phase 4)
+Progress: [██████████████░░░░░░] 50% (Phase 5, Plan 1/2)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 13
+- Total plans completed: 14
 - Average duration: 6min
-- Total execution time: 1.35 hours
+- Total execution time: 1.45 hours
 
 **By Phase:**
 
@@ -44,9 +44,10 @@ Progress: [█████████████░░░░░░░] 100% (P
 | 2. Core AI Structuring | 3/3 | 24min | 8min |
 | 3. Conversational Refinement | 4/4 | 16min | 4min |
 | 4. Model Versioning | 2/2 | 9min | 4.5min |
+| 5. Workflow & Search | 1/2 | 6min | 6min |
 
 **Recent Trend:**
-- Last 5 plans: 3min, 6min, 5min, 5min, 4min
+- Last 5 plans: 6min, 5min, 5min, 4min, 6min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -98,6 +99,9 @@ Recent decisions affecting current work:
 - [04-02]: Chinese semantic labels via LAYER_LABELS map with fallback for unexpected paths
 - [04-02]: Radio-button A/B selection pattern for version comparison
 - [04-02]: currentModel passthrough avoids extra fetch when comparing against live version
+- [05-01]: Zod enum mirrors Prisma enum for shared validation between client and server
+- [05-01]: Optimistic lock on status update (WHERE status = current) prevents race conditions
+- [05-01]: Backward transitions allowed one step except DONE which is terminal
 
 ### Pending Todos
 
@@ -111,8 +115,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-02-28
-Stopped at: Completed 04-02-PLAN.md — Version Diff UI (Phase 4 complete)
-Resume file: .planning/phases/04-model-versioning/04-02-SUMMARY.md
+Last session: 2026-03-01
+Stopped at: Completed 05-01-PLAN.md — Status Lifecycle (Phase 5, Plan 1/2)
+Resume file: .planning/phases/05-workflow-search/05-01-SUMMARY.md
 
-**Next Step:** Execute Phase 5
+**Next Step:** Execute Phase 5 Plan 2 (Search & Filtering)

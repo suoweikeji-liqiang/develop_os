@@ -17,7 +17,7 @@
 
 - [x] **MOD-01**: 需求模型支持版本化，每次变更生成不可变快照
 - [x] **MOD-02**: 支持结构化 diff 视图（目标/场景/状态变更级别，非文本行级别）
-- [ ] **MOD-03**: 需求状态流转：草稿 → 评审中 → 共识达成 → 实现中 → 完成
+- [x] **MOD-03**: 需求状态流转：草稿 → 评审中 → 共识达成 → 实现中 → 完成
 - [ ] **MOD-04**: 支持全文搜索、按状态/标签/角色/日期筛选
 
 ### 多角色协作
@@ -73,7 +73,7 @@
 | AI-05 | Phase 2: Core AI Structuring | Complete |
 | MOD-01 | Phase 4: Model Versioning | Complete |
 | MOD-02 | Phase 4: Model Versioning | Complete |
-| MOD-03 | Phase 5: Workflow & Search | Pending |
+| MOD-03 | Phase 5: Workflow & Search | Complete |
 | MOD-04 | Phase 5: Workflow & Search | Pending |
 | COL-01 | Phase 6: Role Views & Consensus | Pending |
 | COL-02 | Phase 6: Role Views & Consensus | Pending |
