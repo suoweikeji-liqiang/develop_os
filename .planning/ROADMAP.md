@@ -17,7 +17,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 3: Conversational Refinement** - Dialogue-based model correction and AI assumption surfacing with confidence scores (completed 2026-02-28)
 - [x] **Phase 4: Model Versioning** - Immutable version snapshots and structured diff views for requirement models
 - [ ] **Phase 5: Workflow & Search** - Requirement status flow (draft to done) and full-text search with filtering
-- [x] **Phase 6: Role Views & Consensus** - Role-specific requirement views and multi-role sign-off workflow (completed 2026-03-01)
+- [x] **Phase 6: Role Views & Consensus** - Role-specific requirement views and multi-role sign-off workflow (completed 2026-03-01)
 - [ ] **Phase 7: Communication** - Comments, @mentions, async discussion, in-app and external notifications
 - [ ] **Phase 8: External Intake** - Public submission form for outside departments and progress tracking
 - [ ] **Phase 9: Knowledge Base** - Document upload, code repo integration, and historical context accumulation
@@ -127,11 +127,11 @@ Plans:
   2. User can @mention other team members in comments
   3. Mentioned users receive in-app notifications
   4. Users receive email or webhook notifications for status changes and mentions
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 07-01: Comments and @mention system
-- [ ] 07-02: Notification engine (in-app + email/webhook)
+- [ ] 07-01-PLAN.md — Prisma migration (Comment/Mention/Notification/WebhookConfig), comment tRPC router, react-mentions UI, CommentsPanel on requirement detail page
+- [ ] 07-02-PLAN.md — notification + webhookConfig tRPC routers, SSE Route Handler, NotificationBell in layout, email templates via Resend, webhook delivery utility
 
 ### Phase 8: External Intake
 **Goal**: External departments can submit requirements without full system access and track their processing status
