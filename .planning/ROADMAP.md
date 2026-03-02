@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5: Workflow & Search** - Requirement status flow (draft to done) and full-text search with filtering
 - [x] **Phase 6: Role Views & Consensus** - Role-specific requirement views and multi-role sign-off workflow (completed 2026-03-01)
 - [x] **Phase 7: Communication** - Comments, @mentions, async discussion, in-app and external notifications
-- [ ] **Phase 8: External Intake** - Public submission form for outside departments and progress tracking
+- [x] **Phase 8: External Intake** - Public submission form for outside departments and progress tracking (completed 2026-03-02)
 - [ ] **Phase 9: Knowledge Base** - Document upload, code repo integration, and historical context accumulation
 - [ ] **Phase 10: Conflict Detection & Agent Architecture** - Cross-requirement contradiction detection and formalized agent plugin interface
 
@@ -194,6 +194,6 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 | 5. Workflow & Search | 1/2 | In Progress|  |
 | 6. Role Views & Consensus | 2/2 | Complete   | 2026-03-01 |
 | 7. Communication | 2/2 | Complete | 2026-03-02 |
-| 8. External Intake | 1/2 | In Progress | - |
+| 8. External Intake | 2/2 | Complete   | 2026-03-02 |
 | 9. Knowledge Base | 0/3 | Not started | - |
 | 10. Conflict Detection & Agent Architecture | 0/2 | Not started | - |

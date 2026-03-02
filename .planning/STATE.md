@@ -2,11 +2,11 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: in_progress
-last_updated: "2026-03-02T04:54:00Z"
+status: unknown
+last_updated: "2026-03-02T05:01:42.918Z"
 progress:
-  total_phases: 10
-  completed_phases: 7
+  total_phases: 8
+  completed_phases: 8
   total_plans: 21
   completed_plans: 21
 ---
@@ -18,16 +18,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** 在实现之前暴露误解，让团队对"要做什么"达成结构化共识
-**Current focus:** Phase 8: External Intake (Plan 1/2 COMPLETE)
+**Current focus:** Phase 9: Analytics — Phase 8 External Intake COMPLETE
 
 ## Current Position
 
-Phase: 8 of 10 (External Intake) — IN PROGRESS
-Plan: 1 of 2 in current phase — COMPLETE
-Status: Phase 8 Plan 1 complete, ready for Plan 2 (public form + status page UI)
-Last activity: 2026-03-02 — Completed 08-01 ExternalSubmission backend (Prisma model + tRPC endpoints)
+Phase: 8 of 10 (External Intake) — COMPLETE
+Plan: 2 of 2 in current phase — COMPLETE
+Status: Phase 8 complete — ExternalSubmission backend + public UI pages shipped
+Last activity: 2026-03-02 — Completed 08-02 Public submission form + status tracking page
 
-Progress: [████████████░░░░░░░░░░░░] 50% (Plan 1/2 done)
+Progress: [██████████████░░░░░░░░░░] 75% (Phase 8/10 done)
 
 ## Performance Metrics
 
@@ -47,13 +47,14 @@ Progress: [████████████░░░░░░░░░░░
 | 5. Workflow & Search | 2/2 | 8min | 4min |
 | 6. Role Views & Consensus | 2/2 | 19min | 9.5min |
 | 7. Communication | 2/2 | 14min | 7min |
-| 8. External Intake | 1/2 | 2min | 2min |
+| 8. External Intake | 2/2 | 4min | 2min |
 
 **Recent Trend:**
 - Last 5 plans: 2min, 10min, 7min, 7min, 2min
 - Trend: stable
 
 *Updated after each plan completion*
+| Phase 08 P02 | 2 | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -127,6 +128,9 @@ Recent decisions affecting current work:
 - [08-01]: token = crypto.randomUUID() (built-in Node 19+) — no uuid package needed
 - [08-01]: status returns null for unknown token — lets UI distinguish not-found from errors cleanly
 - [08-01]: Fire-and-forget confirmation email pattern reused from Phase 07-02 — consistent approach
+- [Phase 08]: params typed as Promise<{ token: string }> for Next.js 15 App Router dynamic segments in public pages
+- [Phase 08]: StatusPage fetches via HTTP with cache:no-store and force-dynamic — prevents stale status display for external submitters
+- [Phase 08]: fetchStatus returns null for any error — single not-found UI handles both invalid token and network failure
 
 ### Pending Todos
 
@@ -141,7 +145,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 08-01-PLAN.md — ExternalSubmission backend (Phase 8, Plan 1/2)
-Resume file: .planning/phases/08-external-intake/08-01-SUMMARY.md
+Stopped at: Completed 08-02-PLAN.md — Public submission form + status page UI (Phase 8 COMPLETE)
+Resume file: .planning/phases/08-external-intake/08-02-SUMMARY.md
 
-**Next Step:** Phase 8 Plan 2 — Public submission form + status page UI.
+**Next Step:** Phase 9 — Analytics dashboard (or Phase 10 Conflict Detection, per roadmap priority).
