@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-01T14:19:20.546Z"
+last_updated: "2026-03-02T02:44:37.000Z"
 progress:
-  total_phases: 6
+  total_phases: 7
   completed_phases: 6
-  total_plans: 17
-  completed_plans: 17
+  total_plans: 18
+  completed_plans: 18
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** 在实现之前暴露误解，让团队对"要做什么"达成结构化共识
-**Current focus:** Phase 6: Role Views & Consensus (COMPLETE)
+**Current focus:** Phase 7: Communication (IN PROGRESS)
 
 ## Current Position
 
-Phase: 6 of 10 (Role Views & Consensus) — COMPLETE
-Plan: 2 of 2 in current phase — COMPLETE
-Status: Phase 6 complete
-Last activity: 2026-03-01 — Completed 06-02 Role Views UI and Sign-off Components
+Phase: 7 of 10 (Communication) — IN PROGRESS
+Plan: 1 of 2 in current phase — COMPLETE
+Status: 07-01 Comments & @Mentions complete, ready for 07-02
+Last activity: 2026-03-02 — Completed 07-01 Comments & @Mentions
 
-Progress: [████████████████████████] 100% (Phase 6 done)
+Progress: [████████████████████████] 100% (Plan 1/2 done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 17
+- Total plans completed: 18
 - Average duration: 6min
-- Total execution time: 1.65 hours
+- Total execution time: 1.77 hours
 
 **By Phase:**
 
@@ -46,9 +46,10 @@ Progress: [███████████████████████
 | 4. Model Versioning | 2/2 | 9min | 4.5min |
 | 5. Workflow & Search | 2/2 | 8min | 4min |
 | 6. Role Views & Consensus | 2/2 | 19min | 9.5min |
+| 7. Communication | 1/2 | 7min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 5min, 4min, 6min, 2min, 10min
+- Last 5 plans: 4min, 6min, 2min, 10min, 7min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -113,6 +114,9 @@ Recent decisions affecting current work:
 - [Phase 06-02]: RoleViewTabs wraps existing LayerEditor/AssumptionCard — no duplication of layer rendering logic
 - [Phase 06-02]: ModelTabs retained for generate/streaming mode; RoleViewTabs used for view mode after model exists
 - [Phase 06-02]: Native HTML checkbox used in ReviewChecklist — Radix Checkbox not installed, not needed
+- [Phase 07-01]: react-mentions markup @[Name](id) parsed server-side via regex for mention extraction
+- [Phase 07-01]: Mention + Notification rows created atomically in same $transaction as Comment
+- [Phase 07-01]: user.search uses protectedProcedure (not adminProcedure) for @mention autocomplete access
 
 ### Pending Todos
 
@@ -126,8 +130,8 @@ None yet.
 
 ## Session Continuity
 
-Last session: 2026-03-01
-Stopped at: Completed 06-02-PLAN.md — Role Views UI and Sign-off Components (Phase 6, Plan 2/2 — Phase 6 COMPLETE)
-Resume file: .planning/phases/06-role-views-consensus/06-02-SUMMARY.md
+Last session: 2026-03-02
+Stopped at: Completed 07-01-PLAN.md — Comments & @Mentions (Phase 7, Plan 1/2)
+Resume file: .planning/phases/07-communication/07-01-SUMMARY.md
 
-**Next Step:** Phase 6 complete. Ready for Phase 7.
+**Next Step:** Execute 07-02 — Notifications, SSE, and Webhooks.

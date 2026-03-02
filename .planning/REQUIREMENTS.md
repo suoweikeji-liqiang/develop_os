@@ -24,7 +24,7 @@
 
 - [x] **COL-01**: 产品/开发/测试/UI 各角色可查看同一需求模型的角色专属视图
 - [x] **COL-02**: 各角色按职责签字确认，全部签字才能推进状态
-- [ ] **COL-03**: 支持评论、@提及、异步讨论
+- [x] **COL-03**: 支持评论、@提及、异步讨论
 - [ ] **COL-04**: 应用内通知 + 邮件/webhook 通知
 
 ### 外部需求入口
@@ -77,7 +77,7 @@
 | MOD-04 | Phase 5: Workflow & Search | Complete |
 | COL-01 | Phase 6: Role Views & Consensus | Complete |
 | COL-02 | Phase 6: Role Views & Consensus | Complete |
-| COL-03 | Phase 7: Communication | Pending |
+| COL-03 | Phase 7: Communication | Complete |
 | COL-04 | Phase 7: Communication | Pending |
 | EXT-01 | Phase 8: External Intake | Pending |
 | EXT-02 | Phase 8: External Intake | Pending |

@@ -130,7 +130,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 07-01-PLAN.md — Prisma migration (Comment/Mention/Notification/WebhookConfig), comment tRPC router, react-mentions UI, CommentsPanel on requirement detail page
+- [x] 07-01-PLAN.md — Prisma migration (Comment/Mention/Notification/WebhookConfig), comment tRPC router, react-mentions UI, CommentsPanel on requirement detail page
 - [ ] 07-02-PLAN.md — notification + webhookConfig tRPC routers, SSE Route Handler, NotificationBell in layout, email templates via Resend, webhook delivery utility
 
 ### Phase 8: External Intake
@@ -193,7 +193,7 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 | 4. Model Versioning | 2/2 | Complete | 2026-02-28 |
 | 5. Workflow & Search | 1/2 | In Progress|  |
 | 6. Role Views & Consensus | 2/2 | Complete   | 2026-03-01 |
-| 7. Communication | 0/2 | Not started | - |
+| 7. Communication | 1/2 | In Progress | - |
 | 8. External Intake | 0/2 | Not started | - |
 | 9. Knowledge Base | 0/3 | Not started | - |
 | 10. Conflict Detection & Agent Architecture | 0/2 | Not started | - |
