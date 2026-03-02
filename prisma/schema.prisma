@@ -1,10 +1,12 @@
 generator client {
-  provider = "prisma-client"
-  output   = "../src/generated/prisma"
+  provider        = "prisma-client"
+  output          = "../src/generated/prisma"
+  previewFeatures = ["postgresqlExtensions"]
 }
 
 datasource db {
-  provider = "postgresql"
+  provider   = "postgresql"
+  extensions = [vector]
 }
 
 enum RequirementStatus {
@@ -213,4 +215,40 @@ model ExternalSubmission {
   createdAt        DateTime    @default(now())
 
   requirement      Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+}
+
+model KnowledgeDocument {
+  id         String   @id @default(cuid())
+  name       String
+  mimeType   String
+  status     String   @default("PROCESSING")
+  chunkCount Int?
+  uploadedBy String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+model CodeRepository {
+  id                   String    @id @default(cuid())
+  owner                String
+  repo                 String
+  githubTokenEncrypted String
+  lastSyncedAt         DateTime?
+  addedBy              String
+  createdAt            DateTime  @default(now())
+
+  @@unique([owner, repo, addedBy])
+}
+
+model KnowledgeChunk {
+  id         String                     @id @default(cuid())
+  sourceType String
+  sourceId   String
+  sourceName String
+  content    String                     @db.Text
+  embedding  Unsupported("vector(1536)")?
+  metadata   Json                       @default("{}")
+  createdAt  DateTime                   @default(now())
+
+  @@index([sourceType, sourceId])
 }
