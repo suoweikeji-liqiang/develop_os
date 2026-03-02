@@ -6,6 +6,8 @@ import { conversationRouter } from './routers/conversation'
 import { versionRouter } from './routers/version'
 import { signoffRouter } from './routers/signoff'
 import { commentRouter } from './routers/comment'
+import { notificationRouter } from './routers/notification'
+import { webhookRouter } from './routers/webhook'
 
 export const appRouter = createTRPCRouter({
   auth: authRouter,
@@ -15,6 +17,8 @@ export const appRouter = createTRPCRouter({
   version: versionRouter,
   signoff: signoffRouter,
   comment: commentRouter,
+  notification: notificationRouter,
+  webhookConfig: webhookRouter,
 })
 
 export type AppRouter = typeof appRouter
