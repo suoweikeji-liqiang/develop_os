@@ -10,6 +10,7 @@ import { notificationRouter } from './routers/notification'
 import { webhookRouter } from './routers/webhook'
 import { externalRouter } from './routers/external'
 import { knowledgeDocumentRouter } from './routers/knowledgeDocument'
+import { codeRepositoryRouter } from './routers/codeRepository'
 
 export const appRouter = createTRPCRouter({
   auth: authRouter,
@@ -23,6 +24,7 @@ export const appRouter = createTRPCRouter({
   webhookConfig: webhookRouter,
   external: externalRouter,
   knowledgeDocument: knowledgeDocumentRouter,
+  codeRepository: codeRepositoryRouter,
 })
 
 export type AppRouter = typeof appRouter

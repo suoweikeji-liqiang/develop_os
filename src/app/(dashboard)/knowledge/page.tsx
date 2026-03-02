@@ -1,4 +1,5 @@
 import { KnowledgeClient } from './knowledge-client'
+import { RepoSection } from './repo-section'
 
 export const dynamic = 'force-dynamic'
 
@@ -12,6 +13,7 @@ export default function KnowledgePage() {
         </p>
       </div>
       <KnowledgeClient />
+      <RepoSection />
     </div>
   )
 }
