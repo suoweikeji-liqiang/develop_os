@@ -18,7 +18,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [x] **Phase 4: Model Versioning** - Immutable version snapshots and structured diff views for requirement models
 - [ ] **Phase 5: Workflow & Search** - Requirement status flow (draft to done) and full-text search with filtering
 - [x] **Phase 6: Role Views & Consensus** - Role-specific requirement views and multi-role sign-off workflow (completed 2026-03-01)
-- [ ] **Phase 7: Communication** - Comments, @mentions, async discussion, in-app and external notifications
+- [x] **Phase 7: Communication** - Comments, @mentions, async discussion, in-app and external notifications
 - [ ] **Phase 8: External Intake** - Public submission form for outside departments and progress tracking
 - [ ] **Phase 9: Knowledge Base** - Document upload, code repo integration, and historical context accumulation
 - [ ] **Phase 10: Conflict Detection & Agent Architecture** - Cross-requirement contradiction detection and formalized agent plugin interface
@@ -131,7 +131,7 @@ Plans:
 
 Plans:
 - [x] 07-01-PLAN.md — Prisma migration (Comment/Mention/Notification/WebhookConfig), comment tRPC router, react-mentions UI, CommentsPanel on requirement detail page
-- [ ] 07-02-PLAN.md — notification + webhookConfig tRPC routers, SSE Route Handler, NotificationBell in layout, email templates via Resend, webhook delivery utility
+- [x] 07-02-PLAN.md — notification + webhookConfig tRPC routers, SSE Route Handler, NotificationBell in layout, email templates via Resend, webhook delivery utility
 
 ### Phase 8: External Intake
 **Goal**: External departments can submit requirements without full system access and track their processing status
@@ -193,7 +193,7 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 | 4. Model Versioning | 2/2 | Complete | 2026-02-28 |
 | 5. Workflow & Search | 1/2 | In Progress|  |
 | 6. Role Views & Consensus | 2/2 | Complete   | 2026-03-01 |
-| 7. Communication | 1/2 | In Progress | - |
+| 7. Communication | 2/2 | Complete | 2026-03-02 |
 | 8. External Intake | 0/2 | Not started | - |
 | 9. Knowledge Base | 0/3 | Not started | - |
 | 10. Conflict Detection & Agent Architecture | 0/2 | Not started | - |

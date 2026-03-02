@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-02T02:44:37.000Z"
+last_updated: "2026-03-02T02:58:36.000Z"
 progress:
   total_phases: 7
-  completed_phases: 6
-  total_plans: 18
-  completed_plans: 18
+  completed_phases: 7
+  total_plans: 20
+  completed_plans: 20
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** 在实现之前暴露误解，让团队对"要做什么"达成结构化共识
-**Current focus:** Phase 7: Communication (IN PROGRESS)
+**Current focus:** Phase 7: Communication (COMPLETE)
 
 ## Current Position
 
-Phase: 7 of 10 (Communication) — IN PROGRESS
-Plan: 1 of 2 in current phase — COMPLETE
-Status: 07-01 Comments & @Mentions complete, ready for 07-02
-Last activity: 2026-03-02 — Completed 07-01 Comments & @Mentions
+Phase: 7 of 10 (Communication) — COMPLETE
+Plan: 2 of 2 in current phase — COMPLETE
+Status: Phase 7 complete, ready for Phase 8
+Last activity: 2026-03-02 — Completed 07-02 Notifications, SSE, and Webhooks
 
-Progress: [████████████████████████] 100% (Plan 1/2 done)
+Progress: [████████████████████████] 100% (Plan 2/2 done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 18
+- Total plans completed: 20
 - Average duration: 6min
-- Total execution time: 1.77 hours
+- Total execution time: 1.88 hours
 
 **By Phase:**
 
@@ -46,10 +46,10 @@ Progress: [███████████████████████
 | 4. Model Versioning | 2/2 | 9min | 4.5min |
 | 5. Workflow & Search | 2/2 | 8min | 4min |
 | 6. Role Views & Consensus | 2/2 | 19min | 9.5min |
-| 7. Communication | 1/2 | 7min | 7min |
+| 7. Communication | 2/2 | 14min | 7min |
 
 **Recent Trend:**
-- Last 5 plans: 4min, 6min, 2min, 10min, 7min
+- Last 5 plans: 6min, 2min, 10min, 7min, 7min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -117,6 +117,10 @@ Recent decisions affecting current work:
 - [Phase 07-01]: react-mentions markup @[Name](id) parsed server-side via regex for mention extraction
 - [Phase 07-01]: Mention + Notification rows created atomically in same $transaction as Comment
 - [Phase 07-01]: user.search uses protectedProcedure (not adminProcedure) for @mention autocomplete access
+- [Phase 07-02]: Fire-and-forget pattern for email/webhook — void async IIFE, never blocks mutation response
+- [Phase 07-02]: Dynamic import in requirement.ts status notification to avoid circular dependencies
+- [Phase 07-02]: Console.log fallback when RESEND_API_KEY absent — zero-config dev experience
+- [Phase 07-02]: SSE filters by userId server-side — each user only receives their own notifications
 
 ### Pending Todos
 
@@ -131,7 +135,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 07-01-PLAN.md — Comments & @Mentions (Phase 7, Plan 1/2)
-Resume file: .planning/phases/07-communication/07-01-SUMMARY.md
+Stopped at: Completed 07-02-PLAN.md — Notifications, SSE, and Webhooks (Phase 7, Plan 2/2)
+Resume file: .planning/phases/07-communication/07-02-SUMMARY.md
 
-**Next Step:** Execute 07-02 — Notifications, SSE, and Webhooks.
+**Next Step:** Phase 7 complete. Begin Phase 8: External Intake.
