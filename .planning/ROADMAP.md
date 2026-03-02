@@ -141,11 +141,11 @@ Plans:
   1. External user can access a simple submission form without full login
   2. External user can submit a requirement with enough context for the team to process it
   3. External user can check the processing status of their submitted requirement
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 08-01: Public submission form
-- [ ] 08-02: Submission status tracking page
+- [ ] 08-01-PLAN.md — ExternalSubmission Prisma model + migration, ExternalSubmitSchema, externalRouter (baseProcedure submit + status), wired into appRouter
+- [ ] 08-02-PLAN.md — Public /submit form page + /submit/status/[token] tracking page (unauthenticated, force-dynamic)
 
 ### Phase 9: Knowledge Base
 **Goal**: AI structuring leverages uploaded documents, connected code repos, and accumulated historical context to produce better models
