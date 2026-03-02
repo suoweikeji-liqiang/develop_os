@@ -34,9 +34,9 @@
 
 ### 知识库
 
-- [ ] **KB-01**: 支持上传背景文档，AI 建模时自动检索相关上下文
-- [ ] **KB-02**: 支持接入代码仓库，AI 理解现有系统结构和约束
-- [ ] **KB-03**: 历史澄清过程和决策记录自动沉淀，AI 随使用积累变聪明
+- [x] **KB-01**: 支持上传背景文档，AI 建模时自动检索相关上下文
+- [x] **KB-02**: 支持接入代码仓库，AI 理解现有系统结构和约束
+- [x] **KB-03**: 历史澄清过程和决策记录自动沉淀，AI 随使用积累变聪明
 
 ### 基础设施
 
@@ -81,9 +81,9 @@
 | COL-04 | Phase 7: Communication | Complete |
 | EXT-01 | Phase 8: External Intake | Complete |
 | EXT-02 | Phase 8: External Intake | Complete |
-| KB-01 | Phase 9: Knowledge Base | Pending |
-| KB-02 | Phase 9: Knowledge Base | Pending |
-| KB-03 | Phase 9: Knowledge Base | Pending |
+| KB-01 | Phase 9: Knowledge Base | Complete |
+| KB-02 | Phase 9: Knowledge Base | Complete |
+| KB-03 | Phase 9: Knowledge Base | Complete |
 | INF-01 | Phase 1: Foundation | In Progress |
 | INF-02 | Phase 1: Foundation | Complete |
 | INF-03 | Phase 10: Conflict Detection & Agent Architecture | Pending |

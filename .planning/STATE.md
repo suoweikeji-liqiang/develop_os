@@ -3,12 +3,12 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: unknown
-last_updated: "2026-03-02T05:13:21.683Z"
+last_updated: "2026-03-02T08:53:19.006Z"
 progress:
-  total_phases: 8
-  completed_phases: 8
-  total_plans: 21
-  completed_plans: 21
+  total_phases: 9
+  completed_phases: 9
+  total_plans: 26
+  completed_plans: 26
 ---
 
 # Project State
@@ -18,21 +18,21 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** 在实现之前暴露误解，让团队对"要做什么"达成结构化共识
-**Current focus:** Phase 9: Analytics — Phase 8 External Intake COMPLETE
+**Current focus:** Phase 9: Knowledge Base — execution complete, awaiting manual runtime verification
 
 ## Current Position
 
-Phase: 8 of 10 (External Intake) — COMPLETE
-Plan: 2 of 2 in current phase — COMPLETE
-Status: Phase 8 complete — ExternalSubmission backend + public UI pages shipped
-Last activity: 2026-03-02 — Completed 08-02 Public submission form + status tracking page
+Phase: 9 of 10 (Knowledge Base) — EXECUTION COMPLETE
+Plan: 5 of 5 in current phase — COMPLETE
+Status: Human verification required — local pgvector extension missing blocks migration/runtime checks
+Last activity: 2026-03-02 — Completed 09-05 RAG injection + citations UI wiring
 
-Progress: [██████████████░░░░░░░░░░] 75% (Phase 8/10 done)
+Progress: [██████████████████░░░░] 90% (Phase 9/10 executed)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 21
+- Total plans completed: 26
 - Average duration: 6min
 - Total execution time: ~1.92 hours
 
@@ -48,13 +48,14 @@ Progress: [██████████████░░░░░░░░░
 | 6. Role Views & Consensus | 2/2 | 19min | 9.5min |
 | 7. Communication | 2/2 | 14min | 7min |
 | 8. External Intake | 2/2 | 4min | 2min |
+| 9. Knowledge Base | 5/5 | 2h 13min | 26.6min |
 
 **Recent Trend:**
-- Last 5 plans: 2min, 10min, 7min, 7min, 2min
-- Trend: stable
+- Last 5 plans: 46min, 38min, 29min, 16min, 44min
+- Trend: increased due cross-cutting Phase 9 scope
 
 *Updated after each plan completion*
-| Phase 08 P02 | 2 | 2 tasks | 3 files |
+| Phase 09 P05 | 44 | 2 tasks | 10 files |
 
 ## Accumulated Context
 
@@ -131,6 +132,9 @@ Recent decisions affecting current work:
 - [Phase 08]: params typed as Promise<{ token: string }> for Next.js 15 App Router dynamic segments in public pages
 - [Phase 08]: StatusPage fetches via HTTP with cache:no-store and force-dynamic — prevents stale status display for external submitters
 - [Phase 08]: fetchStatus returns null for any error — single not-found UI handles both invalid token and network failure
+- [Phase 09]: RAG retrieval errors are non-fatal; AI routes continue without context when retrieval fails — Preserves requirement structuring/conversation availability even if KB retrieval is temporarily unavailable
+- [Phase 09]: GitHub PATs are encrypted at rest with AES-256-CBC and validated ENCRYPTION_KEY — Prevents plaintext token storage and enforces secure runtime configuration
+- [Phase 09]: History embeddings are limited to assistant messages and deduped by metadata.messageId — Improves signal quality and keeps backfill idempotent
 
 ### Pending Todos
 
@@ -141,11 +145,12 @@ None yet.
 - Chinese language NLP validation needed in Phase 2 (from research)
 - LLM provider selection needed before Phase 2 ships (from research)
 - Conflict detection feasibility spike needed before Phase 10 planning (from research)
+- Phase 09 runtime verification blocked: pgvector extension is not installed on local PostgreSQL 16 (migration 20260302_add_knowledge_base failed).
 
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 08-02-PLAN.md — Public submission form + status page UI (Phase 8 COMPLETE)
-Resume file: .planning/phases/08-external-intake/08-02-SUMMARY.md
+Stopped at: Completed 09-05-PLAN.md; manual verification pending (pgvector install)
+Resume file: .planning/phases/09-knowledge-base/09-VERIFICATION.md
 
-**Next Step:** Phase 9 — Analytics dashboard (or Phase 10 Conflict Detection, per roadmap priority).
+**Next Step:** Install pgvector locally, resolve/re-run migrations, execute manual runtime verification for Phase 9.

@@ -159,11 +159,11 @@ Plans:
 **Plans**: 5 plans
 
 Plans:
-- [ ] 09-01-PLAN.md — pgvector migration, KnowledgeDocument/CodeRepository/KnowledgeChunk schema, embed.ts + retrieve.ts RAG utilities
-- [ ] 09-02-PLAN.md — Document upload API route (multipart), PDF/text extraction, fire-and-forget embedding, knowledgeDocument tRPC router, /knowledge dashboard page
-- [ ] 09-03-PLAN.md — AES-256 token encryption, GitHub Octokit repo sync + embedding, codeRepository tRPC router, repo management UI
-- [ ] 09-04-PLAN.md — History embedding utility, wire embedConversationMessage() into conversation router (fire-and-forget)
-- [ ] 09-05-PLAN.md — RAG retrieval wired into structure + converse API routes, citations column on Requirement, citation display in UI
+- [x] 09-01-PLAN.md — pgvector migration, KnowledgeDocument/CodeRepository/KnowledgeChunk schema, embed.ts + retrieve.ts RAG utilities
+- [x] 09-02-PLAN.md — Document upload API route (multipart), PDF/text extraction, fire-and-forget embedding, knowledgeDocument tRPC router, /knowledge dashboard page
+- [x] 09-03-PLAN.md — AES-256 token encryption, GitHub Octokit repo sync + embedding, codeRepository tRPC router, repo management UI
+- [x] 09-04-PLAN.md — History embedding utility, wire embedConversationMessage() into conversation router (fire-and-forget)
+- [x] 09-05-PLAN.md — RAG retrieval wired into structure + converse API routes, citations column on Requirement, citation display in UI
 
 ### Phase 10: Conflict Detection & Agent Architecture
 **Goal**: AI detects contradictions across requirements and between assumptions and behaviors; the agent plugin interface is formalized for future extensibility
@@ -197,5 +197,5 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 | 6. Role Views & Consensus | 2/2 | Complete   | 2026-03-01 |
 | 7. Communication | 2/2 | Complete | 2026-03-02 |
 | 8. External Intake | 2/2 | Complete   | 2026-03-02 |
-| 9. Knowledge Base | 0/5 | Not started | - |
+| 9. Knowledge Base | 5/5 | In Progress (verification pending) | - |
 | 10. Conflict Detection & Agent Architecture | 0/2 | Not started | - |
