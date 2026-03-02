@@ -200,6 +200,57 @@ export const requirementRouter = createTRPCRouter({
         changedBy: ctx.session.userId,
       })
 
+      // Fire-and-forget: notify sign-off contributors of status change
+      void (async () => {
+        const { sendStatusChangeEmail } = await import('@/lib/email/send-status-change-email')
+        const { deliverWebhook } = await import('@/lib/webhooks/deliver')
+
+        const signoffs = await prisma.reviewSignoff.findMany({
+          where: { requirementId: input.id },
+          include: { user: { select: { id: true, email: true, name: true, webhookConfig: true } } },
+        })
+
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+        const requirementUrl = `${baseUrl}/requirements/${input.id}`
+        const req = await prisma.requirement.findUnique({
+          where: { id: input.id },
+          select: { title: true },
+        })
+        const title = req?.title ?? input.id
+
+        for (const signoff of signoffs) {
+          if (signoff.user.id === ctx.session.userId) continue
+          await prisma.notification.create({
+            data: {
+              userId: signoff.user.id,
+              type: 'STATUS_CHANGE',
+              requirementId: input.id,
+            },
+          })
+          eventBus.emit('notification.created', {
+            userId: signoff.user.id,
+            type: 'STATUS_CHANGE' as const,
+            requirementId: input.id,
+          })
+          void sendStatusChangeEmail({
+            to: signoff.user.email,
+            requirementTitle: title,
+            fromStatus: current.status,
+            toStatus: input.to,
+            changedBy: ctx.session.user.name,
+            requirementUrl,
+          })
+          if (signoff.user.webhookConfig) {
+            void deliverWebhook(signoff.user.webhookConfig.url, {
+              event: 'status_change',
+              requirementId: input.id,
+              from: current.status,
+              to: input.to,
+            })
+          }
+        }
+      })()
+
       return updated
     }),
 

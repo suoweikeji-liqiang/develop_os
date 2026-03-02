@@ -2,6 +2,8 @@ import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { eventBus } from '@/server/events/bus'
+import { sendMentionEmail } from '@/lib/email/send-mention-email'
+import { deliverWebhook } from '@/lib/webhooks/deliver'
 
 function extractMentionIds(content: string): string[] {
   const regex = /@\[([^\]]+)\]\(([^)]+)\)/g
@@ -73,6 +75,43 @@ export const commentRouter = createTRPCRouter({
           })
         }
       }
+
+      // Fire-and-forget email + webhook for mentioned users
+      void (async () => {
+        const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
+        const requirementUrl = `${baseUrl}/requirements/${input.requirementId}`
+        const req = await prisma.requirement.findUnique({
+          where: { id: input.requirementId },
+          select: { title: true },
+        })
+        const title = req?.title ?? input.requirementId
+
+        for (const uid of [...new Set(mentionedUserIds)]) {
+          if (uid === ctx.session.userId) continue
+          const mentionedUser = await prisma.user.findUnique({
+            where: { id: uid },
+            select: { email: true, webhookConfig: true },
+          })
+          if (!mentionedUser) continue
+
+          void sendMentionEmail({
+            to: mentionedUser.email,
+            mentionedBy: ctx.session.user.name,
+            requirementTitle: title,
+            commentPreview: input.content,
+            requirementUrl,
+          })
+
+          if (mentionedUser.webhookConfig) {
+            void deliverWebhook(mentionedUser.webhookConfig.url, {
+              event: 'mention',
+              requirementId: input.requirementId,
+              commentId: comment.id,
+              mentionedBy: ctx.session.user.name,
+            })
+          }
+        }
+      })()
 
       return comment
     }),
