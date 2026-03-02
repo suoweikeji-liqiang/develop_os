@@ -1,6 +1,7 @@
 import Link from 'next/link'
 import { verifySession } from '@/lib/dal'
 import { logout } from '@/app/actions/auth'
+import { NotificationBell } from '@/components/notifications/notification-bell'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   const session = await verifySession()
@@ -21,6 +22,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
         </div>
         <div className="flex items-center gap-4">
           <span className="text-sm text-gray-600">{session.userId}</span>
+          <NotificationBell />
           <form action={logout}>
             <button type="submit" className="text-sm underline">退出</button>
           </form>
