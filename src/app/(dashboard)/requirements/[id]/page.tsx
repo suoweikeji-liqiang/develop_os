@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/server/db/client'
 import { verifySession } from '@/lib/dal'
 import { RequirementDetailClient } from './requirement-detail-client'
+import { CommentsPanel } from './comments-panel'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import type { UIMessage } from 'ai'
 
@@ -33,16 +34,23 @@ export default async function RequirementDetailPage({
   }))
 
   return (
-    <RequirementDetailClient
-      requirementId={requirement.id}
-      title={requirement.title}
-      status={requirement.status}
-      version={requirement.version}
-      rawInput={requirement.rawInput}
-      initialModel={requirement.model ? (requirement.model as FiveLayerModel) : undefined}
-      initialConfidence={requirement.confidence as Record<string, number> | undefined}
-      initialMessages={initialMessages}
-      userRoles={session.roles}
-    />
+    <div className="flex flex-col gap-6">
+      <RequirementDetailClient
+        requirementId={requirement.id}
+        title={requirement.title}
+        status={requirement.status}
+        version={requirement.version}
+        rawInput={requirement.rawInput}
+        initialModel={requirement.model ? (requirement.model as FiveLayerModel) : undefined}
+        initialConfidence={requirement.confidence as Record<string, number> | undefined}
+        initialMessages={initialMessages}
+        userRoles={session.roles}
+      />
+      <CommentsPanel
+        requirementId={requirement.id}
+        currentUserId={session.userId}
+        isAdmin={session.isAdmin}
+      />
+    </div>
   )
 }
