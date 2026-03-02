@@ -86,6 +86,7 @@ model Requirement {
   title         String
   rawInput      String                @db.Text
   model         Json?
+  citations     Json?                 @default("[]")
   confidence    Json?
   status        RequirementStatus     @default(DRAFT)
   tags          String[]              @default([])

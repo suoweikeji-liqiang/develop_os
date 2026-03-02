@@ -1,7 +1,16 @@
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
+import type { RetrievedChunk } from './rag/retrieve'
 
-export function buildConversationPrompt(currentModel: FiveLayerModel): string {
+export function buildConversationPrompt(
+  currentModel: FiveLayerModel,
+  ragContext: RetrievedChunk[] = [],
+): string {
   const modelJson = JSON.stringify(currentModel, null, 2)
+  const historySection = ragContext.length > 0
+    ? `\n\n## Relevant Historical Context\n\n${ragContext
+      .map((chunk, index) => `[${index + 1}] Source: ${chunk.sourceName} (${chunk.sourceType})\n${chunk.content}`)
+      .join('\n\n---\n\n')}`
+    : ''
 
   return `You are a requirements engineering expert helping refine a structured five-layer model.
 
@@ -26,5 +35,5 @@ When the user sends a message about this requirement:
 - Only include layers in \`patches\` that actually need to change.
 - Do NOT surface assumptions after every message — only on significant revelations.
 - Patches must conform to the existing schema structure exactly.
-- Keep replies concise and focused on the change made.`
+- Keep replies concise and focused on the change made.${historySection}`
 }

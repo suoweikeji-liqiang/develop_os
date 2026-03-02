@@ -3,6 +3,7 @@
  * System prompt is in English (LLMs perform better with English instructions)
  * but instructs the model to match output language to input language.
  */
+import type { RetrievedChunk } from './rag/retrieve'
 
 const SYSTEM_PROMPT = `You are a requirements engineering expert. Analyze the following natural language requirement and structure it into a five-layer model.
 
@@ -27,6 +28,15 @@ const SYSTEM_PROMPT = `You are a requirements engineering expert. Analyze the fo
 
 `
 
-export function buildStructuringPrompt(userInput: string): string {
-  return SYSTEM_PROMPT + userInput
+export function buildStructuringPrompt(
+  userInput: string,
+  ragContext: RetrievedChunk[] = [],
+): string {
+  const contextSection = ragContext.length > 0
+    ? `## Relevant Context from Knowledge Base\n\n${ragContext
+      .map((chunk, index) => `[${index + 1}] Source: ${chunk.sourceName} (${chunk.sourceType})\n${chunk.content}`)
+      .join('\n\n---\n\n')}\n\n## Input Requirement\n\n`
+    : '## Input Requirement\n\n'
+
+  return SYSTEM_PROMPT.replace('## Input Requirement\n\n', contextSection) + userInput
 }

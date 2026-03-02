@@ -3,6 +3,7 @@ import { openai } from '@ai-sdk/openai'
 import { FiveLayerModelSchema, type FiveLayerModel } from '@/lib/schemas/requirement'
 import { eventBus } from '@/server/events/bus'
 import { buildStructuringPrompt } from './prompt'
+import type { RetrievedChunk } from './rag/retrieve'
 
 const MAX_RETRIES = 3
 
@@ -21,6 +22,7 @@ export async function generateStructuredModel(
   input: string,
   requirementId: string,
   userId: string,
+  ragContext: RetrievedChunk[] = [],
 ): Promise<StructuringResult> {
   eventBus.emit('requirement.structuring.started', { requirementId, userId })
 
@@ -29,7 +31,7 @@ export async function generateStructuredModel(
       const { output } = await generateText({
         model: openai('gpt-4o'),
         output: Output.object({ schema: FiveLayerModelSchema }),
-        prompt: buildStructuringPrompt(input),
+        prompt: buildStructuringPrompt(input, ragContext),
       })
 
       if (!output) {
