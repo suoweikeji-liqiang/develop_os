@@ -19,7 +19,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 5: Workflow & Search** - Requirement status flow (draft to done) and full-text search with filtering
 - [x] **Phase 6: Role Views & Consensus** - Role-specific requirement views and multi-role sign-off workflow (completed 2026-03-01)
 - [x] **Phase 7: Communication** - Comments, @mentions, async discussion, in-app and external notifications
-- [x] **Phase 8: External Intake** - Public submission form for outside departments and progress tracking (completed 2026-03-02)
+- [x] **Phase 8: External Intake** - Public submission form for outside departments and progress tracking (completed 2026-03-02)
 - [ ] **Phase 9: Knowledge Base** - Document upload, code repo integration, and historical context accumulation
 - [ ] **Phase 10: Conflict Detection & Agent Architecture** - Cross-requirement contradiction detection and formalized agent plugin interface
 
@@ -156,12 +156,14 @@ Plans:
   2. User can connect a code repository and the AI understands existing system structure
   3. AI citations show which documents or code informed its suggestions
   4. Historical clarification sessions and decisions are automatically retained and influence future AI suggestions
-**Plans**: TBD
+**Plans**: 5 plans
 
 Plans:
-- [ ] 09-01: Document upload and embedding pipeline
-- [ ] 09-02: Code repository integration
-- [ ] 09-03: Historical context accumulation and RAG retrieval
+- [ ] 09-01-PLAN.md — pgvector migration, KnowledgeDocument/CodeRepository/KnowledgeChunk schema, embed.ts + retrieve.ts RAG utilities
+- [ ] 09-02-PLAN.md — Document upload API route (multipart), PDF/text extraction, fire-and-forget embedding, knowledgeDocument tRPC router, /knowledge dashboard page
+- [ ] 09-03-PLAN.md — AES-256 token encryption, GitHub Octokit repo sync + embedding, codeRepository tRPC router, repo management UI
+- [ ] 09-04-PLAN.md — History embedding utility, wire embedConversationMessage() into conversation router (fire-and-forget)
+- [ ] 09-05-PLAN.md — RAG retrieval wired into structure + converse API routes, citations column on Requirement, citation display in UI
 
 ### Phase 10: Conflict Detection & Agent Architecture
 **Goal**: AI detects contradictions across requirements and between assumptions and behaviors; the agent plugin interface is formalized for future extensibility
@@ -195,5 +197,5 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 | 6. Role Views & Consensus | 2/2 | Complete   | 2026-03-01 |
 | 7. Communication | 2/2 | Complete | 2026-03-02 |
 | 8. External Intake | 2/2 | Complete   | 2026-03-02 |
-| 9. Knowledge Base | 0/3 | Not started | - |
+| 9. Knowledge Base | 0/5 | Not started | - |
 | 10. Conflict Detection & Agent Architecture | 0/2 | Not started | - |
