@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { eventBus } from '@/server/events/bus'
+import { embedConversationMessage } from '@/server/ai/rag/history'
 
 export const conversationRouter = createTRPCRouter({
   getMessages: protectedProcedure
@@ -47,6 +48,17 @@ export const conversationRouter = createTRPCRouter({
       eventBus.emit('conversation.message.saved', {
         requirementId: input.requirementId,
       })
+
+      if (message.role === 'assistant') {
+        void embedConversationMessage({
+          id: message.id,
+          requirementId: message.requirementId,
+          role: message.role,
+          content: message.content,
+        }).catch((err) => {
+          console.error('[history] embed failed:', err)
+        })
+      }
 
       return message
     }),
