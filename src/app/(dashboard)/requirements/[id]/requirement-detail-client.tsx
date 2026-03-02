@@ -21,8 +21,16 @@ interface Props {
   rawInput: string
   initialModel: FiveLayerModel | undefined
   initialConfidence: Record<string, number> | undefined
+  initialCitations: unknown[] | undefined
   initialMessages: UIMessage[]
   userRoles: string[]
+}
+
+interface CitationItem {
+  chunkId: string
+  sourceName: string
+  sourceType: 'document' | 'code' | 'history'
+  excerpt: string
 }
 
 export function RequirementDetailClient({
@@ -33,6 +41,7 @@ export function RequirementDetailClient({
   rawInput,
   initialModel,
   initialConfidence,
+  initialCitations,
   initialMessages,
   userRoles,
 }: Props) {
@@ -43,6 +52,7 @@ export function RequirementDetailClient({
   const [showUndo, setShowUndo] = useState(false)
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const previousModelRef = useRef<FiveLayerModel | null>(null)
+  const citations = (initialCitations ?? []) as CitationItem[]
 
   const handlePatchProposed = useCallback((response: ConversationResponse) => {
     if (response.patches) {
@@ -202,6 +212,29 @@ export function RequirementDetailClient({
           )}
           <ConsensusStatus requirementId={requirementId} currentStatus={currentStatus} />
           <SignoffPanel requirementId={requirementId} userRoles={userRoles} currentStatus={currentStatus} />
+          {citations.length > 0 && (
+            <section className="rounded-md border p-4">
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+                Sources
+              </h3>
+              <p className="text-xs text-muted-foreground mb-3">
+                Knowledge base sources that informed this requirement model:
+              </p>
+              <ul className="space-y-2">
+                {citations.map((citation) => (
+                  <li key={citation.chunkId} className="rounded-md border p-3 text-sm">
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium">{citation.sourceName}</span>
+                      <span className="text-xs text-muted-foreground rounded-full border px-2 py-0.5 capitalize">
+                        {citation.sourceType}
+                      </span>
+                    </div>
+                    <p className="text-muted-foreground text-xs line-clamp-2">{citation.excerpt}</p>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
         </div>
         {model && (
           <ChatPanel

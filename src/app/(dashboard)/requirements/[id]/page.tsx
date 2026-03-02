@@ -43,6 +43,7 @@ export default async function RequirementDetailPage({
         rawInput={requirement.rawInput}
         initialModel={requirement.model ? (requirement.model as FiveLayerModel) : undefined}
         initialConfidence={requirement.confidence as Record<string, number> | undefined}
+        initialCitations={Array.isArray(requirement.citations) ? (requirement.citations as unknown[]) : undefined}
         initialMessages={initialMessages}
         userRoles={session.roles}
       />

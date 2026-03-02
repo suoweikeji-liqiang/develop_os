@@ -1,9 +1,7 @@
-import { streamText, Output } from 'ai'
-import { openai } from '@ai-sdk/openai'
-import { FiveLayerModelSchema } from '@/lib/schemas/requirement'
-import { buildStructuringPrompt } from '@/server/ai/prompt'
 import { verifySession } from '@/lib/dal'
-import { eventBus } from '@/server/events/bus'
+import { generateStructuredModel } from '@/server/ai/structuring'
+import { retrieveRelevantChunks, type RetrievedChunk } from '@/server/ai/rag/retrieve'
+import { prisma } from '@/server/db/client'
 
 export async function POST(req: Request) {
   const session = await verifySession()
@@ -17,18 +15,49 @@ export async function POST(req: Request) {
     })
   }
 
-  if (body.requirementId) {
-    eventBus.emit('requirement.structuring.started', {
-      requirementId: body.requirementId,
-      userId: session.userId,
+  if (!body.requirementId || typeof body.requirementId !== 'string') {
+    return new Response(JSON.stringify({ error: 'requirementId is required' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
     })
   }
 
-  const result = streamText({
-    model: openai('gpt-4o'),
-    output: Output.object({ schema: FiveLayerModelSchema }),
-    prompt: buildStructuringPrompt(body.rawInput),
+  let ragContext: RetrievedChunk[] = []
+  try {
+    ragContext = await retrieveRelevantChunks(body.rawInput, 5)
+  } catch (error) {
+    console.error('[rag] retrieval failed, proceeding without context:', error)
+  }
+
+  const result = await generateStructuredModel(
+    body.rawInput,
+    body.requirementId,
+    session.userId,
+    ragContext,
+  )
+
+  if (!result.success) {
+    return new Response(JSON.stringify({ error: 'Failed to generate structured model' }), {
+      status: 500,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
+
+  void prisma.requirement.update({
+    where: { id: body.requirementId },
+    data: {
+      citations: ragContext.map((chunk) => ({
+        chunkId: chunk.id,
+        sourceName: chunk.sourceName,
+        sourceType: chunk.sourceType,
+        excerpt: chunk.content.slice(0, 200),
+      })),
+    },
+  }).catch((error) => {
+    console.error('[citations] failed to save:', error)
   })
 
-  return result.toTextStreamResponse()
+  return new Response(JSON.stringify(result.model), {
+    headers: { 'Content-Type': 'application/json' },
+  })
 }
