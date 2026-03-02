@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { createTRPCRouter, adminProcedure } from '../init'
+import { createTRPCRouter, adminProcedure, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { createInvite } from '@/server/auth/invite'
 import { Role } from '@/generated/prisma/client'
@@ -38,5 +38,15 @@ export const userRouter = createTRPCRouter({
       const token = await createInvite(input.email, input.roles as Role[], ctx.session.userId)
       eventBus.emit('user.invited', { inviteId: token, email: input.email, roles: input.roles })
       return { token }
+    }),
+
+  search: protectedProcedure
+    .input(z.object({ query: z.string().min(1) }))
+    .query(async ({ input }) => {
+      return prisma.user.findMany({
+        where: { name: { contains: input.query, mode: 'insensitive' } },
+        select: { id: true, name: true },
+        take: 10,
+      })
     }),
 })
