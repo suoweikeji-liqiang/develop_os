@@ -29,8 +29,8 @@
 
 ### 外部需求入口
 
-- [ ] **EXT-01**: 外部部门可通过简单表单提交原始需求（无需完整登录）
-- [ ] **EXT-02**: 提交者可查看需求处理进度
+- [x] **EXT-01**: 外部部门可通过简单表单提交原始需求（无需完整登录）
+- [x] **EXT-02**: 提交者可查看需求处理进度
 
 ### 知识库
 
@@ -79,8 +79,8 @@
 | COL-02 | Phase 6: Role Views & Consensus | Complete |
 | COL-03 | Phase 7: Communication | Complete |
 | COL-04 | Phase 7: Communication | Complete |
-| EXT-01 | Phase 8: External Intake | Pending |
-| EXT-02 | Phase 8: External Intake | Pending |
+| EXT-01 | Phase 8: External Intake | Complete |
+| EXT-02 | Phase 8: External Intake | Complete |
 | KB-01 | Phase 9: Knowledge Base | Pending |
 | KB-02 | Phase 9: Knowledge Base | Pending |
 | KB-03 | Phase 9: Knowledge Base | Pending |

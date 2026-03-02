@@ -144,7 +144,7 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 08-01-PLAN.md — ExternalSubmission Prisma model + migration, ExternalSubmitSchema, externalRouter (baseProcedure submit + status), wired into appRouter
+- [x] 08-01-PLAN.md — ExternalSubmission Prisma model + migration, ExternalSubmitSchema, externalRouter (baseProcedure submit + status), wired into appRouter
 - [ ] 08-02-PLAN.md — Public /submit form page + /submit/status/[token] tracking page (unauthenticated, force-dynamic)
 
 ### Phase 9: Knowledge Base
@@ -194,6 +194,6 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 | 5. Workflow & Search | 1/2 | In Progress|  |
 | 6. Role Views & Consensus | 2/2 | Complete   | 2026-03-01 |
 | 7. Communication | 2/2 | Complete | 2026-03-02 |
-| 8. External Intake | 0/2 | Not started | - |
+| 8. External Intake | 1/2 | In Progress | - |
 | 9. Knowledge Base | 0/3 | Not started | - |
 | 10. Conflict Detection & Agent Architecture | 0/2 | Not started | - |

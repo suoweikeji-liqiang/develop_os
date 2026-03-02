@@ -2,13 +2,13 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: unknown
-last_updated: "2026-03-02T03:08:40.315Z"
+status: in_progress
+last_updated: "2026-03-02T04:54:00Z"
 progress:
-  total_phases: 7
+  total_phases: 10
   completed_phases: 7
-  total_plans: 19
-  completed_plans: 19
+  total_plans: 21
+  completed_plans: 21
 ---
 
 # Project State
@@ -18,23 +18,23 @@ progress:
 See: .planning/PROJECT.md (updated 2026-02-28)
 
 **Core value:** 在实现之前暴露误解，让团队对"要做什么"达成结构化共识
-**Current focus:** Phase 7: Communication (COMPLETE)
+**Current focus:** Phase 8: External Intake (Plan 1/2 COMPLETE)
 
 ## Current Position
 
-Phase: 7 of 10 (Communication) — COMPLETE
-Plan: 2 of 2 in current phase — COMPLETE
-Status: Phase 7 complete, ready for Phase 8
-Last activity: 2026-03-02 — Completed 07-02 Notifications, SSE, and Webhooks
+Phase: 8 of 10 (External Intake) — IN PROGRESS
+Plan: 1 of 2 in current phase — COMPLETE
+Status: Phase 8 Plan 1 complete, ready for Plan 2 (public form + status page UI)
+Last activity: 2026-03-02 — Completed 08-01 ExternalSubmission backend (Prisma model + tRPC endpoints)
 
-Progress: [████████████████████████] 100% (Plan 2/2 done)
+Progress: [████████████░░░░░░░░░░░░] 50% (Plan 1/2 done)
 
 ## Performance Metrics
 
 **Velocity:**
-- Total plans completed: 20
+- Total plans completed: 21
 - Average duration: 6min
-- Total execution time: 1.88 hours
+- Total execution time: ~1.92 hours
 
 **By Phase:**
 
@@ -47,9 +47,10 @@ Progress: [███████████████████████
 | 5. Workflow & Search | 2/2 | 8min | 4min |
 | 6. Role Views & Consensus | 2/2 | 19min | 9.5min |
 | 7. Communication | 2/2 | 14min | 7min |
+| 8. External Intake | 1/2 | 2min | 2min |
 
 **Recent Trend:**
-- Last 5 plans: 6min, 2min, 10min, 7min, 7min
+- Last 5 plans: 2min, 10min, 7min, 7min, 2min
 - Trend: stable
 
 *Updated after each plan completion*
@@ -121,6 +122,11 @@ Recent decisions affecting current work:
 - [Phase 07-02]: Dynamic import in requirement.ts status notification to avoid circular dependencies
 - [Phase 07-02]: Console.log fallback when RESEND_API_KEY absent — zero-config dev experience
 - [Phase 07-02]: SSE filters by userId server-side — each user only receives their own notifications
+- [08-01]: baseProcedure (not protectedProcedure) used for both external endpoints — intentionally unauthenticated
+- [08-01]: $transaction creates Requirement + ExternalSubmission atomically — no orphan rows possible
+- [08-01]: token = crypto.randomUUID() (built-in Node 19+) — no uuid package needed
+- [08-01]: status returns null for unknown token — lets UI distinguish not-found from errors cleanly
+- [08-01]: Fire-and-forget confirmation email pattern reused from Phase 07-02 — consistent approach
 
 ### Pending Todos
 
@@ -135,7 +141,7 @@ None yet.
 ## Session Continuity
 
 Last session: 2026-03-02
-Stopped at: Completed 07-02-PLAN.md — Notifications, SSE, and Webhooks (Phase 7, Plan 2/2)
-Resume file: .planning/phases/07-communication/07-02-SUMMARY.md
+Stopped at: Completed 08-01-PLAN.md — ExternalSubmission backend (Phase 8, Plan 1/2)
+Resume file: .planning/phases/08-external-intake/08-01-SUMMARY.md
 
-**Next Step:** Phase 7 complete. Begin Phase 8: External Intake.
+**Next Step:** Phase 8 Plan 2 — Public submission form + status page UI.
