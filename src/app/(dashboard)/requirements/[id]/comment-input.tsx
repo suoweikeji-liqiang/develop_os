@@ -12,7 +12,10 @@ export function CommentInput({ requirementId, onSubmitted }: Props) {
   const [submitting, setSubmitting] = useState(false)
 
   async function fetchUsers(query: string, callback: (data: { id: string; display: string }[]) => void) {
-    if (!query) return
+    if (!query) {
+      callback([])
+      return
+    }
     const res = await fetch(
       `/api/trpc/user.search?input=${encodeURIComponent(JSON.stringify({ json: { query } }))}`
     )
@@ -42,12 +45,22 @@ export function CommentInput({ requirementId, onSubmitted }: Props) {
     <form onSubmit={handleSubmit} className="flex flex-col gap-2">
       <MentionsInput
         value={value}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(_event, nextValue) => setValue(nextValue)}
         placeholder="添加评论... 使用 @ 提及成员"
-        className="border rounded p-2 text-sm min-h-[72px] resize-y"
+        className="border rounded p-2 text-sm min-h-[72px]"
+        style={{
+          control: { fontSize: 14 },
+          input: { minHeight: 72, outline: 'none' },
+          highlighter: { minHeight: 72 },
+        }}
         disabled={submitting}
       >
-        <Mention trigger="@" data={fetchUsers} displayTransform={(_id: string, display: string) => `@${display}`} />
+        <Mention
+          trigger="@"
+          markup="@[__display__](__id__)"
+          data={fetchUsers}
+          displayTransform={(_id: string, display: string) => `@${display}`}
+        />
       </MentionsInput>
       <button
         type="submit"

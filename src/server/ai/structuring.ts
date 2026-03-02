@@ -1,9 +1,9 @@
 import { generateText, Output } from 'ai'
-import { openai } from '@ai-sdk/openai'
 import { FiveLayerModelSchema, type FiveLayerModel } from '@/lib/schemas/requirement'
 import { eventBus } from '@/server/events/bus'
 import { buildStructuringPrompt } from './prompt'
 import type { RetrievedChunk } from './rag/retrieve'
+import { getChatModel } from './provider'
 
 const MAX_RETRIES = 3
 
@@ -29,7 +29,7 @@ export async function generateStructuredModel(
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
       const { output } = await generateText({
-        model: openai('gpt-4o'),
+        model: getChatModel(),
         output: Output.object({ schema: FiveLayerModelSchema }),
         prompt: buildStructuringPrompt(input, ragContext),
       })

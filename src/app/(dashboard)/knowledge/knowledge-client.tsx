@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 
@@ -17,6 +17,11 @@ const statusStyles: Record<string, string> = {
 }
 
 function parseTrpcJson<T>(payload: unknown): T {
+  if (Array.isArray(payload)) {
+    const first = payload[0] as { result?: { data?: { json?: T } } } | undefined
+    return first?.result?.data?.json as T
+  }
+
   const result = payload as { result?: { data?: { json?: T } } }
   return result.result?.data?.json as T
 }
@@ -91,7 +96,7 @@ export function KnowledgeClient() {
     const response = await fetch('/api/trpc/knowledgeDocument.delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ json: { id } }),
+      body: JSON.stringify({ id }),
     })
 
     if (!response.ok) {
@@ -140,7 +145,7 @@ export function KnowledgeClient() {
                 <div className="min-w-0">
                   <p className="truncate text-sm font-medium">{document.name}</p>
                   <p className="text-xs text-muted-foreground">
-                    {new Date(document.createdAt).toLocaleString()} {document.chunkCount ? `· ${document.chunkCount} chunks` : ''}
+                    {new Date(document.createdAt).toLocaleString()} {document.chunkCount ? `路 ${document.chunkCount} chunks` : ''}
                   </p>
                 </div>
                 <div className="flex items-center gap-3">
@@ -162,3 +167,4 @@ export function KnowledgeClient() {
     </div>
   )
 }
+

@@ -1,10 +1,10 @@
 import { streamText, Output, convertToModelMessages } from 'ai'
-import { openai } from '@ai-sdk/openai'
 import { ConversationResponseSchema } from '@/lib/schemas/conversation'
 import { buildConversationPrompt } from '@/server/ai/conversation-prompt'
 import { verifySession } from '@/lib/dal'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import { retrieveRelevantChunks, type RetrievedChunk } from '@/server/ai/rag/retrieve'
+import { getChatModel } from '@/server/ai/provider'
 
 function extractLatestUserMessage(messages: unknown): string {
   if (!Array.isArray(messages)) return ''
@@ -45,7 +45,7 @@ export async function POST(req: Request) {
   }
 
   const result = streamText({
-    model: openai('gpt-4o'),
+    model: getChatModel(),
     output: Output.object({ schema: ConversationResponseSchema }),
     system: buildConversationPrompt(currentModel as FiveLayerModel, ragContext),
     messages: await convertToModelMessages(messages),

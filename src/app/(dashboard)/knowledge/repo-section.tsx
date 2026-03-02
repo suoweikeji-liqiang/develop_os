@@ -1,4 +1,4 @@
-'use client'
+﻿'use client'
 
 import { useCallback, useEffect, useState } from 'react'
 
@@ -11,6 +11,11 @@ type RepositoryItem = {
 }
 
 function parseTrpcJson<T>(payload: unknown): T {
+  if (Array.isArray(payload)) {
+    const first = payload[0] as { result?: { data?: { json?: T } } } | undefined
+    return first?.result?.data?.json as T
+  }
+
   const result = payload as { result?: { data?: { json?: T } } }
   return result.result?.data?.json as T
 }
@@ -49,11 +54,9 @@ export function RepoSection() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          json: {
-            owner: owner.trim(),
-            repo: repo.trim(),
-            githubToken: githubToken.trim(),
-          },
+          owner: owner.trim(),
+          repo: repo.trim(),
+          githubToken: githubToken.trim(),
         }),
       })
 
@@ -80,7 +83,7 @@ export function RepoSection() {
       const response = await fetch('/api/trpc/codeRepository.sync', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ json: { id } }),
+        body: JSON.stringify({ id }),
       })
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
@@ -99,7 +102,7 @@ export function RepoSection() {
     const response = await fetch('/api/trpc/codeRepository.delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ json: { id } }),
+      body: JSON.stringify({ id }),
     })
 
     if (!response.ok) {
@@ -193,3 +196,4 @@ export function RepoSection() {
     </section>
   )
 }
+

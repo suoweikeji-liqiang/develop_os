@@ -6,7 +6,15 @@ import { prisma } from '@/server/db/client'
 export async function POST(req: Request) {
   const session = await verifySession()
 
-  const body = await req.json() as { rawInput?: string; requirementId?: string }
+  let body: { rawInput?: string; requirementId?: string }
+  try {
+    body = await req.json() as { rawInput?: string; requirementId?: string }
+  } catch {
+    return new Response(JSON.stringify({ error: 'Invalid JSON body' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    })
+  }
 
   if (!body.rawInput || typeof body.rawInput !== 'string' || body.rawInput.trim().length === 0) {
     return new Response(JSON.stringify({ error: 'rawInput is required' }), {

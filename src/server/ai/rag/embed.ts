@@ -1,8 +1,8 @@
 import { embedMany } from 'ai'
-import { openai } from '@ai-sdk/openai'
 import pgvector from 'pgvector'
 import { prisma } from '@/server/db/client'
 import type { KnowledgeSourceType } from './sources'
+import { getEmbeddingModel } from '@/server/ai/provider'
 
 export const CHUNK_SIZE = 400
 export const CHUNK_OVERLAP = 50
@@ -68,7 +68,7 @@ export async function embedAndStore(
   if (chunks.length === 0) return
 
   const { embeddings } = await embedMany({
-    model: openai.embeddingModel('text-embedding-3-small'),
+    model: getEmbeddingModel(),
     values: chunks,
     maxParallelCalls: 5,
   })
