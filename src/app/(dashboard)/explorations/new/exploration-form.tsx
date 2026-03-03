@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useDraftAutosave, clearDraft } from '@/lib/hooks/use-draft-autosave'
 
-export function RequirementForm() {
+export function ExplorationForm() {
   const router = useRouter()
   const [title, setTitle] = useState('')
   const [rawInput, setRawInput] = useState('')
@@ -70,7 +70,7 @@ export function RequirementForm() {
 
       clearDraft(draftId)
       sessionStorage.removeItem('devos-current-draft-id')
-      router.push(`/requirements/${requirementId}`)
+      router.push(`/explorations/${requirementId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : '创建失败')
       setSubmitting(false)
@@ -84,23 +84,23 @@ export function RequirementForm() {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="title">需求标题</Label>
+        <Label htmlFor="title">Exploration 标题</Label>
         <Input
           id="title"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder="例如：用户注册与登录流程"
+          placeholder="例如：高并发下的用户注册与登录路径"
           required
         />
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="rawInput">需求描述</Label>
+        <Label htmlFor="rawInput">情境描述</Label>
         <Textarea
           id="rawInput"
           value={rawInput}
           onChange={(e) => setRawInput(e.target.value)}
-          placeholder={"请输入需求描述...\n\n例如：用户可以通过手机号注册账号，注册后自动登录，首次登录需要完善个人信息。\n\nExample: Users can register via phone number, auto-login after registration, and complete profile on first login."}
+          placeholder={"请输入本次探索的上下文、限制和目标...\n\n例如：在移动端网络抖动下，用户通过手机号注册账号，注册后自动登录，首次登录需要完善个人信息。"}
           rows={12}
           className="resize-y"
           required
@@ -124,7 +124,7 @@ export function RequirementForm() {
       </div>
 
       <Button type="submit" disabled={submitting || !title.trim() || !rawInput.trim()}>
-        {submitting ? '提交中...' : '生成结构化模型'}
+        {submitting ? '提交中...' : '生成 ModelCard'}
       </Button>
     </form>
   )

@@ -16,22 +16,22 @@ export default async function DashboardPage() {
 
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <Link
-          href="/requirements/new"
+          href="/explorations/new"
           className="block rounded-lg border p-5 hover:border-black transition-colors"
         >
-          <h2 className="font-semibold">新建需求</h2>
+          <h2 className="font-semibold">Start Exploration</h2>
           <p className="text-sm text-gray-600 mt-1">
-            输入需求描述，AI 自动生成五层结构化模型
+            Capture a concrete context and let AI draft the initial ModelCard
           </p>
         </Link>
 
         <Link
-          href="/requirements"
+          href="/explorations"
           className="block rounded-lg border p-5 hover:border-black transition-colors"
         >
-          <h2 className="font-semibold">需求列表</h2>
+          <h2 className="font-semibold">Explorations</h2>
           <p className="text-sm text-gray-600 mt-1">
-            查看和管理所有已创建的需求
+            Review active and archived exploration journeys
           </p>
         </Link>
 

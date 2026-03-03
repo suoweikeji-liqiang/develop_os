@@ -33,7 +33,30 @@ interface CitationItem {
   excerpt: string
 }
 
-export function RequirementDetailClient({
+const MODELCARD_SECTIONS = [
+  'Core Abstraction',
+  'Variables / Relationships',
+  'Visual Concept Map',
+  'Assumptions',
+  'Limitations / Boundary',
+  'Contradictions',
+  'Migration Attempts',
+  'Evolution Timeline',
+] as const
+
+function getExplorationStage(status: string): 'open' | 'refining' | 'stabilized' {
+  if (status === 'DONE') return 'stabilized'
+  if (status === 'DRAFT') return 'open'
+  return 'refining'
+}
+
+function getStageClasses(stage: 'open' | 'refining' | 'stabilized'): string {
+  if (stage === 'open') return 'border-amber-300 bg-amber-50 text-amber-700'
+  if (stage === 'stabilized') return 'border-emerald-300 bg-emerald-50 text-emerald-700'
+  return 'border-blue-300 bg-blue-50 text-blue-700'
+}
+
+export function ExplorationDetailClient({
   requirementId,
   title,
   status,
@@ -53,6 +76,7 @@ export function RequirementDetailClient({
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const previousModelRef = useRef<FiveLayerModel | null>(null)
   const citations = (initialCitations ?? []) as CitationItem[]
+  const explorationStage = getExplorationStage(currentStatus)
 
   const handlePatchProposed = useCallback((response: ConversationResponse) => {
     if (response.patches) {
@@ -138,40 +162,52 @@ export function RequirementDetailClient({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold">{title}</h1>
-          <div className="mt-1 flex items-center gap-3">
-            <StatusControl
-              requirementId={requirementId}
-              currentStatus={currentStatus}
-              onStatusChanged={setCurrentStatus}
-            />
-            <span className="text-sm text-muted-foreground">
-              版本: v{version}
-            </span>
+      <section className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
+        <div className="flex items-center justify-between">
+          <div className="space-y-2">
+            <div className="flex items-center gap-2 text-xs">
+              <span className="rounded-full border border-slate-300 px-2 py-0.5 font-medium text-slate-600">
+                Exploration
+              </span>
+              <span className={`rounded-full border px-2 py-0.5 font-medium ${getStageClasses(explorationStage)}`}>
+                {explorationStage}
+              </span>
+            </div>
+            <h1 className="text-2xl font-bold">{title}</h1>
+            <p className="text-sm text-muted-foreground">
+              Context-driven dialogue and experimentation for this exploration.
+            </p>
+          </div>
+          <div className="flex items-center gap-3">
+            {model && (
+              <button
+                onClick={() => setShowVersionHistory(prev => !prev)}
+                className={`text-sm px-3 py-1 rounded border ${
+                  showVersionHistory
+                    ? 'bg-primary text-primary-foreground'
+                    : 'text-muted-foreground hover:bg-muted'
+                }`}
+              >
+                版本历史
+              </button>
+            )}
+            {showUndo && (
+              <button onClick={handleUndo} className="text-sm text-muted-foreground underline">
+                撤销上次变更
+              </button>
+            )}
           </div>
         </div>
-        <div className="flex items-center gap-3">
-          {model && (
-            <button
-              onClick={() => setShowVersionHistory(prev => !prev)}
-              className={`text-sm px-3 py-1 rounded border ${
-                showVersionHistory
-                  ? 'bg-primary text-primary-foreground'
-                  : 'text-muted-foreground hover:bg-muted'
-              }`}
-            >
-              版本历史
-            </button>
-          )}
-          {showUndo && (
-            <button onClick={handleUndo} className="text-sm text-muted-foreground underline">
-              撤销上次变更
-            </button>
-          )}
+        <StatusControl
+          requirementId={requirementId}
+          currentStatus={currentStatus}
+          onStatusChanged={setCurrentStatus}
+        />
+        <div className="rounded-md border border-dashed border-slate-300 bg-white p-3">
+          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Exploration Context</p>
+          <p className="mt-1 max-h-40 overflow-auto text-sm text-slate-700 whitespace-pre-wrap">{rawInput}</p>
         </div>
-      </div>
+      </section>
 
       {showVersionHistory && model && (
         <VersionHistory
@@ -181,44 +217,90 @@ export function RequirementDetailClient({
         />
       )}
 
-      <div className={model ? 'grid grid-cols-[1fr_380px] gap-6 items-start' : 'max-w-4xl'}>
-        <div className="space-y-4">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px] items-start">
+        <section className="space-y-4">
+          <div className="rounded-md border p-4">
+            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+              Exploration Workspace
+            </h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Use contextual dialogue to challenge assumptions and run iterative experiments.
+            </p>
+          </div>
           {model ? (
-            <RoleViewTabs
+            <ChatPanel
               requirementId={requirementId}
-              model={model}
-              userRoles={userRoles}
-              confidence={initialConfidence}
-              pendingPatches={pendingPatches as Record<string, unknown> | null}
-              pendingAssumptions={pendingAssumptions}
-              readOnly={false}
-              onApplyPatch={handleApplyPatch}
-              onRejectPatch={handleRejectPatch}
-              onAssumptionAction={handleAssumptionAction}
+              currentModel={model}
+              initialMessages={initialMessages}
+              autoOpen={initialMessages.length > 0}
+              onPatchProposed={handlePatchProposed}
+              hasPendingDiff={pendingPatches !== null}
             />
           ) : (
-            <ModelTabs
-              requirementId={requirementId}
-              rawInput={rawInput}
-              initialModel={model}
-              initialConfidence={initialConfidence}
-              mode="generate"
-              pendingPatches={pendingPatches}
-              pendingAssumptions={pendingAssumptions}
-              onApplyPatch={handleApplyPatch}
-              onRejectPatch={handleRejectPatch}
-              onAssumptionAction={handleAssumptionAction}
-            />
+            <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+              ModelCard is being generated. Dialogue is enabled after the first abstraction pass.
+            </div>
           )}
           <ConsensusStatus requirementId={requirementId} currentStatus={currentStatus} />
           <SignoffPanel requirementId={requirementId} userRoles={userRoles} currentStatus={currentStatus} />
+        </section>
+
+        <aside className="space-y-4 lg:sticky lg:top-6">
+          <section className="space-y-4 rounded-md border p-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">ModelCard</h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Structural abstraction asset with reusable, versioned knowledge.
+                </p>
+              </div>
+              <div className="rounded-full border bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
+                v{version}
+              </div>
+            </div>
+            <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
+              {MODELCARD_SECTIONS.map((section) => (
+                <div key={section} className="rounded border border-slate-200 bg-slate-50 px-2 py-1">
+                  {section}
+                </div>
+              ))}
+            </div>
+            {model ? (
+              <RoleViewTabs
+                requirementId={requirementId}
+                model={model}
+                userRoles={userRoles}
+                confidence={initialConfidence}
+                pendingPatches={pendingPatches as Record<string, unknown> | null}
+                pendingAssumptions={pendingAssumptions}
+                readOnly={false}
+                onApplyPatch={handleApplyPatch}
+                onRejectPatch={handleRejectPatch}
+                onAssumptionAction={handleAssumptionAction}
+              />
+            ) : (
+              <ModelTabs
+                requirementId={requirementId}
+                rawInput={rawInput}
+                initialModel={model}
+                initialConfidence={initialConfidence}
+                mode="generate"
+                pendingPatches={pendingPatches}
+                pendingAssumptions={pendingAssumptions}
+                onApplyPatch={handleApplyPatch}
+                onRejectPatch={handleRejectPatch}
+                onAssumptionAction={handleAssumptionAction}
+              />
+            )}
+          </section>
+
           {citations.length > 0 && (
             <section className="rounded-md border p-4">
               <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
-                Sources
+                ModelCard Sources
               </h3>
               <p className="text-xs text-muted-foreground mb-3">
-                Knowledge base sources that informed this requirement model:
+                Knowledge base sources that informed this structural abstraction:
               </p>
               <ul className="space-y-2">
                 {citations.map((citation) => (
@@ -235,17 +317,7 @@ export function RequirementDetailClient({
               </ul>
             </section>
           )}
-        </div>
-        {model && (
-          <ChatPanel
-            requirementId={requirementId}
-            currentModel={model}
-            initialMessages={initialMessages}
-            autoOpen={initialMessages.length > 0}
-            onPatchProposed={handlePatchProposed}
-            hasPendingDiff={pendingPatches !== null}
-          />
-        )}
+        </aside>
       </div>
     </div>
   )

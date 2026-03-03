@@ -21,14 +21,20 @@ type RequirementItem = {
 
 type Props = {
   initialRequirements: RequirementItem[]
+  initialView: 'explorations' | 'models' | 'evolution'
 }
 
-export function RequirementsListClient({ initialRequirements }: Props) {
+export function ExplorationsListClient({ initialRequirements, initialView }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()
 
   const [requirements, setRequirements] = useState(initialRequirements)
   const [loading, setLoading] = useState(false)
+  const currentView = useMemo(() => {
+    const view = searchParams.get('view')
+    if (view === 'models' || view === 'evolution') return view
+    return initialView
+  }, [initialView, searchParams])
 
   const currentFilters = useMemo(() => ({
     query: searchParams.get('q') ?? '',
@@ -53,6 +59,11 @@ export function RequirementsListClient({ initialRequirements }: Props) {
     const merged = { ...currentFilters, ...patch }
 
     const params = new URLSearchParams()
+    const basePath = currentView === 'models'
+      ? '/models'
+      : currentView === 'evolution'
+        ? '/evolution'
+        : '/explorations'
     if (merged.query) params.set('q', merged.query)
     if (merged.status) params.set('status', merged.status)
     if (merged.tags && merged.tags.length > 0) params.set('tags', merged.tags.join(','))
@@ -61,7 +72,7 @@ export function RequirementsListClient({ initialRequirements }: Props) {
     if (merged.dateTo) params.set('dateTo', merged.dateTo)
 
     const qs = params.toString()
-    router.push(qs ? `/requirements?${qs}` : '/requirements')
+    router.push(qs ? `${basePath}?${qs}` : basePath)
 
     setLoading(true)
     try {
@@ -88,7 +99,13 @@ export function RequirementsListClient({ initialRequirements }: Props) {
     } finally {
       setLoading(false)
     }
-  }, [currentFilters, router])
+  }, [currentFilters, currentView, router])
+
+  const emptyLabel = currentView === 'models'
+    ? '未找到匹配的 ModelCard'
+    : currentView === 'evolution'
+      ? '未找到匹配的演化记录'
+      : '未找到匹配的探索'
 
   return (
     <div className="space-y-4">
@@ -106,18 +123,25 @@ export function RequirementsListClient({ initialRequirements }: Props) {
       <div className={`space-y-2 transition-opacity ${loading ? 'opacity-50' : ''}`}>
         {requirements.length === 0 ? (
           <div className="rounded-lg border border-dashed p-10 text-center">
-            <p className="text-gray-500">未找到匹配的需求</p>
+            <p className="text-gray-500">{emptyLabel}</p>
           </div>
         ) : (
           requirements.map((req) => (
             <Link
               key={req.id}
-              href={`/requirements/${req.id}`}
+              href={`/explorations/${req.id}`}
               className="block rounded-lg border p-4 hover:border-black transition-colors"
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
                   <h2 className="font-medium">{req.title}</h2>
+                  <span className="rounded-full border px-2 py-0.5 text-xs text-muted-foreground">
+                    {currentView === 'models'
+                      ? `ModelCard v${req.version}`
+                      : currentView === 'evolution'
+                        ? `Evolution v${req.version}`
+                        : 'Exploration'}
+                  </span>
                   <span
                     className={`rounded-full px-2 py-0.5 text-xs ${
                       STATUS_COLORS[req.status as RequirementStatus] ?? 'bg-gray-100 text-gray-700'

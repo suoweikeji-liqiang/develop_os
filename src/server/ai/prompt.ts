@@ -5,7 +5,7 @@
  */
 import type { RetrievedChunk } from './rag/retrieve'
 
-const SYSTEM_PROMPT = `You are a requirements engineering expert. Analyze the following natural language requirement and structure it into a five-layer model.
+const SYSTEM_PROMPT = `You are a structural reviewer creating a reusable ModelCard. Analyze the following natural language requirement and structure it into a five-layer model.
 
 ## Five-Layer Model
 
@@ -17,6 +17,7 @@ const SYSTEM_PROMPT = `You are a requirements engineering expert. Analyze the fo
 
 ## Rules
 - Output language MUST match the input language
+- Think in terms of durable abstractions, not one-off task wording
 - Be specific and actionable, not generic
 - Surface hidden assumptions the user likely hasn't considered
 - Generate at least 2 scenarios per category (normal/edge/error)

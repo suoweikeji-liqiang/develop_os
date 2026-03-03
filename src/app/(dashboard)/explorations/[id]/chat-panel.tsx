@@ -6,12 +6,16 @@ import { DefaultChatTransport } from 'ai'
 import type { UIMessage } from 'ai'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Skeleton } from '@/components/ui/skeleton'
 import { ScrollArea } from '@/components/ui/scroll-area'
 import { Send, ChevronRight, ChevronLeft } from 'lucide-react'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import type { ConversationResponse } from '@/lib/schemas/conversation'
 import type { PendingAssumption } from './assumption-card'
+import {
+  getGenerationPhase,
+  getGenerationPhaseMessage,
+  getGenerationTimeoutMessage,
+} from '@/lib/ai/generation-phase'
 
 interface Props {
   requirementId: string
@@ -33,6 +37,7 @@ export function ChatPanel({
   const [isOpen, setIsOpen] = useState(autoOpen || initialMessages.length > 0)
   const [inputValue, setInputValue] = useState('')
   const [pendingAssumptions, setPendingAssumptions] = useState<PendingAssumption[]>([])
+  const [elapsedMs, setElapsedMs] = useState(0)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   const { messages, sendMessage, status, error } = useChat({
@@ -83,6 +88,18 @@ export function ChatPanel({
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
 
+  useEffect(() => {
+    if (status !== 'streaming') {
+      setElapsedMs(0)
+      return
+    }
+    const startedAt = Date.now()
+    const timer = setInterval(() => {
+      setElapsedMs(Date.now() - startedAt)
+    }, 150)
+    return () => clearInterval(timer)
+  }, [status])
+
   async function handleSend() {
     if (!inputValue.trim() || status === 'streaming') return
     const text = inputValue.trim()
@@ -105,10 +122,15 @@ export function ChatPanel({
     }
   }
 
+  const phaseMessage = getGenerationPhaseMessage(getGenerationPhase(elapsedMs))
+  const timeoutMessage = getGenerationTimeoutMessage(elapsedMs)
+  const showPhaseFeedback = status === 'streaming' && elapsedMs >= 300
+
   if (!isOpen) {
     return (
       <button
         onClick={() => setIsOpen(true)}
+        disabled={status === 'streaming'}
         className="flex flex-col items-center justify-center gap-1 rounded-md border bg-muted/50 px-2 py-4 hover:bg-muted transition-colors"
       >
         <ChevronLeft className="h-4 w-4" />
@@ -122,7 +144,7 @@ export function ChatPanel({
       {/* Header */}
       <div className="flex items-center justify-between border-b px-3 py-2">
         <span className="text-sm font-medium">AI 对话</span>
-        <Button size="icon" variant="ghost" onClick={() => setIsOpen(false)}>
+        <Button size="icon" variant="ghost" onClick={() => setIsOpen(false)} disabled={status === 'streaming'}>
           <ChevronRight className="h-4 w-4" />
         </Button>
       </div>
@@ -153,12 +175,14 @@ export function ChatPanel({
             </div>
           ))}
 
-          {status === 'streaming' &&
+          {showPhaseFeedback &&
             messages[messages.length - 1]?.role === 'user' && (
               <div className="flex justify-start">
-                <div className="space-y-2 bg-muted rounded-lg px-3 py-2 max-w-[85%]">
-                  <Skeleton className="h-3 w-48" />
-                  <Skeleton className="h-3 w-32" />
+                <div className="space-y-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm max-w-[85%]">
+                  <p className="text-slate-700">{phaseMessage}</p>
+                  {timeoutMessage && (
+                    <p className="text-xs text-slate-600">{timeoutMessage}</p>
+                  )}
                 </div>
               </div>
             )}

@@ -211,7 +211,7 @@ export const requirementRouter = createTRPCRouter({
         })
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-        const requirementUrl = `${baseUrl}/requirements/${input.id}`
+        const requirementUrl = `${baseUrl}/explorations/${input.id}`
         const req = await prisma.requirement.findUnique({
           where: { id: input.id },
           select: { title: true },

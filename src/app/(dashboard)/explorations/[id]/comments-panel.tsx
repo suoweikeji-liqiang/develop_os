@@ -56,11 +56,11 @@ export function CommentsPanel({ requirementId, currentUserId, isAdmin }: Props) 
 
   return (
     <div className="flex flex-col gap-4">
-      <h3 className="font-semibold text-sm">讨论 ({comments.length})</h3>
+      <h3 className="font-semibold text-sm">实验记录 ({comments.length})</h3>
       {loading ? (
         <p className="text-sm text-gray-500">加载中...</p>
       ) : comments.length === 0 ? (
-        <p className="text-sm text-gray-400">暂无评论，成为第一个评论的人</p>
+        <p className="text-sm text-gray-400">暂无实验记录，添加第一条观察结论</p>
       ) : (
         <ul className="flex flex-col gap-3">
           {comments.map((comment) => (

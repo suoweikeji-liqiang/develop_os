@@ -12,11 +12,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
         <div className="flex items-center gap-6">
           <Link href="/" className="font-bold hover:opacity-80">DevOS</Link>
           <nav className="flex items-center gap-4 text-sm">
-            <Link href="/requirements" className="hover:underline">
-              需求列表
+            <Link href="/explorations" className="hover:underline">
+              Explorations
             </Link>
-            <Link href="/requirements/new" className="hover:underline">
-              新建需求
+            <Link href="/models" className="hover:underline">
+              Models
+            </Link>
+            <Link href="/evolution" className="hover:underline">
+              Evolution
+            </Link>
+            <Link href="/explorations/new" className="rounded border px-2 py-1 hover:bg-muted">
+              New Exploration
             </Link>
           </nav>
         </div>

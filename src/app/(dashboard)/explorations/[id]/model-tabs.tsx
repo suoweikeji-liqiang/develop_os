@@ -10,6 +10,11 @@ import { AssumptionCard } from './assumption-card'
 import type { PendingAssumption } from './assumption-card'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import type { ConversationResponse } from '@/lib/schemas/conversation'
+import {
+  getGenerationPhase,
+  getGenerationPhaseMessage,
+  getGenerationTimeoutMessage,
+} from '@/lib/ai/generation-phase'
 
 const LAYER_TABS = [
   { key: 'goal', label: '目标' },
@@ -72,9 +77,10 @@ function getLayerConfidence(model: Partial<FiveLayerModel> | null, layer: LayerK
 export function ModelTabs({ requirementId, rawInput, initialModel, initialConfidence, mode, pendingPatches, pendingAssumptions, onApplyPatch, onRejectPatch, onAssumptionAction }: Props) {
   const [model, setModel] = useState<Partial<FiveLayerModel> | null>(initialModel ?? null)
   const [streaming, setStreaming] = useState(false)
+  const [elapsedMs, setElapsedMs] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [completed, setCompleted] = useState(mode === 'view')
-  const [confidence, setConfidence] = useState<Record<string, number>>(initialConfidence ?? {})
+  const [confidence] = useState<Record<string, number>>(initialConfidence ?? {})
 
   const persistModel = useCallback(async (finalModel: FiveLayerModel) => {
     try {
@@ -152,6 +158,18 @@ export function ModelTabs({ requirementId, rawInput, initialModel, initialConfid
     return () => { cancelled = true }
   }, [mode, completed, rawInput, requirementId, persistModel])
 
+  useEffect(() => {
+    if (!streaming) {
+      setElapsedMs(0)
+      return
+    }
+    const startedAt = Date.now()
+    const timer = setInterval(() => {
+      setElapsedMs(Date.now() - startedAt)
+    }, 150)
+    return () => clearInterval(timer)
+  }, [streaming])
+
   function handleLayerUpdate(layer: LayerKey, data: unknown) {
     setModel((prev) => {
       if (!prev) return prev
@@ -165,22 +183,30 @@ export function ModelTabs({ requirementId, rawInput, initialModel, initialConfid
     return model?.[layer] !== undefined && model[layer] !== null
   }
 
+  const generationPhase = getGenerationPhase(elapsedMs)
+  const phaseMessage = getGenerationPhaseMessage(generationPhase)
+  const timeoutMessage = getGenerationTimeoutMessage(elapsedMs)
+  const showPhaseFeedback = streaming && elapsedMs >= 300
+
   return (
     <div className="space-y-4">
       {error && (
         <p className="text-sm text-red-500">{error}</p>
       )}
 
-      {streaming && (
-        <p className="text-sm text-muted-foreground animate-pulse">
-          AI 正在生成结构化模型...
-        </p>
+      {showPhaseFeedback && (
+        <div className="rounded-md border border-slate-300 bg-slate-50 p-3 text-sm">
+          <p className="font-medium text-slate-700">{phaseMessage}</p>
+          {timeoutMessage && (
+            <p className="mt-1 text-xs text-slate-600">{timeoutMessage}</p>
+          )}
+        </div>
       )}
 
       <Tabs defaultValue="goal">
         <TabsList>
           {LAYER_TABS.map(({ key, label }) => (
-            <TabsTrigger key={key} value={key} className="gap-2">
+            <TabsTrigger key={key} value={key} className="gap-2" disabled={streaming}>
               {label}
               {pendingPatches?.[key as keyof typeof pendingPatches] && (
                 <span className="ml-1 h-2 w-2 rounded-full bg-amber-400 inline-block" />
@@ -216,11 +242,17 @@ export function ModelTabs({ requirementId, rawInput, initialModel, initialConfid
                 onUpdate={(data) => handleLayerUpdate(key, data)}
               />
             ) : (
-              <div className="space-y-3 p-4">
-                <Skeleton className="h-4 w-3/4" />
-                <Skeleton className="h-4 w-1/2" />
-                <Skeleton className="h-4 w-2/3" />
-              </div>
+              streaming ? (
+                <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+                  {phaseMessage}
+                </div>
+              ) : (
+                <div className="space-y-3 p-4">
+                  <Skeleton className="h-4 w-3/4" />
+                  <Skeleton className="h-4 w-1/2" />
+                  <Skeleton className="h-4 w-2/3" />
+                </div>
+              )
             )}
           </TabsContent>
         ))}

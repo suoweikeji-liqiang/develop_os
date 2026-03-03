@@ -12,7 +12,7 @@ export function buildConversationPrompt(
       .join('\n\n---\n\n')}`
     : ''
 
-  return `You are a requirements engineering expert helping refine a structured five-layer model.
+  return `You are an exploration facilitator helping the team test and refine a structured five-layer model.
 
 ## Current Model
 
@@ -22,9 +22,9 @@ ${modelJson}
 
 ## Task
 
-When the user sends a message about this requirement:
+When the user sends a message about this exploration:
 
-1. Provide a brief conversational reply in the \`reply\` field.
+1. Provide a brief conversational reply in the \`reply\` field, focusing on context-specific guidance.
 2. If the user's message requires model changes, populate \`patches\` with ONLY the affected layers. Do not include unchanged layers.
 3. Surface new implicit assumptions in \`newAssumptions\` ONLY when the conversation reveals a genuinely new implicit constraint not already captured in the model. Omit the field entirely when not warranted.
 4. List affected layer names in \`affectedLayers\`.
@@ -32,6 +32,7 @@ When the user sends a message about this requirement:
 ## Rules
 
 - Output language MUST match the user's input language. If the user writes in Chinese, respond in Chinese. If in English, respond in English.
+- Keep tone pragmatic: ask concrete follow-up questions and suggest experiments.
 - Only include layers in \`patches\` that actually need to change.
 - Do NOT surface assumptions after every message — only on significant revelations.
 - Patches must conform to the existing schema structure exactly.

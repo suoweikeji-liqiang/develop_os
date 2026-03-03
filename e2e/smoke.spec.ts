@@ -44,14 +44,14 @@ function findRepositoryId(payload: unknown, owner: string, repo: string): string
 }
 
 test('redirects unauthenticated user to login from protected route', async ({ page }) => {
-  await page.goto('/requirements')
+  await page.goto('/explorations')
   await expect(page).toHaveURL(/\/login$/)
   await expect(page.locator('input[name="email"]')).toBeVisible()
 })
 
 test('allows seeded user to login and reach dashboard', async ({ page }) => {
   await login(page)
-  await expect(page.locator('a[href="/requirements"]').first()).toBeVisible()
+  await expect(page.locator('a[href="/explorations"]').first()).toBeVisible()
 })
 
 test('supports creating requirement and finding it in list', async ({ page }) => {
@@ -75,10 +75,10 @@ test('supports creating requirement and finding it in list', async ({ page }) =>
     ?? (createPayload as { result?: { data?: { id?: string } } })?.result?.data?.id
   expect(createdId).toBeTruthy()
 
-  await page.goto(`/requirements/${createdId as string}`)
+  await page.goto(`/explorations/${createdId as string}`)
   await expect(page.getByRole('heading', { name: title, level: 1 })).toBeVisible()
 
-  await page.goto('/requirements')
+  await page.goto('/explorations')
   await expect(page.locator('a').filter({ hasText: title }).first()).toBeVisible()
 })
 
@@ -193,8 +193,8 @@ test('supports repository connect and delete flow', async ({ page }) => {
 
 test('shows seeded citations on requirement detail page', async ({ page }) => {
   await login(page)
-  await page.goto('/requirements/e2e-requirement-citations')
+  await page.goto('/explorations/e2e-requirement-citations')
   await expect(page.getByRole('heading', { name: 'E2E Requirement With Citations', level: 1 })).toBeVisible()
-  await expect(page.getByRole('heading', { name: 'Sources' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: 'ModelCard Sources' })).toBeVisible()
   await expect(page.getByText('E2E Spec Document')).toBeVisible()
 })
