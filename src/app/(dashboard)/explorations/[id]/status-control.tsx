@@ -26,7 +26,7 @@ export function StatusControl({ requirementId, currentStatus, onStatusChanged }:
       const res = await fetch('/api/trpc/requirement.transitionStatus', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ json: { id: requirementId, to } }),
+        body: JSON.stringify({ id: requirementId, to }),
       })
 
       if (!res.ok) {

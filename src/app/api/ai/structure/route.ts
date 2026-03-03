@@ -1,7 +1,8 @@
 import { verifySession } from '@/lib/dal'
-import { generateStructuredModel } from '@/server/ai/structuring'
 import { retrieveRelevantChunks, type RetrievedChunk } from '@/server/ai/rag/retrieve'
 import { prisma } from '@/server/db/client'
+import { runAgent } from '@/server/agents/registry'
+import '@/server/agents'
 
 export async function POST(req: Request) {
   const session = await verifySession()
@@ -37,14 +38,24 @@ export async function POST(req: Request) {
     console.error('[rag] retrieval failed, proceeding without context:', error)
   }
 
-  const result = await generateStructuredModel(
-    body.rawInput,
-    body.requirementId,
-    session.userId,
+  const result = await runAgent<{
+    rawInput: string
+    requirementId: string
+    ragContext: RetrievedChunk[]
+  }, {
+    success: boolean
+    model?: unknown
+    error?: unknown
+  }>('clarifier', {
+    rawInput: body.rawInput,
+    requirementId: body.requirementId,
     ragContext,
-  )
+  }, {
+    userId: session.userId,
+    requirementId: body.requirementId,
+  })
 
-  if (!result.success) {
+  if (!result.success || !result.model) {
     return new Response(JSON.stringify({ error: 'Failed to generate structured model' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

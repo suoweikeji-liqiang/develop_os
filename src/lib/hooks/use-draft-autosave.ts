@@ -9,25 +9,25 @@ interface DraftData {
   lastSaved: number
 }
 
-export function useDraftAutosave(draftId: string, value: string, intervalMs = 30000) {
-  const [savedValue, setSavedValue] = useState<string | null>(null)
-  const [lastSaved, setLastSaved] = useState<number | null>(null)
-  const valueRef = useRef(value)
-  valueRef.current = value
+function readDraft(draftId: string): DraftData | null {
+  if (typeof window === 'undefined') return null
 
-  // Load saved draft on mount
+  try {
+    const stored = localStorage.getItem(`${STORAGE_PREFIX}${draftId}`)
+    return stored ? (JSON.parse(stored) as DraftData) : null
+  } catch {
+    return null
+  }
+}
+
+export function useDraftAutosave(draftId: string, value: string, intervalMs = 30000) {
+  const [savedValue] = useState<string | null>(() => readDraft(draftId)?.rawInput ?? null)
+  const [lastSaved, setLastSaved] = useState<number | null>(() => readDraft(draftId)?.lastSaved ?? null)
+  const valueRef = useRef(value)
+
   useEffect(() => {
-    try {
-      const stored = localStorage.getItem(`${STORAGE_PREFIX}${draftId}`)
-      if (stored) {
-        const parsed: DraftData = JSON.parse(stored)
-        setSavedValue(parsed.rawInput)
-        setLastSaved(parsed.lastSaved)
-      }
-    } catch {
-      // Ignore parse errors
-    }
-  }, [draftId])
+    valueRef.current = value
+  }, [value])
 
   // Auto-save on interval
   useEffect(() => {

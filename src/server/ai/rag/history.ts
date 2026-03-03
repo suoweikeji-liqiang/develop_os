@@ -1,5 +1,6 @@
 import { prisma } from '@/server/db/client'
 import { chunkText, embedAndStore } from './embed'
+import { isEmbeddingConfigured } from '@/server/ai/provider'
 
 interface ConversationPart {
   type?: string
@@ -28,6 +29,7 @@ export function extractTextFromConversationContent(content: unknown): string {
 }
 
 export async function embedConversationMessage(message: ConversationMessageInput): Promise<void> {
+  if (!isEmbeddingConfigured()) return
   if (message.role !== 'assistant') return
 
   const text = extractTextFromConversationContent(message.content)
@@ -43,6 +45,10 @@ export async function embedConversationMessage(message: ConversationMessageInput
 }
 
 export async function backfillConversationHistory(): Promise<{ processed: number; skipped: number }> {
+  if (!isEmbeddingConfigured()) {
+    return { processed: 0, skipped: 0 }
+  }
+
   const messages = await prisma.conversationMessage.findMany({
     where: { role: 'assistant' },
     select: {

@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { VersionDiffView } from './version-diff-view'
-import type { FiveLayerModel } from '@/lib/schemas/requirement'
 
 interface VersionMeta {
   readonly id: string
@@ -16,7 +15,6 @@ interface VersionMeta {
 interface Props {
   requirementId: string
   currentVersion: number
-  currentModel?: FiveLayerModel
 }
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -53,7 +51,7 @@ function formatRelativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('zh-CN')
 }
 
-export function VersionHistory({ requirementId, currentVersion, currentModel }: Props) {
+export function VersionHistory({ requirementId, currentVersion }: Props) {
   const [versions, setVersions] = useState<readonly VersionMeta[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -66,7 +64,7 @@ export function VersionHistory({ requirementId, currentVersion, currentModel }: 
     setError(null)
     try {
       const url = `/api/trpc/version.list?input=${encodeURIComponent(
-        JSON.stringify({ json: { requirementId } })
+        JSON.stringify({ requirementId })
       )}`
       const res = await fetch(url)
       if (!res.ok) throw new Error(`加载版本历史失败 (${res.status})`)
@@ -157,8 +155,6 @@ export function VersionHistory({ requirementId, currentVersion, currentModel }: 
             requirementId={requirementId}
             versionA={selectedA}
             versionB={selectedB}
-            currentVersion={currentVersion}
-            currentModel={currentModel}
           />
         </div>
       )}

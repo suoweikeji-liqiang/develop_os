@@ -55,7 +55,7 @@ export function ExplorationForm() {
       const res = await fetch('/api/trpc/requirement.create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ json: { title: title.trim(), rawInput: rawInput.trim() } }),
+        body: JSON.stringify({ title: title.trim(), rawInput: rawInput.trim() }),
       })
 
       if (!res.ok) {

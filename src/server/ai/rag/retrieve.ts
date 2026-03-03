@@ -2,7 +2,7 @@ import { embed } from 'ai'
 import pgvector from 'pgvector'
 import { prisma } from '@/server/db/client'
 import type { KnowledgeSourceType } from './sources'
-import { getEmbeddingModel } from '@/server/ai/provider'
+import { getEmbeddingModelConfig } from '@/server/ai/provider'
 
 const MAX_DISTANCE = 0.35
 
@@ -23,10 +23,10 @@ export async function retrieveRelevantChunks(
   const trimmedQuery = query.trim()
   if (!trimmedQuery) return []
 
-  const { embedding } = await embed({
-    model: getEmbeddingModel(),
-    value: trimmedQuery,
-  })
+  const embeddingConfig = getEmbeddingModelConfig()
+  if (!embeddingConfig) return []
+
+  const { embedding } = await embed({ ...embeddingConfig, value: trimmedQuery })
 
   const vectorSql = pgvector.toSql(embedding)
   const fetchLimit = sourceTypes && sourceTypes.length > 0

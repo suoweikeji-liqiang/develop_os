@@ -18,6 +18,7 @@ const runId = `api-${Date.now()}-${Math.floor(Math.random() * 10000)}`
 const createdRequirementIds = new Set<string>()
 const createdDocumentIds = new Set<string>()
 const createdRepositoryIds = new Set<string>()
+const runDatabaseSuite = process.env.RUN_DB_TESTS === '1'
 
 const users: {
   owner?: SeedUser
@@ -102,7 +103,7 @@ async function cleanupRequirementArtifacts(requirementId: string) {
   await prisma.requirement.deleteMany({ where: { id: requirementId } })
 }
 
-describe.sequential('API business flow', () => {
+describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
   beforeAll(async () => {
     users.owner = await upsertUser('Owner')
     users.product = await upsertUser('Product', ['PRODUCT'])

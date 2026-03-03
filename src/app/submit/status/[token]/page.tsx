@@ -35,7 +35,7 @@ interface StatusData {
 
 async function fetchStatus(token: string): Promise<StatusData | null> {
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-  const input = encodeURIComponent(JSON.stringify({ json: { token } }))
+  const input = encodeURIComponent(JSON.stringify({ token }))
 
   try {
     const res = await fetch(`${baseUrl}/api/trpc/external.status?input=${input}`, {

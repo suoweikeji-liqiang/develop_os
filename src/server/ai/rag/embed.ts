@@ -2,7 +2,7 @@ import { embedMany } from 'ai'
 import pgvector from 'pgvector'
 import { prisma } from '@/server/db/client'
 import type { KnowledgeSourceType } from './sources'
-import { getEmbeddingModel } from '@/server/ai/provider'
+import { getEmbeddingModelConfig } from '@/server/ai/provider'
 
 export const CHUNK_SIZE = 400
 export const CHUNK_OVERLAP = 50
@@ -67,8 +67,13 @@ export async function embedAndStore(
 ): Promise<void> {
   if (chunks.length === 0) return
 
+  const embeddingConfig = getEmbeddingModelConfig()
+  if (!embeddingConfig) {
+    throw new Error('Embedding provider is not configured')
+  }
+
   const { embeddings } = await embedMany({
-    model: getEmbeddingModel(),
+    ...embeddingConfig,
     values: chunks,
     maxParallelCalls: 5,
   })

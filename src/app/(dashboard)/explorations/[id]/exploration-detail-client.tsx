@@ -8,6 +8,7 @@ import { ConsensusStatus } from './consensus-status'
 import { ChatPanel } from './chat-panel'
 import { VersionHistory } from './version-history'
 import { StatusControl } from './status-control'
+import { ConflictPanel } from './conflict-panel'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import type { ConversationResponse } from '@/lib/schemas/conversation'
 import type { UIMessage } from 'ai'
@@ -102,7 +103,7 @@ export function ExplorationDetailClient({
       await fetch('/api/trpc/requirement.updateModel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ json: { id: requirementId, model: updatedModel } }),
+        body: JSON.stringify({ id: requirementId, model: updatedModel }),
       })
     }
     setPendingPatches(prev => {
@@ -153,7 +154,7 @@ export function ExplorationDetailClient({
         await fetch('/api/trpc/requirement.updateModel', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ json: { id: requirementId, model: updatedModel } }),
+          body: JSON.stringify({ id: requirementId, model: updatedModel }),
         })
       }
     }
@@ -213,7 +214,6 @@ export function ExplorationDetailClient({
         <VersionHistory
           requirementId={requirementId}
           currentVersion={version}
-          currentModel={model}
         />
       )}
 
@@ -241,6 +241,7 @@ export function ExplorationDetailClient({
               ModelCard is being generated. Dialogue is enabled after the first abstraction pass.
             </div>
           )}
+          <ConflictPanel requirementId={requirementId} hasModel={Boolean(model)} />
           <ConsensusStatus requirementId={requirementId} currentStatus={currentStatus} />
           <SignoffPanel requirementId={requirementId} userRoles={userRoles} currentStatus={currentStatus} />
         </section>

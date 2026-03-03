@@ -15,6 +15,8 @@ export interface EventMap {
   'requirement.status.changed': { requirementId: string; from: string; to: string; changedBy: string }
   'requirement.signoff.submitted': { requirementId: string; role: string; userId: string }
   'requirement.signoff.invalidated': { requirementId: string; reason: 'model-updated' }
+  'requirement.conflicts.scanned': { requirementId: string; agentId: string; conflictCount: number }
+  'requirement.conflict.updated': { requirementId: string; conflictId: string; status: 'OPEN' | 'DISMISSED' | 'RESOLVED'; updatedBy: string }
   'comment.created': { requirementId: string; commentId: string; authorId: string; mentionedUserIds: string[] }
   'notification.created': { userId: string; type: 'MENTION' | 'STATUS_CHANGE' | 'COMMENT'; requirementId: string; commentId?: string }
 }

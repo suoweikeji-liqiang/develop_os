@@ -1,9 +1,11 @@
 import { afterEach, describe, expect, it } from 'vitest'
 import {
-  getChatProvider,
-  getEmbeddingProvider,
   getChatModel,
+  getChatProvider,
   getEmbeddingModel,
+  getEmbeddingModelConfig,
+  getEmbeddingProvider,
+  isEmbeddingConfigured,
 } from '@/server/ai/provider'
 
 const ORIGINAL_ENV = { ...process.env }
@@ -25,15 +27,32 @@ describe('AI provider selection', () => {
     expect(getChatProvider()).toBe('openai')
   })
 
-  it('defaults embedding provider to openai', () => {
+  it('defaults embedding provider to none when no key exists', () => {
     process.env.EMBEDDING_PROVIDER = ''
-    expect(getEmbeddingProvider()).toBe('openai')
+    delete process.env.OPENAI_API_KEY
+    delete process.env.QWEN_API_KEY
+
+    expect(getEmbeddingProvider()).toBeNull()
+    expect(isEmbeddingConfigured()).toBe(false)
+  })
+
+  it('supports qwen embeddings through the openai-compatible endpoint', () => {
+    process.env.EMBEDDING_PROVIDER = 'qwen'
+    process.env.QWEN_API_KEY = 'sk-qwen'
+    process.env.QWEN_EMBEDDING_DIMENSIONS = '1536'
+
+    const config = getEmbeddingModelConfig()
+
+    expect(getEmbeddingProvider()).toBe('qwen')
+    expect(isEmbeddingConfigured()).toBe(true)
+    expect(config?.providerOptions).toEqual({ openai: { dimensions: 1536 } })
   })
 
   it('builds chat and embedding models without throwing', () => {
     process.env.AI_PROVIDER = 'deepseek'
     process.env.DEEPSEEK_API_KEY = 'sk-test'
     process.env.EMBEDDING_PROVIDER = 'openai'
+    process.env.OPENAI_API_KEY = 'sk-openai'
 
     expect(() => getChatModel()).not.toThrow()
     expect(() => getEmbeddingModel()).not.toThrow()

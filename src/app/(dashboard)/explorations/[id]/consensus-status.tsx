@@ -27,16 +27,34 @@ export function ConsensusStatus({ requirementId, currentStatus }: Props) {
   useEffect(() => {
     if (!SHOW_STATUSES.has(currentStatus)) return
 
-    setLoading(true)
-    const params = encodeURIComponent(JSON.stringify({ requirementId }))
-    fetch(`/api/trpc/signoff.list?input=${params}`)
-      .then((res) => res.json())
-      .then((data) => {
+    let cancelled = false
+
+    async function loadSignoffs() {
+      setLoading(true)
+      try {
+        const params = encodeURIComponent(JSON.stringify({ requirementId }))
+        const res = await fetch(`/api/trpc/signoff.list?input=${params}`)
+        const data = await res.json()
         const result = data?.result?.data?.json ?? data?.result?.data ?? []
-        setSignoffs(Array.isArray(result) ? result : [])
-      })
-      .catch(() => setSignoffs([]))
-      .finally(() => setLoading(false))
+        if (!cancelled) {
+          setSignoffs(Array.isArray(result) ? result : [])
+        }
+      } catch {
+        if (!cancelled) {
+          setSignoffs([])
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false)
+        }
+      }
+    }
+
+    void loadSignoffs()
+
+    return () => {
+      cancelled = true
+    }
   }, [requirementId, currentStatus])
 
   if (!SHOW_STATUSES.has(currentStatus)) return null

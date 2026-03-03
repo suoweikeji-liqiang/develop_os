@@ -11,6 +11,7 @@ import { webhookRouter } from './routers/webhook'
 import { externalRouter } from './routers/external'
 import { knowledgeDocumentRouter } from './routers/knowledgeDocument'
 import { codeRepositoryRouter } from './routers/codeRepository'
+import { conflictRouter } from './routers/conflict'
 
 export const appRouter = createTRPCRouter({
   auth: authRouter,
@@ -25,6 +26,7 @@ export const appRouter = createTRPCRouter({
   external: externalRouter,
   knowledgeDocument: knowledgeDocumentRouter,
   codeRepository: codeRepositoryRouter,
+  conflict: conflictRouter,
 })
 
 export type AppRouter = typeof appRouter

@@ -20,6 +20,11 @@ function parseTrpcJson<T>(payload: unknown): T {
   return result.result?.data?.json as T
 }
 
+function parseTrpcError(payload: unknown, fallback: string): string {
+  const result = payload as { error?: { message?: string; json?: { message?: string } } }
+  return result.error?.message ?? result.error?.json?.message ?? fallback
+}
+
 export function RepoSection() {
   const [repositories, setRepositories] = useState<RepositoryItem[]>([])
   const [owner, setOwner] = useState('')
@@ -62,7 +67,7 @@ export function RepoSection() {
 
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
-        throw new Error(typeof body.error === 'string' ? body.error : 'Failed to connect repository')
+        throw new Error(parseTrpcError(body, 'Failed to connect repository'))
       }
 
       setOwner('')
@@ -87,7 +92,7 @@ export function RepoSection() {
       })
       if (!response.ok) {
         const body = await response.json().catch(() => ({}))
-        throw new Error(typeof body.error === 'string' ? body.error : 'Sync failed')
+        throw new Error(parseTrpcError(body, 'Sync failed'))
       }
       await loadRepositories()
     } catch (err) {
@@ -107,7 +112,7 @@ export function RepoSection() {
 
     if (!response.ok) {
       const body = await response.json().catch(() => ({}))
-      setError(typeof body.error === 'string' ? body.error : 'Delete failed')
+      setError(parseTrpcError(body, 'Delete failed'))
       return
     }
 
@@ -196,4 +201,3 @@ export function RepoSection() {
     </section>
   )
 }
-

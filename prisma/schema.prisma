@@ -31,6 +31,23 @@ enum NotificationType {
   COMMENT
 }
 
+enum ConflictStatus {
+  OPEN
+  DISMISSED
+  RESOLVED
+}
+
+enum ConflictScope {
+  INTERNAL
+  CROSS_REQUIREMENT
+}
+
+enum ConflictSeverity {
+  LOW
+  MEDIUM
+  HIGH
+}
+
 model User {
   id             String          @id @default(cuid())
   email          String          @unique
@@ -101,6 +118,8 @@ model Requirement {
   comments              Comment[]
   notifications         Notification[]
   externalSubmission    ExternalSubmission?
+  conflicts             RequirementConflict[] @relation("RequirementConflicts")
+  relatedConflicts      RequirementConflict[] @relation("RelatedRequirementConflicts")
 
   @@index([status])
   @@index([createdBy])
@@ -252,4 +271,32 @@ model KnowledgeChunk {
   createdAt  DateTime                   @default(now())
 
   @@index([sourceType, sourceId])
+}
+
+model RequirementConflict {
+  id                   String           @id @default(cuid())
+  requirementId        String
+  relatedRequirementId String?
+  fingerprint          String
+  status               ConflictStatus   @default(OPEN)
+  scope                ConflictScope
+  severity             ConflictSeverity
+  title                String
+  summary              String           @db.Text
+  rationale            String           @db.Text
+  recommendedAction    String           @db.Text
+  evidence             Json             @default("[]")
+  resolutionNote       String?          @db.Text
+  reviewedAt           DateTime?
+  agentId              String           @default("conflict-detector")
+  lastDetectedAt       DateTime         @default(now())
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  requirement          Requirement      @relation("RequirementConflicts", fields: [requirementId], references: [id], onDelete: Cascade)
+  relatedRequirement   Requirement?     @relation("RelatedRequirementConflicts", fields: [relatedRequirementId], references: [id], onDelete: SetNull)
+
+  @@unique([requirementId, fingerprint])
+  @@index([requirementId, status, updatedAt])
+  @@index([relatedRequirementId])
 }

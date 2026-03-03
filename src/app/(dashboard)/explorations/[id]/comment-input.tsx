@@ -17,7 +17,7 @@ export function CommentInput({ requirementId, onSubmitted }: Props) {
       return
     }
     const res = await fetch(
-      `/api/trpc/user.search?input=${encodeURIComponent(JSON.stringify({ json: { query } }))}`
+      `/api/trpc/user.search?input=${encodeURIComponent(JSON.stringify({ query }))}`
     )
     const data = await res.json()
     const users: { id: string; name: string }[] = data.result?.data?.json ?? []
@@ -32,7 +32,7 @@ export function CommentInput({ requirementId, onSubmitted }: Props) {
       await fetch('/api/trpc/comment.create', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ json: { requirementId, content: value.trim() } }),
+        body: JSON.stringify({ requirementId, content: value.trim() }),
       })
       setValue('')
       onSubmitted()

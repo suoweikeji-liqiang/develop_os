@@ -10,8 +10,6 @@ interface Props {
   requirementId: string
   versionA: number
   versionB: number
-  currentVersion: number
-  currentModel?: FiveLayerModel
 }
 
 const LAYER_TABS = [
@@ -28,8 +26,6 @@ export function VersionDiffView({
   requirementId,
   versionA,
   versionB,
-  currentVersion,
-  currentModel,
 }: Props) {
   const [diff, setDiff] = useState<StructuredDiff | null>(null)
   const [loading, setLoading] = useState(true)

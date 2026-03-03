@@ -86,7 +86,7 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
 
       const hasFilters = Object.keys(input).length > 0
       const url = `/api/trpc/requirement.search?input=${encodeURIComponent(
-        JSON.stringify({ json: hasFilters ? input : undefined })
+        JSON.stringify(hasFilters ? input : undefined)
       )}`
 
       const res = await fetch(url)

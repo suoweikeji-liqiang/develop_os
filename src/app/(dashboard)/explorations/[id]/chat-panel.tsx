@@ -89,10 +89,7 @@ export function ChatPanel({
   }, [messages])
 
   useEffect(() => {
-    if (status !== 'streaming') {
-      setElapsedMs(0)
-      return
-    }
+    if (status !== 'streaming') return
     const startedAt = Date.now()
     const timer = setInterval(() => {
       setElapsedMs(Date.now() - startedAt)
@@ -122,9 +119,10 @@ export function ChatPanel({
     }
   }
 
-  const phaseMessage = getGenerationPhaseMessage(getGenerationPhase(elapsedMs))
-  const timeoutMessage = getGenerationTimeoutMessage(elapsedMs)
-  const showPhaseFeedback = status === 'streaming' && elapsedMs >= 300
+  const displayedElapsedMs = status === 'streaming' ? elapsedMs : 0
+  const phaseMessage = getGenerationPhaseMessage(getGenerationPhase(displayedElapsedMs))
+  const timeoutMessage = getGenerationTimeoutMessage(displayedElapsedMs)
+  const showPhaseFeedback = status === 'streaming' && displayedElapsedMs >= 300
 
   if (!isOpen) {
     return (

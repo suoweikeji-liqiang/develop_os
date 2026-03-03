@@ -1,6 +1,7 @@
 import { TRPCError } from '@trpc/server'
 import { z } from 'zod'
 import { AddCodeRepositoryInputSchema } from '@/lib/schemas/knowledge'
+import { isEmbeddingConfigured } from '@/server/ai/provider'
 import { prisma } from '@/server/db/client'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { decryptToken, encryptToken } from '@/server/ai/rag/crypto'
@@ -10,6 +11,13 @@ export const codeRepositoryRouter = createTRPCRouter({
   add: protectedProcedure
     .input(AddCodeRepositoryInputSchema)
     .mutation(async ({ ctx, input }) => {
+      if (!isEmbeddingConfigured()) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: 'Embedding provider is not configured. Set OPENAI_API_KEY or QWEN_API_KEY first.',
+        })
+      }
+
       const encryptedToken = encryptToken(input.githubToken)
 
       const created = await prisma.codeRepository.create({
@@ -55,6 +63,13 @@ export const codeRepositoryRouter = createTRPCRouter({
   sync: protectedProcedure
     .input(z.object({ id: z.string() }))
     .mutation(async ({ ctx, input }) => {
+      if (!isEmbeddingConfigured()) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: 'Embedding provider is not configured. Set OPENAI_API_KEY or QWEN_API_KEY first.',
+        })
+      }
+
       const repository = await prisma.codeRepository.findUnique({
         where: { id: input.id },
       })

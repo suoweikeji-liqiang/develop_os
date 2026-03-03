@@ -35,7 +35,7 @@ export function CommentsPanel({ requirementId, currentUserId, isAdmin }: Props) 
 
   const loadComments = useCallback(async () => {
     const res = await fetch(
-      `/api/trpc/comment.list?input=${encodeURIComponent(JSON.stringify({ json: { requirementId } }))}`
+      `/api/trpc/comment.list?input=${encodeURIComponent(JSON.stringify({ requirementId }))}`
     )
     const data = await res.json()
     const raw: Comment[] = data.result?.data?.json ?? []
@@ -43,13 +43,32 @@ export function CommentsPanel({ requirementId, currentUserId, isAdmin }: Props) 
     setLoading(false)
   }, [requirementId])
 
-  useEffect(() => { void loadComments() }, [loadComments])
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadInitialComments() {
+      const res = await fetch(
+        `/api/trpc/comment.list?input=${encodeURIComponent(JSON.stringify({ requirementId }))}`
+      )
+      const data = await res.json()
+      const raw: Comment[] = data.result?.data?.json ?? []
+      if (cancelled) return
+      setComments(raw.map((c) => ({ ...c, createdAt: String(c.createdAt) })))
+      setLoading(false)
+    }
+
+    void loadInitialComments()
+
+    return () => {
+      cancelled = true
+    }
+  }, [requirementId])
 
   async function handleDelete(commentId: string) {
     await fetch('/api/trpc/comment.delete', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ json: { commentId } }),
+      body: JSON.stringify({ commentId }),
     })
     await loadComments()
   }

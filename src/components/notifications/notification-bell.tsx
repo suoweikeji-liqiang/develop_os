@@ -36,7 +36,7 @@ export function NotificationBell() {
 
   const loadCount = useCallback(async () => {
     const res = await fetch(
-      `/api/trpc/notification.unreadCount?input=${encodeURIComponent(JSON.stringify({ json: {} }))}`
+      `/api/trpc/notification.unreadCount?input=${encodeURIComponent(JSON.stringify({}))}`
     )
     const data = await res.json()
     setUnreadCount(data.result?.data?.json ?? 0)
@@ -44,14 +44,32 @@ export function NotificationBell() {
 
   const loadNotifications = useCallback(async () => {
     const res = await fetch(
-      `/api/trpc/notification.list?input=${encodeURIComponent(JSON.stringify({ json: { limit: 20 } }))}`
+      `/api/trpc/notification.list?input=${encodeURIComponent(JSON.stringify({ limit: 20 }))}`
     )
     const data = await res.json()
     const raw: Notification[] = data.result?.data?.json ?? []
     setNotifications(raw.map((n) => ({ ...n, createdAt: String(n.createdAt) })))
   }, [])
 
-  useEffect(() => { void loadCount() }, [loadCount])
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadInitialCount() {
+      const res = await fetch(
+        `/api/trpc/notification.unreadCount?input=${encodeURIComponent(JSON.stringify({}))}`
+      )
+      const data = await res.json()
+      if (!cancelled) {
+        setUnreadCount(data.result?.data?.json ?? 0)
+      }
+    }
+
+    void loadInitialCount()
+
+    return () => {
+      cancelled = true
+    }
+  }, [])
 
   useNotificationStream(useCallback(() => { void loadCount() }, [loadCount]))
 
@@ -74,7 +92,7 @@ export function NotificationBell() {
     await fetch('/api/trpc/notification.markAllRead', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ json: {} }),
+      body: JSON.stringify({}),
     })
     setUnreadCount(0)
     setNotifications((prev) => prev.map((n) => ({ ...n, read: true })))
@@ -84,7 +102,7 @@ export function NotificationBell() {
     await fetch('/api/trpc/notification.markRead', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ json: { notificationId } }),
+      body: JSON.stringify({ notificationId }),
     })
     setNotifications((prev) =>
       prev.map((n) => (n.id === notificationId ? { ...n, read: true } : n))

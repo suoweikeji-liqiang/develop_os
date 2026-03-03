@@ -2,7 +2,6 @@
 
 import { useDeferredValue, useEffect, useState } from 'react'
 import { STATUS_LABELS } from '@/lib/workflow/status-labels'
-import type { RequirementStatus } from '@/lib/workflow/status-machine'
 
 export type FilterState = {
   query?: string

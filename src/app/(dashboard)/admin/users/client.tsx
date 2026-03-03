@@ -22,7 +22,7 @@ export function AdminUsersClient({ users: initialUsers }: { users: UserWithRoles
     const res = await fetch('/api/trpc/user.assignRole', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ json: { userId, role } }),
+      body: JSON.stringify({ userId, role }),
     })
     if (res.ok) {
       setUsers(prev => prev.map(u =>
@@ -35,7 +35,7 @@ export function AdminUsersClient({ users: initialUsers }: { users: UserWithRoles
     const res = await fetch('/api/trpc/user.removeRole', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ json: { userId, role } }),
+      body: JSON.stringify({ userId, role }),
     })
     if (res.ok) {
       setUsers(prev => prev.map(u =>
@@ -49,7 +49,7 @@ export function AdminUsersClient({ users: initialUsers }: { users: UserWithRoles
     const res = await fetch('/api/trpc/user.sendInvite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ json: { email: inviteEmail, roles: inviteRoles } }),
+      body: JSON.stringify({ email: inviteEmail, roles: inviteRoles }),
     })
     if (res.ok) {
       setMessage(`邀请已发送至 ${inviteEmail}`)

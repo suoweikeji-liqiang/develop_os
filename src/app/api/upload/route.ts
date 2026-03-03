@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getSession } from '@/server/auth/session'
+import { isEmbeddingConfigured } from '@/server/ai/provider'
 import { extractTextFromFile } from '@/server/ai/rag/extract'
 import { chunkText, embedAndStore } from '@/server/ai/rag/embed'
 import { prisma } from '@/server/db/client'
@@ -32,6 +33,12 @@ export async function POST(req: NextRequest) {
 
   if (file.size > MAX_FILE_SIZE) {
     return NextResponse.json({ error: 'File too large. Max 10MB.' }, { status: 400 })
+  }
+
+  if (!isEmbeddingConfigured()) {
+    return NextResponse.json({
+      error: 'Embedding provider is not configured. Set OPENAI_API_KEY or QWEN_API_KEY first.',
+    }, { status: 412 })
   }
 
   const document = await prisma.knowledgeDocument.create({

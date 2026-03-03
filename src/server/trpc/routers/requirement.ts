@@ -6,6 +6,7 @@ import { FiveLayerModelSchema, CreateRequirementSchema } from '@/lib/schemas/req
 import { eventBus } from '@/server/events/bus'
 import { assertTransition, RequirementStatusEnum } from '@/lib/workflow/status-machine'
 import type { RequirementStatus } from '@/lib/workflow/status-machine'
+import { scanRequirementConflicts } from '@/server/conflicts/service'
 
 const RoleEnum = z.enum(['PRODUCT', 'DEV', 'TEST', 'UI', 'EXTERNAL'])
 
@@ -141,6 +142,13 @@ export const requirementRouter = createTRPCRouter({
         requirementId: requirement.id,
         updatedBy: ctx.session.userId,
         field: 'model',
+      })
+
+      void scanRequirementConflicts({
+        requirementId: requirement.id,
+        userId: ctx.session.userId,
+      }).catch((error) => {
+        console.error('[conflicts] auto-scan failed:', error)
       })
 
       return requirement

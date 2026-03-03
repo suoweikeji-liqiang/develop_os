@@ -87,7 +87,7 @@ export function ModelTabs({ requirementId, rawInput, initialModel, initialConfid
       await fetch('/api/trpc/requirement.updateModel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ json: { id: requirementId, model: finalModel } }),
+        body: JSON.stringify({ id: requirementId, model: finalModel }),
       })
     } catch {
       // Silent — model is already displayed

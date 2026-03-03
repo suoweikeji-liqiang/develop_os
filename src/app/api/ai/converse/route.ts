@@ -32,7 +32,7 @@ function extractLatestUserMessage(messages: unknown): string {
 export async function POST(req: Request) {
   await verifySession()
 
-  const { messages, requirementId, currentModel } = await req.json()
+  const { messages, currentModel } = await req.json()
   const userMessage = extractLatestUserMessage(messages)
 
   let ragContext: RetrievedChunk[] = []
