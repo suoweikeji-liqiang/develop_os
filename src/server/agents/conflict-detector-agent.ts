@@ -1,7 +1,6 @@
-import { generateText, Output } from 'ai'
 import { ConflictDetectionResultSchema, type ConflictDetectionResult } from '@/lib/schemas/conflict'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
-import { getChatModel } from '@/server/ai/provider'
+import { generateStructuredOutput } from '@/server/ai/structured-output'
 import { agentRegistry } from './registry'
 
 interface RequirementSnapshot {
@@ -15,6 +14,22 @@ export interface ConflictDetectorInput {
   requirement: RequirementSnapshot
   relatedRequirements: RequirementSnapshot[]
 }
+
+const CONFLICT_DETECTION_SHAPE_HINT = `{
+  "conflicts": [
+    {
+      "scope": "INTERNAL | CROSS_REQUIREMENT",
+      "severity": "LOW | MEDIUM | HIGH",
+      "title": "string",
+      "summary": "string",
+      "rationale": "string",
+      "evidence": ["string"],
+      "relatedRequirementId": "string (optional for cross-requirement only)",
+      "relatedRequirementTitle": "string (optional for cross-requirement only)",
+      "recommendedAction": "string"
+    }
+  ]
+}`
 
 function summarizeRequirement(requirement: RequirementSnapshot): string {
   return JSON.stringify({
@@ -64,10 +79,12 @@ export const conflictDetectorAgent = agentRegistry.register<ConflictDetectorInpu
   description: 'Finds contradictions inside a requirement model and across related requirements.',
   version: '1.0.0',
   run: async (input) => {
-    const { output } = await generateText({
-      model: getChatModel(),
-      output: Output.object({ schema: ConflictDetectionResultSchema }),
+    const output = await generateStructuredOutput({
+      schema: ConflictDetectionResultSchema,
+      schemaName: 'conflict_detection_result',
       prompt: buildConflictPrompt(input),
+      maxOutputTokens: 900,
+      shapeHint: CONFLICT_DETECTION_SHAPE_HINT,
     })
 
     return output ?? { conflicts: [] }

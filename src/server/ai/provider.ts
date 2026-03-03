@@ -1,11 +1,13 @@
 import { createOpenAI, openai } from '@ai-sdk/openai'
 
 const deepseek = createOpenAI({
+  name: 'deepseek',
   apiKey: process.env.DEEPSEEK_API_KEY,
   baseURL: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com/v1',
 })
 
 const qwen = createOpenAI({
+  name: 'qwen',
   apiKey: process.env.QWEN_API_KEY,
   baseURL: process.env.QWEN_BASE_URL ?? 'https://dashscope.aliyuncs.com/compatible-mode/v1',
 })
@@ -46,7 +48,7 @@ export function getChatProvider(): ChatProvider {
 
 export function getChatModel() {
   if (getChatProvider() === 'deepseek') {
-    return deepseek(process.env.DEEPSEEK_CHAT_MODEL ?? 'deepseek-chat')
+    return deepseek.chat(process.env.DEEPSEEK_CHAT_MODEL ?? 'deepseek-chat')
   }
   return openai(process.env.OPENAI_CHAT_MODEL ?? 'gpt-4o')
 }

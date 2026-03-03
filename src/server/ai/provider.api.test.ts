@@ -27,6 +27,13 @@ describe('AI provider selection', () => {
     expect(getChatProvider()).toBe('openai')
   })
 
+  it('uses the chat-completions adapter for deepseek', () => {
+    process.env.AI_PROVIDER = 'deepseek'
+    process.env.DEEPSEEK_API_KEY = 'sk-test'
+
+    expect(getChatModel().provider).toBe('deepseek.chat')
+  })
+
   it('defaults embedding provider to none when no key exists', () => {
     process.env.EMBEDDING_PROVIDER = ''
     delete process.env.OPENAI_API_KEY
