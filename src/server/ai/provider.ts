@@ -14,6 +14,7 @@ const qwen = createOpenAI({
 
 type ChatProvider = 'openai' | 'deepseek'
 type EmbeddingProvider = 'openai' | 'qwen'
+type ChatProviderWithQwen = ChatProvider | 'qwen'
 
 function normalize(value: string | undefined, fallback: string): string {
   return (value ?? fallback).trim().toLowerCase()
@@ -38,18 +39,34 @@ function getEmbeddingDimensions(provider: EmbeddingProvider): number | undefined
   return parsePositiveInt(process.env.OPENAI_EMBEDDING_DIMENSIONS)
 }
 
-export function getChatProvider(): ChatProvider {
+export function getChatProvider(): ChatProviderWithQwen {
   const configured = normalize(
     process.env.AI_PROVIDER,
-    hasValue(process.env.DEEPSEEK_API_KEY) ? 'deepseek' : 'openai',
+    hasValue(process.env.DEEPSEEK_API_KEY)
+      ? 'deepseek'
+      : hasValue(process.env.OPENAI_API_KEY)
+        ? 'openai'
+        : hasValue(process.env.QWEN_API_KEY)
+          ? 'qwen'
+          : 'openai',
   )
-  return configured === 'deepseek' ? 'deepseek' : 'openai'
+
+  if (configured === 'deepseek') return 'deepseek'
+  if (configured === 'qwen') return 'qwen'
+  return 'openai'
 }
 
 export function getChatModel() {
-  if (getChatProvider() === 'deepseek') {
+  const provider = getChatProvider()
+
+  if (provider === 'deepseek') {
     return deepseek.chat(process.env.DEEPSEEK_CHAT_MODEL ?? 'deepseek-chat')
   }
+
+  if (provider === 'qwen') {
+    return qwen.chat(process.env.QWEN_CHAT_MODEL ?? 'qwen-plus')
+  }
+
   return openai(process.env.OPENAI_CHAT_MODEL ?? 'gpt-4o')
 }
 

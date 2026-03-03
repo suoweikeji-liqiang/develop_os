@@ -27,11 +27,27 @@ describe('AI provider selection', () => {
     expect(getChatProvider()).toBe('openai')
   })
 
+  it('defaults chat provider to qwen when only QWEN_API_KEY exists', () => {
+    delete process.env.AI_PROVIDER
+    delete process.env.DEEPSEEK_API_KEY
+    delete process.env.OPENAI_API_KEY
+    process.env.QWEN_API_KEY = 'sk-qwen'
+
+    expect(getChatProvider()).toBe('qwen')
+  })
+
   it('uses the chat-completions adapter for deepseek', () => {
     process.env.AI_PROVIDER = 'deepseek'
     process.env.DEEPSEEK_API_KEY = 'sk-test'
 
     expect(getChatModel().provider).toBe('deepseek.chat')
+  })
+
+  it('uses the chat-completions adapter for qwen', () => {
+    process.env.AI_PROVIDER = 'qwen'
+    process.env.QWEN_API_KEY = 'sk-qwen'
+
+    expect(getChatModel().provider).toBe('qwen.chat')
   })
 
   it('defaults embedding provider to none when no key exists', () => {
@@ -63,5 +79,12 @@ describe('AI provider selection', () => {
 
     expect(() => getChatModel()).not.toThrow()
     expect(() => getEmbeddingModel()).not.toThrow()
+  })
+
+  it('builds qwen chat model without throwing', () => {
+    process.env.AI_PROVIDER = 'qwen'
+    process.env.QWEN_API_KEY = 'sk-qwen'
+
+    expect(() => getChatModel()).not.toThrow()
   })
 })
