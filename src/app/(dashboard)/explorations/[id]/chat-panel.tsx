@@ -4,10 +4,11 @@ import { useState, useRef, useEffect } from 'react'
 import { useChat } from '@ai-sdk/react'
 import { DefaultChatTransport } from 'ai'
 import type { UIMessage } from 'ai'
+import { Bot, ChevronLeft, ChevronRight, SendHorizontal, Sparkles } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Send, ChevronRight, ChevronLeft } from 'lucide-react'
+import { cn } from '@/lib/utils'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import type { ConversationResponse } from '@/lib/schemas/conversation'
 import type { PendingAssumption } from './assumption-card'
@@ -24,6 +25,33 @@ interface Props {
   autoOpen?: boolean
   hasPendingDiff?: boolean
   onPatchProposed: (response: ConversationResponse) => void
+}
+
+function parseConversationPayload(text: string): ConversationResponse | null {
+  try {
+    return JSON.parse(text) as ConversationResponse
+  } catch {
+    return null
+  }
+}
+
+function getMessageText(message: UIMessage): string {
+  const text = message.parts
+    ?.filter((part): part is { type: 'text'; text: string } => part.type === 'text')
+    .map((part) => part.text)
+    .join('\n') ?? ''
+
+  if (message.role !== 'assistant') return text
+
+  const parsed = parseConversationPayload(text)
+  return parsed?.reply ?? text
+}
+
+function statusLabel(status: string): string {
+  if (status === 'streaming') return 'Thinking'
+  if (status === 'submitted') return 'Queued'
+  if (status === 'error') return 'Issue'
+  return 'Ready'
 }
 
 export function ChatPanel({
@@ -47,43 +75,41 @@ export function ChatPanel({
       body: { requirementId, currentModel },
     }),
     onFinish: async ({ message }) => {
-      // Save assistant message to DB
       await fetch('/api/trpc/conversation.saveMessage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          json: { requirementId, role: 'assistant', content: message.parts ?? [] },
+          requirementId,
+          role: 'assistant',
+          content: message.parts ?? [],
         }),
       })
-      // Extract structured response from text part
-      try {
-        const textPart = message.parts?.find(
-          (p: { type: string }) => p.type === 'text',
-        )
-        if (textPart && 'text' in textPart) {
-          const parsed = JSON.parse(
-            (textPart as { text: string }).text,
-          ) as ConversationResponse
-          if (parsed.patches || parsed.newAssumptions?.length) {
-            onPatchProposed(parsed)
-          }
-          if (parsed.newAssumptions?.length) {
-            setPendingAssumptions((prev) => [
-              ...prev,
-              ...parsed.newAssumptions!.map((a) => ({
-                id: crypto.randomUUID(),
-                ...a,
-              })),
-            ])
-          }
-        }
-      } catch {
-        // parse failure — skip silently
+
+      const textPart = message.parts?.find(
+        (part): part is { type: 'text'; text: string } => part.type === 'text',
+      )
+
+      if (!textPart) return
+
+      const parsed = parseConversationPayload(textPart.text)
+      if (!parsed) return
+
+      if (parsed.patches || parsed.newAssumptions?.length) {
+        onPatchProposed(parsed)
+      }
+
+      if (parsed.newAssumptions?.length) {
+        setPendingAssumptions((prev) => [
+          ...prev,
+          ...parsed.newAssumptions!.map((assumption) => ({
+            id: crypto.randomUUID(),
+            ...assumption,
+          })),
+        ])
       }
     },
   })
 
-  // Auto-scroll on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' })
   }, [messages])
@@ -101,21 +127,24 @@ export function ChatPanel({
     if (!inputValue.trim() || status === 'streaming') return
     const text = inputValue.trim()
     setInputValue('')
-    // Save user message to DB
+
     await fetch('/api/trpc/conversation.saveMessage', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        json: { requirementId, role: 'user', content: [{ type: 'text', text }] },
+        requirementId,
+        role: 'user',
+        content: [{ type: 'text', text }],
       }),
     })
+
     sendMessage({ text })
   }
 
-  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault()
-      handleSend()
+  function handleKeyDown(event: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault()
+      void handleSend()
     }
   }
 
@@ -129,7 +158,7 @@ export function ChatPanel({
       <button
         onClick={() => setIsOpen(true)}
         disabled={status === 'streaming'}
-        className="flex flex-col items-center justify-center gap-1 rounded-md border bg-muted/50 px-2 py-4 hover:bg-muted transition-colors"
+        className="app-panel flex flex-col items-center justify-center gap-2 px-3 py-5 text-slate-700 hover:-translate-y-0.5"
       >
         <ChevronLeft className="h-4 w-4" />
         <span className="text-xs [writing-mode:vertical-lr]">对话</span>
@@ -138,96 +167,128 @@ export function ChatPanel({
   }
 
   return (
-    <div className="flex flex-col rounded-md border bg-background h-[600px]">
-      {/* Header */}
-      <div className="flex items-center justify-between border-b px-3 py-2">
-        <span className="text-sm font-medium">AI 对话</span>
-        <Button size="icon" variant="ghost" onClick={() => setIsOpen(false)} disabled={status === 'streaming'}>
-          <ChevronRight className="h-4 w-4" />
-        </Button>
+    <div className="app-panel flex h-[680px] flex-col overflow-hidden">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200/80 px-4 py-4">
+        <div className="space-y-1">
+          <div className="flex items-center gap-2 text-sm font-semibold text-slate-950">
+            <Bot className="size-4 text-primary" />
+            AI 对话
+          </div>
+          <p className="text-xs text-slate-500">
+            继续澄清上下文、挑战假设，并把修正建议送回 ModelCard。
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <span
+            className={cn(
+              'rounded-full border px-3 py-1 text-xs font-medium',
+              status === 'streaming'
+                ? 'border-cyan-200/80 bg-cyan-100/80 text-cyan-950'
+                : status === 'error'
+                  ? 'border-rose-200/80 bg-rose-100/80 text-rose-950'
+                  : 'border-slate-200 bg-white text-slate-600',
+            )}
+          >
+            {statusLabel(status)}
+          </span>
+          <Button size="icon-sm" variant="ghost" onClick={() => setIsOpen(false)} disabled={status === 'streaming'}>
+            <ChevronRight className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
 
-      {/* Messages */}
-      <ScrollArea className="flex-1 px-3 py-2">
-        <div className="space-y-3">
-          {messages.map((msg) => (
-            <div
-              key={msg.id}
-              className={
-                msg.role === 'user' ? 'flex justify-end' : 'flex justify-start'
-              }
-            >
-              <div
-                className={
-                  msg.role === 'user'
-                    ? 'bg-primary text-primary-foreground rounded-lg px-3 py-2 max-w-[85%] text-sm'
-                    : 'bg-muted rounded-lg px-3 py-2 max-w-[85%] text-sm'
-                }
-              >
-                {msg.parts
-                  ?.filter((p): p is { type: 'text'; text: string } => p.type === 'text')
-                  .map((p, i) => (
-                    <span key={i}>{p.text}</span>
-                  ))}
-              </div>
+      <ScrollArea className="flex-1">
+        <div className="space-y-4 px-4 py-4">
+          {messages.length === 0 && (
+            <div className="rounded-[22px] border border-dashed border-slate-200 bg-slate-50/80 p-5 text-sm text-slate-500">
+              还没有对话。先描述新的疑问、冲突点或想验证的假设。
             </div>
-          ))}
+          )}
 
-          {showPhaseFeedback &&
-            messages[messages.length - 1]?.role === 'user' && (
-              <div className="flex justify-start">
-                <div className="space-y-1 rounded-lg border border-slate-300 bg-slate-50 px-3 py-2 text-sm max-w-[85%]">
-                  <p className="text-slate-700">{phaseMessage}</p>
-                  {timeoutMessage && (
-                    <p className="text-xs text-slate-600">{timeoutMessage}</p>
+          {messages.map((message) => {
+            const text = getMessageText(message)
+            if (!text.trim()) return null
+
+            const isUser = message.role === 'user'
+
+            return (
+              <div
+                key={message.id}
+                className={isUser ? 'flex justify-end' : 'flex justify-start'}
+              >
+                <div
+                  className={cn(
+                    'max-w-[88%] rounded-[24px] px-4 py-3 text-sm leading-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)]',
+                    isUser
+                      ? 'bg-[linear-gradient(135deg,rgba(32,99,246,0.98),rgba(15,195,255,0.92))] text-white'
+                      : 'border border-slate-200/80 bg-slate-50/85 text-slate-700',
                   )}
+                >
+                  {text}
                 </div>
               </div>
-            )}
+            )
+          })}
+
+          {showPhaseFeedback && messages[messages.length - 1]?.role === 'user' && (
+            <div className="flex justify-start">
+              <div className="max-w-[88%] rounded-[22px] border border-cyan-200/70 bg-cyan-50/80 px-4 py-3 text-sm text-cyan-950">
+                <div className="flex items-center gap-2 font-medium">
+                  <Sparkles className="size-4" />
+                  {phaseMessage}
+                </div>
+                {timeoutMessage && (
+                  <p className="mt-2 text-xs text-cyan-900/70">{timeoutMessage}</p>
+                )}
+              </div>
+            </div>
+          )}
 
           <div ref={messagesEndRef} />
         </div>
       </ScrollArea>
 
-      {/* Error */}
-      {error && (
-        <p className="text-sm text-red-500 px-3 py-1">{error.message}</p>
+      {(error || pendingAssumptions.length > 0 || hasPendingDiff) && (
+        <div className="space-y-2 border-t border-slate-200/80 bg-slate-50/80 px-4 py-3">
+          {error && (
+            <p className="rounded-[16px] border border-rose-200 bg-rose-50 px-3 py-2 text-sm text-rose-600">
+              {error.message}
+            </p>
+          )}
+          {pendingAssumptions.length > 0 && (
+            <p className="rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              发现 {pendingAssumptions.length} 条新假设，请在假设标签页查看。
+            </p>
+          )}
+          {hasPendingDiff && (
+            <p className="rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-700">
+              请先确认或拒绝建议的变更，再继续对话。
+            </p>
+          )}
+        </div>
       )}
 
-      {/* Pending assumptions notification */}
-      {pendingAssumptions.length > 0 && (
-        <p className="text-sm text-amber-600 px-3 py-1">
-          发现新假设，请在假设标签页查看
-        </p>
-      )}
-
-      {/* Pending diff warning */}
-      {hasPendingDiff && (
-        <p className="text-xs text-amber-600 px-3 mb-1">
-          请先确认或拒绝建议的变更
-        </p>
-      )}
-
-      {/* Input area */}
-      <div className="border-t p-3 flex gap-2">
-        <Textarea
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={handleKeyDown}
-          placeholder="输入消息..."
-          rows={2}
-          disabled={status === 'streaming' || hasPendingDiff}
-          className="resize-none text-sm"
-        />
-        <Button
-          size="icon"
-          onClick={handleSend}
-          disabled={
-            status === 'streaming' || !inputValue.trim() || hasPendingDiff
-          }
-        >
-          <Send className="h-4 w-4" />
-        </Button>
+      <div className="border-t border-slate-200/80 px-4 py-4">
+        <div className="flex gap-3">
+          <Textarea
+            value={inputValue}
+            onChange={(event) => setInputValue(event.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="输入新的澄清问题、修正建议或边界条件..."
+            rows={3}
+            disabled={status === 'streaming' || hasPendingDiff}
+            className="resize-none text-sm"
+          />
+          <Button
+            size="icon"
+            onClick={() => void handleSend()}
+            disabled={
+              status === 'streaming' || !inputValue.trim() || hasPendingDiff
+            }
+          >
+            <SendHorizontal className="h-4 w-4" />
+          </Button>
+        </div>
       </div>
     </div>
   )

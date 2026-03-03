@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNotificationStream } from '@/lib/hooks/use-notification-stream'
+import { Bell, CheckCheck } from 'lucide-react'
 
 interface Notification {
   id: string
@@ -114,51 +115,51 @@ export function NotificationBell() {
     <div className="relative" ref={dropdownRef}>
       <button
         onClick={() => void handleOpen()}
-        className="relative p-2 rounded hover:bg-gray-100"
+        className="relative inline-flex size-11 items-center justify-center rounded-full border border-white/65 bg-white/72 text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.74)] hover:-translate-y-0.5 hover:bg-white/90"
         aria-label="通知"
       >
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9" />
-        </svg>
+        <Bell className="h-4.5 w-4.5" />
         {unreadCount > 0 && (
-          <span className="absolute -top-1 -right-1 bg-red-500 text-white text-xs rounded-full w-4 h-4 flex items-center justify-center leading-none">
+          <span className="absolute -right-1 -top-1 flex h-5 min-w-5 items-center justify-center rounded-full bg-[linear-gradient(135deg,rgba(32,99,246,0.98),rgba(15,195,255,0.92))] px-1 text-[10px] font-semibold text-white shadow-[0_12px_26px_rgba(31,109,255,0.26)]">
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-1 w-80 bg-white border rounded-lg shadow-lg z-50">
-          <div className="flex items-center justify-between px-3 py-2 border-b">
-            <span className="text-sm font-semibold">通知</span>
+        <div className="app-panel absolute right-0 z-50 mt-3 w-[22rem] overflow-hidden">
+          <div className="flex items-center justify-between border-b border-white/60 px-4 py-3">
+            <span className="text-sm font-semibold text-slate-900">通知中心</span>
             {unreadCount > 0 && (
               <button
                 onClick={() => void handleMarkAllRead()}
-                className="text-xs text-blue-600 hover:underline"
+                className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:opacity-80"
               >
+                <CheckCheck className="size-3.5" />
                 全部标为已读
               </button>
             )}
           </div>
-          <ul className="max-h-80 overflow-y-auto divide-y">
+          <ul className="max-h-80 overflow-y-auto divide-y divide-white/50">
             {notifications.length === 0 ? (
-              <li className="px-3 py-4 text-sm text-gray-400 text-center">暂无通知</li>
+              <li className="px-4 py-8 text-center text-sm text-slate-400">暂无通知</li>
             ) : (
               notifications.map((n) => (
                 <li
                   key={n.id}
-                  className={`px-3 py-2 text-sm flex items-start gap-2 ${n.read ? 'bg-white' : 'bg-blue-50'}`}
+                  className={`flex items-start gap-3 px-4 py-3 text-sm ${n.read ? 'bg-transparent' : 'bg-cyan-100/45'}`}
                 >
-                  <div className="flex-1 min-w-0">
-                    <p className={`truncate ${n.read ? 'text-gray-600' : 'text-gray-900 font-medium'}`}>
+                  <div className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${n.read ? 'bg-slate-300' : 'bg-cyan-500 shadow-[0_0_18px_rgba(15,195,255,0.8)]'}`} />
+                  <div className="min-w-0 flex-1">
+                    <p className={`truncate ${n.read ? 'text-slate-600' : 'font-medium text-slate-950'}`}>
                       {notificationLabel(n)}
                     </p>
-                    <p className="text-xs text-gray-400 mt-0.5">{formatRelativeTime(n.createdAt)}</p>
+                    <p className="mt-1 text-xs text-slate-400">{formatRelativeTime(n.createdAt)}</p>
                   </div>
                   {!n.read && (
                     <button
                       onClick={() => void handleMarkRead(n.id)}
-                      className="text-xs text-blue-500 shrink-0 mt-0.5"
+                      className="mt-0.5 shrink-0 text-xs font-medium text-primary"
                     >
                       标已读
                     </button>

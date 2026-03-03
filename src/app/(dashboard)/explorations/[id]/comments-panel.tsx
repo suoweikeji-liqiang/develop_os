@@ -74,19 +74,24 @@ export function CommentsPanel({ requirementId, currentUserId, isAdmin }: Props) 
   }
 
   return (
-    <div className="flex flex-col gap-4">
-      <h3 className="font-semibold text-sm">实验记录 ({comments.length})</h3>
+    <div className="flex flex-col gap-5">
+      <div className="space-y-2">
+        <p className="app-kicker">Observation log</p>
+        <h3 className="text-2xl font-semibold text-slate-950">实验记录 ({comments.length})</h3>
+      </div>
       {loading ? (
-        <p className="text-sm text-gray-500">加载中...</p>
+        <p className="text-sm text-slate-500">加载中...</p>
       ) : comments.length === 0 ? (
-        <p className="text-sm text-gray-400">暂无实验记录，添加第一条观察结论</p>
+        <p className="rounded-[20px] border border-dashed border-slate-200 bg-slate-50/70 p-5 text-sm text-slate-400">
+          暂无实验记录，添加第一条观察结论。
+        </p>
       ) : (
         <ul className="flex flex-col gap-3">
           {comments.map((comment) => (
-            <li key={comment.id} className="border rounded p-3 text-sm">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-medium">{comment.author.name}</span>
-                <div className="flex items-center gap-2 text-gray-400 text-xs">
+            <li key={comment.id} className="rounded-[22px] border border-slate-200/80 bg-slate-50/80 p-4 text-sm">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-medium text-slate-900">{comment.author.name}</span>
+                <div className="flex items-center gap-2 text-xs text-slate-400">
                   <span>{formatRelativeTime(comment.createdAt)}</span>
                   {(comment.author.id === currentUserId || isAdmin) && (
                     <button
@@ -98,7 +103,7 @@ export function CommentsPanel({ requirementId, currentUserId, isAdmin }: Props) 
                   )}
                 </div>
               </div>
-              <p className="text-gray-700 whitespace-pre-wrap">{renderCommentText(comment.content)}</p>
+              <p className="whitespace-pre-wrap leading-6 text-slate-600">{renderCommentText(comment.content)}</p>
             </li>
           ))}
         </ul>

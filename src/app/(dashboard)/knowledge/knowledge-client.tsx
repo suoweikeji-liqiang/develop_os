@@ -1,6 +1,9 @@
-﻿'use client'
+'use client'
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Clock3, FileText, Sparkles, Trash2, UploadCloud } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 
 type KnowledgeDocumentItem = {
   id: string
@@ -11,9 +14,9 @@ type KnowledgeDocumentItem = {
 }
 
 const statusStyles: Record<string, string> = {
-  PROCESSING: 'bg-amber-100 text-amber-800',
-  READY: 'bg-emerald-100 text-emerald-800',
-  ERROR: 'bg-rose-100 text-rose-800',
+  PROCESSING: 'border-amber-200/80 bg-amber-100/80 text-amber-900',
+  READY: 'border-emerald-200/80 bg-emerald-100/80 text-emerald-900',
+  ERROR: 'border-rose-200/80 bg-rose-100/80 text-rose-900',
 }
 
 function parseTrpcJson<T>(payload: unknown): T {
@@ -109,62 +112,104 @@ export function KnowledgeClient() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="rounded-lg border p-4 space-y-3">
-        <div className="flex flex-wrap items-center gap-3">
-          <input
+    <section className="grid gap-6 xl:grid-cols-[0.92fr_1.08fr]">
+      <div className="app-panel space-y-5 p-5 sm:p-6">
+        <div className="space-y-2">
+          <p className="app-kicker">Document ingest</p>
+          <h2 className="text-2xl font-semibold text-slate-950">上传上下文文档</h2>
+          <p className="text-sm leading-6 text-slate-500">
+            文档会被切分、嵌入并进入知识检索链路，供结构化建模与后续修正参考。
+          </p>
+        </div>
+
+        <div className="rounded-[24px] border border-white/65 bg-white/76 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)]">
+          <Input
             type="file"
             accept=".pdf,.txt,.md"
             onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
-            className="block w-full max-w-sm text-sm file:mr-3 file:rounded-md file:border file:px-3 file:py-1.5 file:text-sm"
           />
-          <button
-            onClick={() => void handleUpload()}
-            disabled={!selectedFile || uploading}
-            className="rounded-md bg-black px-4 py-2 text-sm text-white disabled:opacity-50"
-          >
-            {uploading ? 'Uploading...' : 'Upload'}
-          </button>
+          <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="space-y-1 text-sm text-slate-500">
+              <p>支持 `.pdf` / `.txt` / `.md`，单文件最大 10MB。</p>
+              {selectedFile && (
+                <p className="inline-flex items-center gap-2 rounded-full border border-cyan-200/70 bg-cyan-100/70 px-3 py-1 text-xs font-medium text-cyan-950">
+                  <FileText className="size-3.5" />
+                  {selectedFile.name}
+                </p>
+              )}
+            </div>
+            <Button
+              onClick={() => void handleUpload()}
+              disabled={!selectedFile || uploading}
+            >
+              <UploadCloud className="size-4" />
+              {uploading ? 'Uploading...' : 'Upload context'}
+            </Button>
+          </div>
         </div>
-        <p className="text-xs text-muted-foreground">Supported formats: .pdf .txt .md (max 10MB)</p>
-        {error && <p className="text-sm text-red-600">{error}</p>}
+
+        {error && (
+          <p className="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-600">
+            {error}
+          </p>
+        )}
       </div>
 
-      <div className="rounded-lg border">
-        <div className="border-b px-4 py-3">
-          <h2 className="text-sm font-semibold">Documents</h2>
+      <div className="app-panel p-5 sm:p-6">
+        <div className="mb-5 flex items-center justify-between gap-3">
+          <div>
+            <p className="app-kicker">Stored corpus</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950">Documents</h2>
+          </div>
+          <span className="app-chip">{documents.length} files</span>
         </div>
+
         {documents.length === 0 ? (
-          <p className="p-4 text-sm text-muted-foreground">
-            No documents uploaded yet. Upload a PDF or text file to give AI background context.
-          </p>
+          <div className="rounded-[24px] border border-dashed border-slate-200 bg-slate-50/70 p-8 text-center">
+            <div className="mx-auto flex size-14 items-center justify-center rounded-full bg-slate-950/5 text-slate-500">
+              <Sparkles className="size-6" />
+            </div>
+            <p className="mt-4 text-lg font-semibold text-slate-900">还没有知识文档</p>
+            <p className="mt-2 text-sm text-slate-500">
+              上传第一份文档，开始为 AI 建立长期上下文记忆。
+            </p>
+          </div>
         ) : (
-          <ul className="divide-y">
+          <ul className="space-y-3">
             {documents.map((document) => (
-              <li key={document.id} className="flex items-center justify-between gap-4 px-4 py-3">
-                <div className="min-w-0">
-                  <p className="truncate text-sm font-medium">{document.name}</p>
-                  <p className="text-xs text-muted-foreground">
-                    {new Date(document.createdAt).toLocaleString()} {document.chunkCount ? `路 ${document.chunkCount} chunks` : ''}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <span className={`rounded-full px-2 py-0.5 text-xs ${statusStyles[document.status] ?? 'bg-gray-100 text-gray-700'}`}>
-                    {document.status}
-                  </span>
-                  <button
-                    onClick={() => void handleDelete(document.id)}
-                    className="text-xs text-red-600 hover:underline"
-                  >
-                    Delete
-                  </button>
+              <li
+                key={document.id}
+                className="rounded-[22px] border border-slate-200/80 bg-slate-50/80 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)]"
+              >
+                <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div className="min-w-0 space-y-2">
+                    <p className="truncate text-base font-semibold text-slate-950">{document.name}</p>
+                    <div className="flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                      <span className="inline-flex items-center gap-1.5">
+                        <Clock3 className="size-3.5" />
+                        {new Date(document.createdAt).toLocaleString()}
+                      </span>
+                      {document.chunkCount ? <span>{document.chunkCount} chunks</span> : null}
+                    </div>
+                  </div>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={`rounded-full border px-3 py-1 text-xs font-medium ${statusStyles[document.status] ?? 'border-slate-200 bg-white text-slate-700'}`}>
+                      {document.status}
+                    </span>
+                    <button
+                      onClick={() => void handleDelete(document.id)}
+                      className="inline-flex items-center gap-1 rounded-full border border-rose-200 bg-white px-3 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50"
+                    >
+                      <Trash2 className="size-3.5" />
+                      Delete
+                    </button>
+                  </div>
                 </div>
               </li>
             ))}
           </ul>
         )}
       </div>
-    </div>
+    </section>
   )
 }
-

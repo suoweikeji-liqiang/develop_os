@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import { ArrowRight, Orbit, Radar, Waves } from 'lucide-react'
 import { verifySession } from '@/lib/dal'
 import { prisma } from '@/server/db/client'
 import { ExplorationsListClient } from './explorations-list-client'
@@ -33,34 +34,97 @@ export async function ExplorationIndexPage({ listView }: Props) {
     updatedAt: req.updatedAt.toISOString(),
   }))
 
-  const headings: Record<ListView, { title: string; subtitle: string }> = {
+  const headings: Record<ListView, {
+    eyebrow: string
+    title: string
+    subtitle: string
+    icon: typeof Orbit
+  }> = {
     explorations: {
-      title: 'Explorations',
-      subtitle: 'Context-driven journeys, dialogue and experiment traces.',
+      eyebrow: 'Signal Flow',
+      title: '探索流总览',
+      subtitle: '把上下文、对话、实验和模型演化收束到一张连续的需求轨迹图上。',
+      icon: Orbit,
     },
     models: {
-      title: 'Models',
-      subtitle: 'Reusable ModelCards focused on structural abstraction.',
+      eyebrow: 'Model Assets',
+      title: '结构化模型资产',
+      subtitle: '聚焦已经进入建模阶段的需求，观察哪些抽象正在变得稳定且可复用。',
+      icon: Radar,
     },
     evolution: {
-      title: 'Evolution',
-      subtitle: 'Version-oriented view of how each ModelCard evolved.',
+      eyebrow: 'Version Drift',
+      title: '演化视图',
+      subtitle: '从版本变化的角度审视需求如何被修正、收敛、冲突或再抽象。',
+      icon: Waves,
     },
   }
 
+  const heading = headings[listView]
+  const Icon = heading.icon
+  const evolvedCount = serialized.filter((item) => item.version > 1).length
+  const taggedCount = serialized.filter((item) => item.tags.length > 0).length
+
   return (
-    <div className="space-y-6">
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">{headings[listView].title}</h1>
-          <Link
-            href="/explorations/new"
-            className="rounded bg-black px-4 py-2 text-sm text-white hover:opacity-80"
-          >
-            New Exploration
-          </Link>
+    <div className="space-y-8">
+      <section className="app-panel-dark surface-grid relative overflow-hidden px-6 py-7 sm:px-8 sm:py-8">
+        <div className="absolute right-[-6rem] top-[-5rem] h-48 w-48 rounded-full bg-cyan-400/20 blur-3xl" />
+        <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1fr)_340px]">
+          <div className="space-y-5">
+            <div className="inline-flex size-12 items-center justify-center rounded-[18px] bg-white/8 text-cyan-200">
+              <Icon className="size-5" />
+            </div>
+            <div className="space-y-3">
+              <p className="app-kicker text-cyan-200/90">{heading.eyebrow}</p>
+              <h1 className="app-display text-4xl font-semibold leading-none text-white sm:text-5xl">
+                {heading.title}
+              </h1>
+              <p className="max-w-2xl text-base leading-7 text-white/70">
+                {heading.subtitle}
+              </p>
+            </div>
+          </div>
+
+          <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
+            <div className="app-metric">
+              <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/50">Entries</p>
+              <p className="mt-3 text-3xl font-semibold text-white">{serialized.length}</p>
+              <p className="mt-2 text-sm text-white/58">当前视图中的总条目数</p>
+            </div>
+            <div className="app-metric">
+              <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/50">Evolved</p>
+              <p className="mt-3 text-3xl font-semibold text-white">{evolvedCount}</p>
+              <p className="mt-2 text-sm text-white/58">已经发生过版本迭代的条目</p>
+            </div>
+            <div className="app-metric">
+              <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/50">Tagged</p>
+              <p className="mt-3 text-3xl font-semibold text-white">{taggedCount}</p>
+              <p className="mt-2 text-sm text-white/58">已经被赋予主题标签的条目</p>
+            </div>
+          </div>
         </div>
-        <p className="text-sm text-muted-foreground">{headings[listView].subtitle}</p>
+      </section>
+
+      <section className="flex flex-wrap items-center justify-between gap-4">
+        <div className="space-y-1">
+          <p className="app-kicker">Launch lane</p>
+          <h2 className="text-2xl font-semibold text-slate-950">
+            在当前流里继续推进
+          </h2>
+        </div>
+        <Link
+          href="/explorations/new"
+          className="inline-flex items-center gap-2 rounded-full border border-cyan-300/50 bg-[linear-gradient(135deg,rgba(32,99,246,0.98),rgba(15,195,255,0.92))] px-5 py-3 text-sm font-medium text-white shadow-[0_18px_48px_rgba(31,109,255,0.28)] hover:-translate-y-0.5"
+        >
+          Start Exploration
+          <ArrowRight className="size-4" />
+        </Link>
+      </section>
+
+      <div className="space-y-2">
+        <h3 className="text-sm font-medium uppercase tracking-[0.22em] text-slate-500">
+          Active list
+        </h3>
       </div>
 
       <ExplorationsListClient initialRequirements={serialized} initialView={listView} />

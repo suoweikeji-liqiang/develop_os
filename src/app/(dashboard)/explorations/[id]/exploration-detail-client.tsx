@@ -1,6 +1,14 @@
 'use client'
 
 import { useState, useRef, useCallback } from 'react'
+import {
+  BookOpenText,
+  GitBranch,
+  Layers3,
+  MessagesSquare,
+  Radar,
+  Undo2,
+} from 'lucide-react'
 import { ModelTabs } from './model-tabs'
 import { RoleViewTabs } from './role-view-tabs'
 import { SignoffPanel } from './signoff-panel'
@@ -55,6 +63,12 @@ function getStageClasses(stage: 'open' | 'refining' | 'stabilized'): string {
   if (stage === 'open') return 'border-amber-300 bg-amber-50 text-amber-700'
   if (stage === 'stabilized') return 'border-emerald-300 bg-emerald-50 text-emerald-700'
   return 'border-blue-300 bg-blue-50 text-blue-700'
+}
+
+function getStageCopy(stage: 'open' | 'refining' | 'stabilized'): string {
+  if (stage === 'open') return '需求仍在采样与抽象阶段，适合多做澄清与发散探索。'
+  if (stage === 'stabilized') return '需求已接近稳定，可重点关注收尾、签字与沉淀。'
+  return '需求已经进入修正与收敛阶段，适合持续对话和冲突扫描。'
 }
 
 export function ExplorationDetailClient({
@@ -163,50 +177,108 @@ export function ExplorationDetailClient({
 
   return (
     <div className="space-y-6">
-      <section className="space-y-3 rounded-lg border border-slate-200 bg-slate-50/70 p-4">
-        <div className="flex items-center justify-between">
-          <div className="space-y-2">
-            <div className="flex items-center gap-2 text-xs">
-              <span className="rounded-full border border-slate-300 px-2 py-0.5 font-medium text-slate-600">
-                Exploration
-              </span>
-              <span className={`rounded-full border px-2 py-0.5 font-medium ${getStageClasses(explorationStage)}`}>
+      <section className="app-panel-dark surface-grid relative overflow-hidden px-6 py-7 sm:px-8 sm:py-8">
+        <div className="absolute right-[-5rem] top-[-4rem] h-48 w-48 rounded-full bg-cyan-400/18 blur-3xl" />
+        <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
+          <div className="space-y-6">
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="app-chip-dark">Exploration</span>
+              <span className={`rounded-full border px-3 py-1 font-medium ${getStageClasses(explorationStage)}`}>
                 {explorationStage}
               </span>
+              <span className="app-chip-dark">Status {currentStatus}</span>
+              <span className="app-chip-dark">v{version}</span>
             </div>
-            <h1 className="text-2xl font-bold">{title}</h1>
-            <p className="text-sm text-muted-foreground">
-              Context-driven dialogue and experimentation for this exploration.
+
+            <div className="space-y-3">
+              <h1 className="app-display text-4xl font-semibold leading-none text-white sm:text-5xl">
+                {title}
+              </h1>
+              <p className="max-w-2xl text-base leading-7 text-white/70">
+                {getStageCopy(explorationStage)}
+              </p>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-3">
+              <div className="app-metric">
+                <MessagesSquare className="size-5 text-cyan-200" />
+                <p className="mt-3 text-sm font-semibold text-white">Dialogue</p>
+                <p className="mt-2 text-sm text-white/58">{initialMessages.length} 条上下文对话</p>
+              </div>
+              <div className="app-metric">
+                <Layers3 className="size-5 text-cyan-200" />
+                <p className="mt-3 text-sm font-semibold text-white">Model state</p>
+                <p className="mt-2 text-sm text-white/58">{model ? '已生成 ModelCard' : '等待结构化生成'}</p>
+              </div>
+              <div className="app-metric">
+                <Radar className="size-5 text-cyan-200" />
+                <p className="mt-3 text-sm font-semibold text-white">Knowledge refs</p>
+                <p className="mt-2 text-sm text-white/58">{citations.length} 条上下文引用</p>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {model && (
+                <button
+                  onClick={() => setShowVersionHistory(prev => !prev)}
+                  className={`inline-flex items-center gap-2 rounded-full border px-4 py-2.5 text-sm font-medium ${
+                    showVersionHistory
+                      ? 'border-white/10 bg-white/10 text-white'
+                      : 'border-white/15 bg-white/7 text-white/75 hover:bg-white/12'
+                  }`}
+                >
+                  <GitBranch className="size-4" />
+                  {showVersionHistory ? '隐藏版本历史' : '查看版本历史'}
+                </button>
+              )}
+              {showUndo && (
+                <button
+                  onClick={handleUndo}
+                  className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/7 px-4 py-2.5 text-sm font-medium text-white/75 hover:bg-white/12"
+                >
+                  <Undo2 className="size-4" />
+                  撤销上次变更
+                </button>
+              )}
+            </div>
+          </div>
+
+          <div className="rounded-[28px] border border-white/10 bg-white/7 p-5 backdrop-blur-sm">
+            <div className="flex items-center gap-2 text-sm font-medium text-white/80">
+              <BookOpenText className="size-4 text-cyan-200" />
+              Exploration Context
+            </div>
+            <p className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap text-sm leading-6 text-white/68">
+              {rawInput}
             </p>
           </div>
-          <div className="flex items-center gap-3">
-            {model && (
-              <button
-                onClick={() => setShowVersionHistory(prev => !prev)}
-                className={`text-sm px-3 py-1 rounded border ${
-                  showVersionHistory
-                    ? 'bg-primary text-primary-foreground'
-                    : 'text-muted-foreground hover:bg-muted'
-                }`}
-              >
-                版本历史
-              </button>
-            )}
-            {showUndo && (
-              <button onClick={handleUndo} className="text-sm text-muted-foreground underline">
-                撤销上次变更
-              </button>
+        </div>
+      </section>
+
+      <section className="app-panel p-4 sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="app-kicker">Workflow status</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950">推进当前探索阶段</h2>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {userRoles.length > 0 ? (
+              userRoles.map((role) => (
+                <span key={role} className="app-chip">
+                  {role}
+                </span>
+              ))
+            ) : (
+              <span className="app-chip">Observer</span>
             )}
           </div>
         </div>
-        <StatusControl
-          requirementId={requirementId}
-          currentStatus={currentStatus}
-          onStatusChanged={setCurrentStatus}
-        />
-        <div className="rounded-md border border-dashed border-slate-300 bg-white p-3">
-          <p className="text-xs font-medium uppercase tracking-wide text-slate-500">Exploration Context</p>
-          <p className="mt-1 max-h-40 overflow-auto text-sm text-slate-700 whitespace-pre-wrap">{rawInput}</p>
+        <div className="mt-5">
+          <StatusControl
+            requirementId={requirementId}
+            currentStatus={currentStatus}
+            onStatusChanged={setCurrentStatus}
+          />
         </div>
       </section>
 
@@ -217,14 +289,14 @@ export function ExplorationDetailClient({
         />
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_420px] items-start">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_420px]">
         <section className="space-y-4">
-          <div className="rounded-md border p-4">
-            <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">
+          <div className="app-panel p-4 sm:p-5">
+            <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">
               Exploration Workspace
             </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Use contextual dialogue to challenge assumptions and run iterative experiments.
+            <p className="mt-2 text-sm leading-6 text-slate-500">
+              在这里用对话挑战假设、消化上下文、推动结构化抽象持续迭代。
             </p>
           </div>
           {model ? (
@@ -237,7 +309,7 @@ export function ExplorationDetailClient({
               hasPendingDiff={pendingPatches !== null}
             />
           ) : (
-            <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
+            <div className="app-panel border-dashed p-5 text-sm text-slate-500">
               ModelCard is being generated. Dialogue is enabled after the first abstraction pass.
             </div>
           )}
@@ -246,22 +318,20 @@ export function ExplorationDetailClient({
           <SignoffPanel requirementId={requirementId} userRoles={userRoles} currentStatus={currentStatus} />
         </section>
 
-        <aside className="space-y-4 lg:sticky lg:top-6">
-          <section className="space-y-4 rounded-md border p-4">
+        <aside className="space-y-4 lg:sticky lg:top-24">
+          <section className="app-panel space-y-4 p-4 sm:p-5">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <h2 className="text-sm font-semibold uppercase tracking-wide text-slate-600">ModelCard</h2>
-                <p className="mt-1 text-sm text-muted-foreground">
-                  Structural abstraction asset with reusable, versioned knowledge.
+                <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">ModelCard</h2>
+                <p className="mt-2 text-sm leading-6 text-slate-500">
+                  结构化抽象资产，承载需求当前可复用的认知状态。
                 </p>
               </div>
-              <div className="rounded-full border bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-700">
-                v{version}
-              </div>
+              <div className="app-chip">v{version}</div>
             </div>
             <div className="grid gap-2 text-xs text-slate-600 sm:grid-cols-2">
               {MODELCARD_SECTIONS.map((section) => (
-                <div key={section} className="rounded border border-slate-200 bg-slate-50 px-2 py-1">
+                <div key={section} className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-3 py-2">
                   {section}
                 </div>
               ))}
@@ -296,23 +366,23 @@ export function ExplorationDetailClient({
           </section>
 
           {citations.length > 0 && (
-            <section className="rounded-md border p-4">
-              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wide mb-3">
+            <section className="app-panel p-4 sm:p-5">
+              <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">
                 ModelCard Sources
               </h3>
-              <p className="text-xs text-muted-foreground mb-3">
-                Knowledge base sources that informed this structural abstraction:
+              <p className="mt-2 text-xs leading-6 text-slate-500">
+                支撑当前结构化抽象的知识来源与引用片段。
               </p>
-              <ul className="space-y-2">
+              <ul className="mt-4 space-y-2">
                 {citations.map((citation) => (
-                  <li key={citation.chunkId} className="rounded-md border p-3 text-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium">{citation.sourceName}</span>
-                      <span className="text-xs text-muted-foreground rounded-full border px-2 py-0.5 capitalize">
+                  <li key={citation.chunkId} className="rounded-[20px] border border-slate-200/80 bg-slate-50/80 p-3 text-sm">
+                    <div className="mb-2 flex items-center gap-2">
+                      <span className="font-medium text-slate-900">{citation.sourceName}</span>
+                      <span className="rounded-full border border-slate-200 bg-white px-2 py-0.5 text-[11px] capitalize text-slate-500">
                         {citation.sourceType}
                       </span>
                     </div>
-                    <p className="text-muted-foreground text-xs line-clamp-2">{citation.excerpt}</p>
+                    <p className="line-clamp-3 text-xs leading-5 text-slate-500">{citation.excerpt}</p>
                   </li>
                 ))}
               </ul>

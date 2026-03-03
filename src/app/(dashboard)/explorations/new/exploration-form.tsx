@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { useRouter } from 'next/navigation'
+import { ArrowRight, FileUp, Save } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
@@ -78,54 +79,84 @@ export function ExplorationForm() {
   }
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-5">
-      {error && (
-        <p className="text-sm text-red-500">{error}</p>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="title">Exploration 标题</Label>
-        <Input
-          id="title"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder="例如：高并发下的用户注册与登录路径"
-          required
-        />
-      </div>
-
-      <div className="space-y-2">
-        <Label htmlFor="rawInput">情境描述</Label>
-        <Textarea
-          id="rawInput"
-          value={rawInput}
-          onChange={(e) => setRawInput(e.target.value)}
-          placeholder={"请输入本次探索的上下文、限制和目标...\n\n例如：在移动端网络抖动下，用户通过手机号注册账号，注册后自动登录，首次登录需要完善个人信息。"}
-          rows={12}
-          className="resize-y"
-          required
-        />
-        {lastSaved && (
-          <p className="text-xs text-muted-foreground">
-            草稿已自动保存 ({new Date(lastSaved).toLocaleTimeString()})
+    <div className="app-panel p-5 sm:p-6">
+      <form onSubmit={handleSubmit} className="space-y-6">
+        {error && (
+          <p className="rounded-[1.1rem] border border-red-200/80 bg-red-50/90 px-4 py-3 text-sm text-red-600">
+            {error}
           </p>
         )}
-      </div>
 
-      <div className="space-y-2">
-        <Label htmlFor="file">上传文件 (.txt / .md)</Label>
-        <Input
-          id="file"
-          ref={fileRef}
-          type="file"
-          accept=".txt,.md"
-          onChange={handleFileUpload}
-        />
-      </div>
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <Label htmlFor="title">Exploration 标题</Label>
+              <Input
+                id="title"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                placeholder="例如：高并发下的用户注册与登录路径"
+                required
+              />
+            </div>
 
-      <Button type="submit" disabled={submitting || !title.trim() || !rawInput.trim()}>
-        {submitting ? '提交中...' : '生成 ModelCard'}
-      </Button>
-    </form>
+            <div className="space-y-2">
+              <Label htmlFor="rawInput">情境描述</Label>
+              <Textarea
+                id="rawInput"
+                value={rawInput}
+                onChange={(e) => setRawInput(e.target.value)}
+                placeholder={"请输入本次探索的上下文、限制和目标...\n\n例如：在移动端网络抖动下，用户通过手机号注册账号，注册后自动登录，首次登录需要完善个人信息。"}
+                rows={14}
+                className="resize-y"
+                required
+              />
+              {lastSaved && (
+                <p className="inline-flex items-center gap-2 text-xs text-slate-500">
+                  <Save className="size-3.5" />
+                  草稿已自动保存 ({new Date(lastSaved).toLocaleTimeString()})
+                </p>
+              )}
+            </div>
+          </div>
+
+          <aside className="rounded-[24px] border border-slate-200/80 bg-slate-950 px-4 py-5 text-white">
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-white/45">Prompt hints</p>
+            <ul className="mt-4 space-y-4 text-sm leading-6 text-white/68">
+              <li>说明业务目标、触发场景和约束条件。</li>
+              <li>如果有边界条件、风险点，尽量在原始上下文里一次讲清楚。</li>
+              <li>复杂场景可以先从文档导入，再逐步补充人工说明。</li>
+            </ul>
+          </aside>
+        </div>
+
+        <div className="rounded-[24px] border border-white/65 bg-white/72 p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]">
+          <div className="mb-3 flex items-center gap-2 text-sm font-medium text-slate-800">
+            <FileUp className="size-4" />
+            导入草稿文件
+          </div>
+          <Input
+            id="file"
+            ref={fileRef}
+            type="file"
+            accept=".txt,.md"
+            onChange={handleFileUpload}
+          />
+          <p className="mt-3 text-xs text-slate-500">
+            支持 `.txt` 和 `.md`。上传后内容会直接填入情境描述。
+          </p>
+        </div>
+
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p className="text-sm text-slate-500">
+            提交后会创建需求记录，并进入可对话的 ModelCard 工作区。
+          </p>
+          <Button type="submit" disabled={submitting || !title.trim() || !rawInput.trim()}>
+            {submitting ? '提交中...' : '生成 ModelCard'}
+            <ArrowRight className="size-4" />
+          </Button>
+        </div>
+      </form>
+    </div>
   )
 }

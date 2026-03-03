@@ -47,11 +47,13 @@ export default async function ExplorationDetailPage({
         initialMessages={initialMessages}
         userRoles={session.roles}
       />
-      <CommentsPanel
-        requirementId={requirement.id}
-        currentUserId={session.userId}
-        isAdmin={session.isAdmin}
-      />
+      <section className="app-panel p-5 sm:p-6">
+        <CommentsPanel
+          requirementId={requirement.id}
+          currentUserId={session.userId}
+          isAdmin={session.isAdmin}
+        />
+      </section>
     </div>
   )
 }

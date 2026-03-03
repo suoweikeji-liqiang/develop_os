@@ -27,12 +27,17 @@ export function VersionDiffView({
   versionA,
   versionB,
 }: Props) {
+  const [hasMounted, setHasMounted] = useState(false)
   const [diff, setDiff] = useState<StructuredDiff | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
   const older = Math.min(versionA, versionB)
   const newer = Math.max(versionA, versionB)
+
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
 
   const fetchAndDiff = useCallback(async () => {
     setLoading(true)
@@ -64,8 +69,13 @@ export function VersionDiffView({
   }, [requirementId, older, newer])
 
   useEffect(() => {
+    if (!hasMounted) return
     fetchAndDiff()
-  }, [fetchAndDiff])
+  }, [fetchAndDiff, hasMounted])
+
+  if (!hasMounted) {
+    return <p className="animate-pulse p-2 text-sm text-muted-foreground">加载对比数据...</p>
+  }
 
   if (loading) {
     return <p className="text-sm text-muted-foreground animate-pulse p-2">加载对比数据...</p>
@@ -94,11 +104,11 @@ export function VersionDiffView({
       </div>
 
       <Tabs defaultValue="goal">
-        <TabsList>
+        <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-[20px] bg-slate-100/80 p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {LAYER_TABS.map(({ key, label }) => {
             const count = diff[key].length
             return (
-              <TabsTrigger key={key} value={key} className="gap-1 text-xs">
+              <TabsTrigger key={key} value={key} className="shrink-0 gap-1 rounded-full px-3 py-2 text-xs">
                 {label}
                 {count > 0 && (
                   <span className="ml-1 text-[10px] bg-muted rounded-full px-1.5">

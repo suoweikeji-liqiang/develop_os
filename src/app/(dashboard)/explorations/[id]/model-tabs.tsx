@@ -75,12 +75,17 @@ function getLayerConfidence(model: Partial<FiveLayerModel> | null, layer: LayerK
 }
 
 export function ModelTabs({ requirementId, rawInput, initialModel, initialConfidence, mode, pendingPatches, pendingAssumptions, onApplyPatch, onRejectPatch, onAssumptionAction }: Props) {
+  const [hasMounted, setHasMounted] = useState(false)
   const [model, setModel] = useState<Partial<FiveLayerModel> | null>(initialModel ?? null)
   const [streaming, setStreaming] = useState(false)
   const [elapsedMs, setElapsedMs] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [completed, setCompleted] = useState(mode === 'view')
   const [confidence] = useState<Record<string, number>>(initialConfidence ?? {})
+
+  useEffect(() => {
+    setHasMounted(true)
+  }, [])
 
   const persistModel = useCallback(async (finalModel: FiveLayerModel) => {
     try {
@@ -96,7 +101,7 @@ export function ModelTabs({ requirementId, rawInput, initialModel, initialConfid
 
   // Stream AI generation on mount in generate mode
   useEffect(() => {
-    if (mode !== 'generate' || completed) return
+    if (!hasMounted || mode !== 'generate' || completed) return
 
     let cancelled = false
 
@@ -156,7 +161,7 @@ export function ModelTabs({ requirementId, rawInput, initialModel, initialConfid
 
     generate()
     return () => { cancelled = true }
-  }, [mode, completed, rawInput, requirementId, persistModel])
+  }, [mode, completed, rawInput, requirementId, persistModel, hasMounted])
 
   useEffect(() => {
     if (!streaming) {
@@ -188,6 +193,28 @@ export function ModelTabs({ requirementId, rawInput, initialModel, initialConfid
   const timeoutMessage = getGenerationTimeoutMessage(elapsedMs)
   const showPhaseFeedback = streaming && elapsedMs >= 300
 
+  if (!hasMounted) {
+    return (
+      <div className="space-y-4">
+        <div className="flex flex-wrap gap-2">
+          {LAYER_TABS.map(({ key, label }) => (
+            <span
+              key={key}
+              className="rounded-full border border-slate-200/80 bg-white/70 px-3 py-2 text-sm text-slate-500"
+            >
+              {label}
+            </span>
+          ))}
+        </div>
+        <div className="space-y-3 rounded-[24px] border border-slate-200/80 bg-white/70 p-4">
+          <Skeleton className="h-4 w-3/4" />
+          <Skeleton className="h-4 w-1/2" />
+          <Skeleton className="h-4 w-2/3" />
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-4">
       {error && (
@@ -204,9 +231,9 @@ export function ModelTabs({ requirementId, rawInput, initialModel, initialConfid
       )}
 
       <Tabs defaultValue="goal">
-        <TabsList>
+        <TabsList className="h-auto w-full justify-start gap-2 overflow-x-auto rounded-[24px] bg-slate-100/80 p-2 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {LAYER_TABS.map(({ key, label }) => (
-            <TabsTrigger key={key} value={key} className="gap-2" disabled={streaming}>
+            <TabsTrigger key={key} value={key} className="shrink-0 gap-2 rounded-full px-3 py-2" disabled={streaming}>
               {label}
               {pendingPatches?.[key as keyof typeof pendingPatches] && (
                 <span className="ml-1 h-2 w-2 rounded-full bg-amber-400 inline-block" />
