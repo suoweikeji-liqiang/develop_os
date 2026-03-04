@@ -21,6 +21,7 @@ import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import type { ConversationResponse } from '@/lib/schemas/conversation'
 import type { UIMessage } from 'ai'
 import type { PendingAssumption } from './assumption-card'
+import { canManageRequirementWorkflow } from '@/lib/workflow/permissions'
 
 interface Props {
   requirementId: string
@@ -33,6 +34,7 @@ interface Props {
   initialCitations: unknown[] | undefined
   initialMessages: UIMessage[]
   userRoles: string[]
+  isAdmin: boolean
 }
 
 interface CitationItem {
@@ -82,6 +84,7 @@ export function ExplorationDetailClient({
   initialCitations,
   initialMessages,
   userRoles,
+  isAdmin,
 }: Props) {
   const [currentStatus, setCurrentStatus] = useState(status)
   const [model, setModel] = useState<FiveLayerModel | undefined>(initialModel)
@@ -89,9 +92,32 @@ export function ExplorationDetailClient({
   const [pendingAssumptions, setPendingAssumptions] = useState<PendingAssumption[]>([])
   const [showUndo, setShowUndo] = useState(false)
   const [showVersionHistory, setShowVersionHistory] = useState(false)
+  const [signoffRefreshToken, setSignoffRefreshToken] = useState(0)
+  const [signoffInvalidationToken, setSignoffInvalidationToken] = useState(0)
   const previousModelRef = useRef<FiveLayerModel | null>(null)
   const citations = (initialCitations ?? []) as CitationItem[]
   const explorationStage = getExplorationStage(currentStatus)
+  const canManageWorkflow = canManageRequirementWorkflow({ roles: userRoles, isAdmin })
+
+  const persistModel = useCallback(async (
+    nextModel: FiveLayerModel,
+    changeSource: 'manual' | 'ai-converse' | 'assumption' = 'manual',
+  ) => {
+    try {
+      await fetch('/api/trpc/requirement.updateModel', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id: requirementId, model: nextModel, changeSource }),
+      })
+    } catch {
+      // Keep optimistic UI state even if persistence fails.
+    }
+  }, [requirementId])
+
+  const invalidateSignoffs = useCallback(() => {
+    if (currentStatus !== 'IN_REVIEW') return
+    setSignoffInvalidationToken((prev) => prev + 1)
+  }, [currentStatus])
 
   const handlePatchProposed = useCallback((response: ConversationResponse) => {
     if (response.patches) {
@@ -108,17 +134,24 @@ export function ExplorationDetailClient({
     }
   }, [])
 
+  const handleLayerUpdate = useCallback((layer: string, data: Record<string, unknown>) => {
+    setModel((prev) => {
+      if (!prev) return prev
+      const updated = { ...prev, [layer]: data } as FiveLayerModel
+      void persistModel(updated)
+      return updated
+    })
+    invalidateSignoffs()
+  }, [invalidateSignoffs, persistModel])
+
   const handleApplyPatch = useCallback(async (layer: string, proposedData: unknown) => {
     previousModelRef.current = model ?? null
     setShowUndo(true)
     const updatedModel = model ? { ...model, [layer]: proposedData } as FiveLayerModel : undefined
     setModel(updatedModel)
     if (updatedModel) {
-      await fetch('/api/trpc/requirement.updateModel', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: requirementId, model: updatedModel }),
-      })
+      await persistModel(updatedModel, 'ai-converse')
+      invalidateSignoffs()
     }
     setPendingPatches(prev => {
       if (!prev) return null
@@ -126,7 +159,7 @@ export function ExplorationDetailClient({
       delete next[layer as keyof typeof next]
       return Object.keys(next).length === 0 ? null : next
     })
-  }, [model, requirementId])
+  }, [invalidateSignoffs, model, persistModel])
 
   const handleRejectPatch = useCallback((layer: string) => {
     setPendingPatches(prev => {
@@ -165,15 +198,12 @@ export function ExplorationDetailClient({
           },
         } as FiveLayerModel
         setModel(updatedModel)
-        await fetch('/api/trpc/requirement.updateModel', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ id: requirementId, model: updatedModel }),
-        })
+        await persistModel(updatedModel, 'assumption')
+        invalidateSignoffs()
       }
     }
     setPendingAssumptions(prev => prev.filter(a => a.id !== id))
-  }, [model, pendingAssumptions, requirementId])
+  }, [invalidateSignoffs, model, pendingAssumptions, persistModel])
 
   return (
     <div className="space-y-6">
@@ -262,21 +292,25 @@ export function ExplorationDetailClient({
             <h2 className="mt-2 text-2xl font-semibold text-slate-950">推进当前探索阶段</h2>
           </div>
           <div className="flex flex-wrap gap-2">
+            {isAdmin && (
+              <span className="app-chip">ADMIN</span>
+            )}
             {userRoles.length > 0 ? (
               userRoles.map((role) => (
                 <span key={role} className="app-chip">
                   {role}
                 </span>
               ))
-            ) : (
+            ) : !isAdmin ? (
               <span className="app-chip">Observer</span>
-            )}
+            ) : null}
           </div>
         </div>
         <div className="mt-5">
           <StatusControl
             requirementId={requirementId}
             currentStatus={currentStatus}
+            canManageWorkflow={canManageWorkflow}
             onStatusChanged={setCurrentStatus}
           />
         </div>
@@ -314,8 +348,20 @@ export function ExplorationDetailClient({
             </div>
           )}
           <ConflictPanel requirementId={requirementId} hasModel={Boolean(model)} />
-          <ConsensusStatus requirementId={requirementId} currentStatus={currentStatus} />
-          <SignoffPanel requirementId={requirementId} userRoles={userRoles} currentStatus={currentStatus} />
+          <ConsensusStatus
+            requirementId={requirementId}
+            currentStatus={currentStatus}
+            refreshToken={signoffRefreshToken}
+            invalidationToken={signoffInvalidationToken}
+          />
+          <SignoffPanel
+            requirementId={requirementId}
+            userRoles={userRoles}
+            currentStatus={currentStatus}
+            refreshToken={signoffRefreshToken}
+            invalidationToken={signoffInvalidationToken}
+            onSignoffSubmitted={() => setSignoffRefreshToken((prev) => prev + 1)}
+          />
         </section>
 
         <aside className="space-y-4 lg:sticky lg:top-24">
@@ -347,6 +393,7 @@ export function ExplorationDetailClient({
                 readOnly={false}
                 onApplyPatch={handleApplyPatch}
                 onRejectPatch={handleRejectPatch}
+                onUpdate={handleLayerUpdate}
                 onAssumptionAction={handleAssumptionAction}
               />
             ) : (

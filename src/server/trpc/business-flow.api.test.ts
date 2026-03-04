@@ -22,6 +22,7 @@ const runDatabaseSuite = process.env.RUN_DB_TESTS === '1'
 
 const users: {
   owner?: SeedUser
+  admin?: SeedUser
   product?: SeedUser
   dev?: SeedUser
   tester?: SeedUser
@@ -46,7 +47,7 @@ function createCaller(user: SeedUser) {
   } as never)
 }
 
-async function upsertUser(name: string, roles: Role[] = []): Promise<SeedUser> {
+async function upsertUser(name: string, roles: Role[] = [], isAdmin = false): Promise<SeedUser> {
   const email = `${runId}-${name.toLowerCase()}@example.com`
   const password = await hash('ApiPassw0rd!', 10)
   const user = await prisma.user.upsert({
@@ -54,14 +55,14 @@ async function upsertUser(name: string, roles: Role[] = []): Promise<SeedUser> {
     update: {
       name,
       password,
-      isAdmin: false,
+      isAdmin,
       updatedAt: new Date(),
     },
     create: {
       email,
       name,
       password,
-      isAdmin: false,
+      isAdmin,
     },
     select: {
       id: true,
@@ -106,6 +107,7 @@ async function cleanupRequirementArtifacts(requirementId: string) {
 describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
   beforeAll(async () => {
     users.owner = await upsertUser('Owner')
+    users.admin = await upsertUser('Admin', [], true)
     users.product = await upsertUser('Product', ['PRODUCT'])
     users.dev = await upsertUser('Dev', ['DEV'])
     users.tester = await upsertUser('Tester', ['TEST'])
@@ -150,18 +152,24 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
     await prisma.$disconnect()
   })
 
-  it('covers requirement status gating and signoff consensus flow', async () => {
+  it('covers workflow actor permissions and signoff consensus flow', async () => {
     const ownerCaller = createCaller(users.owner!)
+    const adminCaller = createCaller(users.admin!)
+    const productCaller = createCaller(users.product!)
     const requirement = await ownerCaller.requirement.create({
       title: `${runId}-flow-${randomUUID()}`,
       rawInput: 'Validate requirement lifecycle gating through API integration tests.',
     })
     createdRequirementIds.add(requirement.id)
 
-    await ownerCaller.requirement.transitionStatus({ id: requirement.id, to: 'IN_REVIEW' })
+    await expect(
+      ownerCaller.requirement.transitionStatus({ id: requirement.id, to: 'IN_REVIEW' }),
+    ).rejects.toHaveProperty('code', 'FORBIDDEN')
+
+    await productCaller.requirement.transitionStatus({ id: requirement.id, to: 'IN_REVIEW' })
 
     await expect(
-      ownerCaller.requirement.transitionStatus({ id: requirement.id, to: 'CONSENSUS' }),
+      adminCaller.requirement.transitionStatus({ id: requirement.id, to: 'CONSENSUS' }),
     ).rejects.toHaveProperty('code', 'PRECONDITION_FAILED')
 
     const checklist = [{ key: 'done', label: 'all checked', checked: true }]
@@ -170,12 +178,12 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
     await createCaller(users.tester!).signoff.submit({ requirementId: requirement.id, role: 'TEST', checklist })
     await createCaller(users.ui!).signoff.submit({ requirementId: requirement.id, role: 'UI', checklist })
 
-    await ownerCaller.requirement.transitionStatus({ id: requirement.id, to: 'CONSENSUS' })
-    const signoffs = await ownerCaller.signoff.list({ requirementId: requirement.id })
+    await adminCaller.requirement.transitionStatus({ id: requirement.id, to: 'CONSENSUS' })
+    const signoffs = await adminCaller.signoff.list({ requirementId: requirement.id })
     expect(signoffs).toHaveLength(4)
 
-    await ownerCaller.requirement.transitionStatus({ id: requirement.id, to: 'IN_REVIEW' })
-    const signoffsAfterRollback = await ownerCaller.signoff.list({ requirementId: requirement.id })
+    await adminCaller.requirement.transitionStatus({ id: requirement.id, to: 'IN_REVIEW' })
+    const signoffsAfterRollback = await adminCaller.signoff.list({ requirementId: requirement.id })
     expect(signoffsAfterRollback).toHaveLength(0)
   })
 

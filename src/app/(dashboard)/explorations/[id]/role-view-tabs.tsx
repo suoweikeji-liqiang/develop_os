@@ -33,6 +33,7 @@ interface Props {
   readOnly?: boolean
   onApplyPatch?: (layer: string, proposedData: unknown) => void
   onRejectPatch?: (layer: string) => void
+  onUpdate?: (layer: string, data: Record<string, unknown>) => void
   onAssumptionAction?: (id: string, action: { type: 'accept' | 'reject'; finalContent?: string; rejectReason?: string }) => void
 }
 
@@ -64,6 +65,7 @@ export function RoleViewTabs({
   readOnly,
   onApplyPatch,
   onRejectPatch,
+  onUpdate,
   onAssumptionAction,
 }: Props) {
   const applicableRoles = getApplicableRoles(userRoles)
@@ -160,7 +162,7 @@ export function RoleViewTabs({
                   pendingData={pendingData}
                   onConfirmDiff={() => onApplyPatch?.(key, pendingData)}
                   onRejectDiff={() => onRejectPatch?.(key)}
-                  onUpdate={() => {}}
+                  onUpdate={(next) => onUpdate?.(key, next)}
                 />
               ) : (
                 <div className="space-y-3 p-4">

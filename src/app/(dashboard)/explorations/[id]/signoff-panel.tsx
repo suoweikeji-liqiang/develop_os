@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { ReviewChecklist } from './review-checklist'
 import { ROLE_VIEWS } from '@/lib/roles/role-view-config'
 import { ROLE_CHECKLISTS } from '@/lib/roles/role-checklist-config'
@@ -12,6 +12,9 @@ interface Props {
   requirementId: string
   userRoles: string[]
   currentStatus: string
+  refreshToken?: number
+  invalidationToken?: number
+  onSignoffSubmitted?: () => void
 }
 
 interface ChecklistState {
@@ -23,18 +26,34 @@ interface ChecklistState {
 interface RoleSectionProps {
   requirementId: string
   role: ApplicableRole
+  signed: boolean
+  onSigned: (role: ApplicableRole) => void
 }
 
-function RoleSignoffSection({ requirementId, role }: RoleSectionProps) {
+function defaultChecklist(role: ApplicableRole): ChecklistState[] {
+  return ROLE_CHECKLISTS[role].map((item) => ({ ...item, checked: false }))
+}
+
+function RoleSignoffSection({ requirementId, role, signed, onSigned }: RoleSectionProps) {
   const [items, setItems] = useState<ChecklistState[]>(
-    ROLE_CHECKLISTS[role].map((item) => ({ ...item, checked: false }))
+    defaultChecklist(role)
   )
   const [loading, setLoading] = useState(false)
-  const [signed, setSigned] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [expanded, setExpanded] = useState(true)
+  const [expanded, setExpanded] = useState(!signed)
 
   const allChecked = items.every((item) => item.checked)
+
+  useEffect(() => {
+    if (signed) {
+      setExpanded(false)
+      setError(null)
+      return
+    }
+
+    setItems(defaultChecklist(role))
+    setExpanded(true)
+  }, [role, signed])
 
   function handleChange(key: string, checked: boolean) {
     setItems((prev) => prev.map((item) => item.key === key ? { ...item, checked } : item))
@@ -57,7 +76,7 @@ function RoleSignoffSection({ requirementId, role }: RoleSectionProps) {
         return
       }
 
-      setSigned(true)
+      onSigned(role)
     } catch {
       setError('签字提交失败，请重试')
     } finally {
@@ -102,7 +121,57 @@ function RoleSignoffSection({ requirementId, role }: RoleSectionProps) {
   )
 }
 
-export function SignoffPanel({ requirementId, userRoles, currentStatus }: Props) {
+export function SignoffPanel({
+  requirementId,
+  userRoles,
+  currentStatus,
+  refreshToken = 0,
+  invalidationToken = 0,
+  onSignoffSubmitted,
+}: Props) {
+  const [signedRoles, setSignedRoles] = useState<ApplicableRole[]>([])
+  const [syncedInvalidationToken, setSyncedInvalidationToken] = useState(invalidationToken)
+  const invalidationTokenRef = useRef(invalidationToken)
+
+  useEffect(() => {
+    invalidationTokenRef.current = invalidationToken
+  }, [invalidationToken])
+
+  useEffect(() => {
+    if (currentStatus !== 'IN_REVIEW') return
+
+    let cancelled = false
+
+    async function loadSignoffs() {
+      try {
+        const params = encodeURIComponent(JSON.stringify({ requirementId }))
+        const res = await fetch(`/api/trpc/signoff.list?input=${params}`)
+        const data = await res.json()
+        const result = data?.result?.data?.json ?? data?.result?.data ?? []
+        if (!cancelled) {
+          const roles = Array.isArray(result)
+            ? result
+              .map((item) => item?.role)
+              .filter((role): role is ApplicableRole => APPLICABLE_ROLES.includes(role as ApplicableRole))
+            : []
+          setSignedRoles(roles)
+          setSyncedInvalidationToken(invalidationTokenRef.current)
+        }
+      } catch {
+        if (!cancelled) {
+          setSignedRoles([])
+          setSyncedInvalidationToken(invalidationTokenRef.current)
+        }
+      }
+    }
+
+    void loadSignoffs()
+
+    return () => {
+      cancelled = true
+    }
+  }, [currentStatus, requirementId, refreshToken])
+
   if (currentStatus !== 'IN_REVIEW') return null
 
   const roles = userRoles.filter((r): r is ApplicableRole =>
@@ -117,11 +186,23 @@ export function SignoffPanel({ requirementId, userRoles, currentStatus }: Props)
     )
   }
 
+  const visibleSignedRoles = syncedInvalidationToken < invalidationToken ? [] : signedRoles
+
   return (
     <div className="space-y-3">
       <h3 className="text-sm font-semibold text-gray-700">角色签字确认</h3>
       {roles.map((role) => (
-        <RoleSignoffSection key={role} requirementId={requirementId} role={role} />
+        <RoleSignoffSection
+          key={role}
+          requirementId={requirementId}
+          role={role}
+          signed={visibleSignedRoles.includes(role)}
+          onSigned={(signedRole) => {
+            setSignedRoles((prev) => prev.includes(signedRole) ? prev : [...prev, signedRole])
+            setSyncedInvalidationToken(invalidationToken)
+            onSignoffSubmitted?.()
+          }}
+        />
       ))}
     </div>
   )

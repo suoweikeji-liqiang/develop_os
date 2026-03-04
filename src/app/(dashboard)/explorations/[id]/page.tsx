@@ -46,6 +46,7 @@ export default async function ExplorationDetailPage({
         initialCitations={Array.isArray(requirement.citations) ? (requirement.citations as unknown[]) : undefined}
         initialMessages={initialMessages}
         userRoles={session.roles}
+        isAdmin={session.isAdmin}
       />
       <section className="app-panel p-5 sm:p-6">
         <CommentsPanel

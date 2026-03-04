@@ -6,6 +6,7 @@ import { FiveLayerModelSchema, CreateRequirementSchema } from '@/lib/schemas/req
 import { eventBus } from '@/server/events/bus'
 import { assertTransition, RequirementStatusEnum } from '@/lib/workflow/status-machine'
 import type { RequirementStatus } from '@/lib/workflow/status-machine'
+import { WORKFLOW_REVIEWER_ROLES, canManageRequirementWorkflow } from '@/lib/workflow/permissions'
 import { scanRequirementConflicts } from '@/server/conflicts/service'
 
 const RoleEnum = z.enum(['PRODUCT', 'DEV', 'TEST', 'UI', 'EXTERNAL'])
@@ -157,6 +158,16 @@ export const requirementRouter = createTRPCRouter({
   transitionStatus: protectedProcedure
     .input(z.object({ id: z.string(), to: RequirementStatusEnum }))
     .mutation(async ({ input, ctx }) => {
+      if (!canManageRequirementWorkflow({
+        roles: ctx.session.roles,
+        isAdmin: ctx.session.isAdmin,
+      })) {
+        throw new TRPCError({
+          code: 'FORBIDDEN',
+          message: '只有评审角色或管理员可以推进需求状态',
+        })
+      }
+
       const current = await prisma.requirement.findUniqueOrThrow({
         where: { id: input.id },
         select: { id: true, status: true },
@@ -172,15 +183,13 @@ export const requirementRouter = createTRPCRouter({
       }
 
       // Gate: all four reviewer roles must have signed off before entering CONSENSUS
-      const REQUIRED_ROLES = ['PRODUCT', 'DEV', 'TEST', 'UI'] as const
-
       if (current.status === 'IN_REVIEW' && input.to === 'CONSENSUS') {
         const signoffs = await prisma.reviewSignoff.findMany({
           where: { requirementId: input.id },
           select: { role: true },
         })
         const signedRoles = new Set(signoffs.map((s) => s.role))
-        const missing = REQUIRED_ROLES.filter((r) => !signedRoles.has(r))
+        const missing = WORKFLOW_REVIEWER_ROLES.filter((r) => !signedRoles.has(r))
         if (missing.length > 0) {
           throw new TRPCError({
             code: 'PRECONDITION_FAILED',

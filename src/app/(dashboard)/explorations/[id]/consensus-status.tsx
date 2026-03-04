@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { CheckCircle2, Clock } from 'lucide-react'
 import { ROLE_VIEWS } from '@/lib/roles/role-view-config'
 
@@ -18,11 +18,24 @@ interface Signoff {
 interface Props {
   requirementId: string
   currentStatus: string
+  refreshToken?: number
+  invalidationToken?: number
 }
 
-export function ConsensusStatus({ requirementId, currentStatus }: Props) {
+export function ConsensusStatus({
+  requirementId,
+  currentStatus,
+  refreshToken = 0,
+  invalidationToken = 0,
+}: Props) {
   const [signoffs, setSignoffs] = useState<Signoff[]>([])
   const [loading, setLoading] = useState(false)
+  const [syncedInvalidationToken, setSyncedInvalidationToken] = useState(invalidationToken)
+  const invalidationTokenRef = useRef(invalidationToken)
+
+  useEffect(() => {
+    invalidationTokenRef.current = invalidationToken
+  }, [invalidationToken])
 
   useEffect(() => {
     if (!SHOW_STATUSES.has(currentStatus)) return
@@ -38,10 +51,12 @@ export function ConsensusStatus({ requirementId, currentStatus }: Props) {
         const result = data?.result?.data?.json ?? data?.result?.data ?? []
         if (!cancelled) {
           setSignoffs(Array.isArray(result) ? result : [])
+          setSyncedInvalidationToken(invalidationTokenRef.current)
         }
       } catch {
         if (!cancelled) {
           setSignoffs([])
+          setSyncedInvalidationToken(invalidationTokenRef.current)
         }
       } finally {
         if (!cancelled) {
@@ -55,7 +70,7 @@ export function ConsensusStatus({ requirementId, currentStatus }: Props) {
     return () => {
       cancelled = true
     }
-  }, [requirementId, currentStatus])
+  }, [requirementId, currentStatus, refreshToken])
 
   if (!SHOW_STATUSES.has(currentStatus)) return null
 
@@ -65,7 +80,8 @@ export function ConsensusStatus({ requirementId, currentStatus }: Props) {
     )
   }
 
-  const signoffMap = new Map(signoffs.map((s) => [s.role, s]))
+  const visibleSignoffs = syncedInvalidationToken < invalidationToken ? [] : signoffs
+  const signoffMap = new Map(visibleSignoffs.map((s) => [s.role, s]))
 
   return (
     <div className="rounded-lg border border-gray-200 p-4 space-y-3">

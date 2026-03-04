@@ -8,15 +8,16 @@ import type { RequirementStatus } from '@/lib/workflow/status-machine'
 interface Props {
   requirementId: string
   currentStatus: string
+  canManageWorkflow: boolean
   onStatusChanged: (newStatus: string) => void
 }
 
-export function StatusControl({ requirementId, currentStatus, onStatusChanged }: Props) {
+export function StatusControl({ requirementId, currentStatus, canManageWorkflow, onStatusChanged }: Props) {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   const status = currentStatus as RequirementStatus
-  const validTransitions = getValidTransitions(status)
+  const validTransitions = canManageWorkflow ? getValidTransitions(status) : []
 
   async function handleTransition(to: RequirementStatus) {
     setLoading(true)
@@ -63,6 +64,12 @@ export function StatusControl({ requirementId, currentStatus, onStatusChanged }:
             </button>
           ))}
         </div>
+      )}
+
+      {!canManageWorkflow && (
+        <span className="text-sm text-slate-500">
+          仅产品、开发、测试、UI 角色或管理员可推进状态
+        </span>
       )}
 
       {error && (

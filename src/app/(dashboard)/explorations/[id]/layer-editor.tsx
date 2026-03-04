@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Textarea } from '@/components/ui/textarea'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -19,6 +19,10 @@ interface Props {
 
 export function LayerEditor({ layerName, layerKey, data, readOnly, pendingData, onConfirmDiff, onRejectDiff, onUpdate }: Props) {
   const [local, setLocal] = useState(data)
+
+  useEffect(() => {
+    setLocal(data)
+  }, [data])
 
   function update(patch: Record<string, unknown>) {
     const next = { ...local, ...patch }
