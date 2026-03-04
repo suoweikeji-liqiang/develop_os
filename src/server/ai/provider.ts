@@ -70,6 +70,28 @@ export function getChatModel() {
   return openai(process.env.OPENAI_CHAT_MODEL ?? 'gpt-4o')
 }
 
+export function getStructuredChatModel() {
+  const provider = getChatProvider()
+
+  if (provider === 'deepseek') {
+    return deepseek.chat(
+      process.env.DEEPSEEK_STRUCTURED_OUTPUT_MODEL
+      ?? process.env.DEEPSEEK_CHAT_MODEL
+      ?? 'deepseek-chat',
+    )
+  }
+
+  if (provider === 'qwen') {
+    return qwen.chat(process.env.QWEN_STRUCTURED_OUTPUT_MODEL ?? 'qwen-plus')
+  }
+
+  return openai(
+    process.env.OPENAI_STRUCTURED_OUTPUT_MODEL
+    ?? process.env.OPENAI_CHAT_MODEL
+    ?? 'gpt-4o',
+  )
+}
+
 export function getEmbeddingProvider(): EmbeddingProvider | null {
   const configured = normalize(
     process.env.EMBEDDING_PROVIDER,

@@ -4,8 +4,12 @@ import { buildConversationPrompt } from '@/server/ai/conversation-prompt'
 import { verifySession } from '@/lib/dal'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import { retrieveRelevantChunks, type RetrievedChunk } from '@/server/ai/rag/retrieve'
-import { getChatModel } from '@/server/ai/provider'
-import { appendStructuredOutputInstructions, supportsNativeStructuredOutput } from '@/server/ai/structured-output'
+import { getStructuredChatModel } from '@/server/ai/provider'
+import {
+  appendStructuredOutputInstructions,
+  supportsNativeStructuredOutput,
+  withJsonKeywordHint,
+} from '@/server/ai/structured-output'
 
 const CONVERSATION_RESPONSE_SHAPE_HINT = `{
   "reply": "string",
@@ -69,14 +73,14 @@ export async function POST(req: Request) {
 
   const result = supportsNativeStructuredOutput()
     ? streamText({
-      model: getChatModel(),
+      model: getStructuredChatModel(),
       output: Output.object({ schema: ConversationResponseSchema }),
-      system: systemPrompt,
+      system: withJsonKeywordHint(systemPrompt),
       messages: modelMessages,
       maxOutputTokens: 1000,
     })
     : streamText({
-      model: getChatModel(),
+      model: getStructuredChatModel(),
       system: appendStructuredOutputInstructions(
         systemPrompt,
         ConversationResponseSchema,

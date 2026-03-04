@@ -1,12 +1,20 @@
 import { FiveLayerModelSchema, type FiveLayerModel } from '@/lib/schemas/requirement'
 import { eventBus } from '@/server/events/bus'
-import { buildStructuringPrompt } from './prompt'
+import { buildCompactStructuringPrompt, buildStructuringPrompt } from './prompt'
 import type { RetrievedChunk } from './rag/retrieve'
 import { generateStructuredOutput } from './structured-output'
 import { getChatProvider } from './provider'
+import {
+  CompactStructuringDraftSchema,
+  COMPACT_STRUCTURING_DRAFT_SHAPE_HINT,
+  expandCompactStructuringDraft,
+} from './structuring-draft'
 
 const MAX_RETRIES = 3
-const STRUCTURING_TIMEOUT_MS = 15000
+const DEFAULT_STRUCTURING_TIMEOUT_MS = 15000
+const QWEN_STRUCTURING_TIMEOUT_MS = 22000
+const COMPACT_STRUCTURING_MAX_OUTPUT_TOKENS = 900
+const FULL_STRUCTURING_MAX_OUTPUT_TOKENS = 1600
 const FIVE_LAYER_MODEL_SHAPE_HINT = `{
   "goal": {
     "summary": "string",
@@ -48,6 +56,13 @@ const FIVE_LAYER_MODEL_SHAPE_HINT = `{
 function excerptInput(input: string): string {
   const normalized = input.replace(/\s+/g, ' ').trim()
   return normalized.length > 80 ? `${normalized.slice(0, 77)}...` : normalized
+}
+
+function parsePositiveInt(value: string | undefined): number | null {
+  if (!value) return null
+
+  const parsed = Number.parseInt(value, 10)
+  return Number.isInteger(parsed) && parsed > 0 ? parsed : null
 }
 
 function buildFallbackModel(input: string): FiveLayerModel {
@@ -181,15 +196,35 @@ function buildFallbackModel(input: string): FiveLayerModel {
 }
 
 function shouldUseFallbackModel(error: unknown): boolean {
-  if (getChatProvider() !== 'deepseek') return false
   if (!(error instanceof Error)) return false
 
-  return (
-    error.message.includes('timed out') ||
-    error.message.includes('aborted') ||
-    error.message.includes('Failed to parse JSON response') ||
-    error.message.includes('Structured response validation failed')
-  )
+  if (error.message.includes('timed out') || error.message.includes('aborted')) {
+    return true
+  }
+
+  if (getChatProvider() === 'deepseek') {
+    return (
+      error.message.includes('Failed to parse JSON response') ||
+      error.message.includes('Structured response validation failed')
+    )
+  }
+
+  return false
+}
+
+function shouldUseCompactStructuringDraft(): boolean {
+  const provider = getChatProvider()
+  return provider === 'qwen' || provider === 'deepseek'
+}
+
+function getStructuringTimeoutMs(): number {
+  const provider = getChatProvider()
+
+  if (provider === 'qwen') {
+    return parsePositiveInt(process.env.QWEN_STRUCTURING_TIMEOUT_MS) ?? QWEN_STRUCTURING_TIMEOUT_MS
+  }
+
+  return parsePositiveInt(process.env.STRUCTURING_TIMEOUT_MS) ?? DEFAULT_STRUCTURING_TIMEOUT_MS
 }
 
 // Zod 4 schemas work natively with AI SDK 6's Output.object() —
@@ -210,17 +245,29 @@ export async function generateStructuredModel(
   ragContext: RetrievedChunk[] = [],
 ): Promise<StructuringResult> {
   eventBus.emit('requirement.structuring.started', { requirementId, userId })
+  const timeoutMs = getStructuringTimeoutMs()
 
   for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
     try {
-      const output = await generateStructuredOutput({
-        schema: FiveLayerModelSchema,
-        schemaName: 'five_layer_model',
-        prompt: buildStructuringPrompt(input, ragContext),
-        maxOutputTokens: 1600,
-        shapeHint: FIVE_LAYER_MODEL_SHAPE_HINT,
-        abortSignal: AbortSignal.timeout(STRUCTURING_TIMEOUT_MS),
-      })
+      const output = shouldUseCompactStructuringDraft()
+        ? expandCompactStructuringDraft(
+          await generateStructuredOutput({
+            schema: CompactStructuringDraftSchema,
+            schemaName: 'compact_structuring_draft',
+            prompt: buildCompactStructuringPrompt(input, ragContext),
+            maxOutputTokens: COMPACT_STRUCTURING_MAX_OUTPUT_TOKENS,
+            shapeHint: COMPACT_STRUCTURING_DRAFT_SHAPE_HINT,
+            abortSignal: AbortSignal.timeout(timeoutMs),
+          }),
+        )
+        : await generateStructuredOutput({
+          schema: FiveLayerModelSchema,
+          schemaName: 'five_layer_model',
+          prompt: buildStructuringPrompt(input, ragContext),
+          maxOutputTokens: FULL_STRUCTURING_MAX_OUTPUT_TOKENS,
+          shapeHint: FIVE_LAYER_MODEL_SHAPE_HINT,
+          abortSignal: AbortSignal.timeout(timeoutMs),
+        })
 
       eventBus.emit('requirement.structuring.completed', {
         requirementId,

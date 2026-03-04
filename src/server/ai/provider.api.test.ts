@@ -5,6 +5,7 @@ import {
   getEmbeddingModel,
   getEmbeddingModelConfig,
   getEmbeddingProvider,
+  getStructuredChatModel,
   isEmbeddingConfigured,
 } from '@/server/ai/provider'
 
@@ -50,6 +51,23 @@ describe('AI provider selection', () => {
     expect(getChatModel().provider).toBe('qwen.chat')
   })
 
+  it('defaults qwen structured output to qwen-plus', () => {
+    process.env.AI_PROVIDER = 'qwen'
+    process.env.QWEN_API_KEY = 'sk-qwen'
+    process.env.QWEN_CHAT_MODEL = 'qwen3.5-plus'
+    delete process.env.QWEN_STRUCTURED_OUTPUT_MODEL
+
+    expect(getStructuredChatModel().modelId).toBe('qwen-plus')
+  })
+
+  it('uses explicit qwen structured output model when configured', () => {
+    process.env.AI_PROVIDER = 'qwen'
+    process.env.QWEN_API_KEY = 'sk-qwen'
+    process.env.QWEN_STRUCTURED_OUTPUT_MODEL = 'qwen-turbo'
+
+    expect(getStructuredChatModel().modelId).toBe('qwen-turbo')
+  })
+
   it('defaults embedding provider to none when no key exists', () => {
     process.env.EMBEDDING_PROVIDER = ''
     delete process.env.OPENAI_API_KEY
@@ -86,5 +104,6 @@ describe('AI provider selection', () => {
     process.env.QWEN_API_KEY = 'sk-qwen'
 
     expect(() => getChatModel()).not.toThrow()
+    expect(() => getStructuredChatModel()).not.toThrow()
   })
 })
