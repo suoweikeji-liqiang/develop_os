@@ -120,10 +120,26 @@ model Requirement {
   externalSubmission    ExternalSubmission?
   conflicts             RequirementConflict[] @relation("RequirementConflicts")
   relatedConflicts      RequirementConflict[] @relation("RelatedRequirementConflicts")
+  testCaseSuites        RequirementTestCaseSuite[]
 
   @@index([status])
   @@index([createdBy])
   @@index([createdAt])
+}
+
+model RequirementTestCaseSuite {
+  id                     String      @id @default(cuid())
+  requirementId          String
+  sourceRequirementVersion Int
+  suite                  Json
+  generatedBy            String
+  agentId                String      @default("test-case-generator")
+  createdAt              DateTime    @default(now())
+
+  requirement            Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@index([requirementId, createdAt])
+  @@index([requirementId, sourceRequirementVersion])
 }
 
 model RequirementVersion {

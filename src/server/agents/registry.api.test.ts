@@ -7,6 +7,7 @@ describe('agent registry', () => {
     const agents = agentRegistry.list()
     expect(agents.some((agent) => agent.id === 'clarifier')).toBe(true)
     expect(agents.some((agent) => agent.id === 'conflict-detector')).toBe(true)
+    expect(agents.some((agent) => agent.id === 'test-case-generator')).toBe(true)
   })
 
   it('throws on unknown agent ids', () => {

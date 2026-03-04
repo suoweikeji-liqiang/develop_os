@@ -17,6 +17,7 @@ import { ChatPanel } from './chat-panel'
 import { VersionHistory } from './version-history'
 import { StatusControl } from './status-control'
 import { ConflictPanel } from './conflict-panel'
+import { TestCasePanel } from './test-case-panel'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import type { ConversationResponse } from '@/lib/schemas/conversation'
 import type { UIMessage } from 'ai'
@@ -348,6 +349,7 @@ export function ExplorationDetailClient({
             </div>
           )}
           <ConflictPanel requirementId={requirementId} hasModel={Boolean(model)} />
+          <TestCasePanel requirementId={requirementId} requirementTitle={title} hasModel={Boolean(model)} />
           <ConsensusStatus
             requirementId={requirementId}
             currentStatus={currentStatus}
