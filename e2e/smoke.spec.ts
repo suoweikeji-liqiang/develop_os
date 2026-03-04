@@ -86,7 +86,7 @@ test('renders knowledge base page sections for authenticated user', async ({ pag
   await login(page)
   await page.goto('/knowledge')
 
-  await expect(page.getByRole('heading', { name: 'Knowledge Base', exact: true, level: 1 })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '让上下文成为可检索的长期记忆', exact: true, level: 1 })).toBeVisible()
   await expect(page.locator('input[type="file"]')).toBeVisible()
   await expect(page.getByRole('heading', { name: 'Repositories' })).toBeVisible()
   await expect(page.getByRole('heading', { name: 'How Knowledge Base Works' })).toBeVisible()

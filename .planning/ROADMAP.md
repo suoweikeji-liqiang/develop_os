@@ -12,16 +12,16 @@ DevOS delivers an AI-driven requirements clarification platform in 10 phases. Th
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation** - User auth, role management, event bus, database schema, project scaffolding
+- [x] **Phase 1: Foundation** - User auth, role management, event bus, database schema, project scaffolding (completed 2026-03-04)
 - [x] **Phase 2: Core AI Structuring** - Natural language input transformed into five-layer structured model with schema validation
 - [x] **Phase 3: Conversational Refinement** - Dialogue-based model correction and AI assumption surfacing with confidence scores (completed 2026-02-28)
 - [x] **Phase 4: Model Versioning** - Immutable version snapshots and structured diff views for requirement models
-- [ ] **Phase 5: Workflow & Search** - Requirement status flow (draft to done) and full-text search with filtering
+- [x] **Phase 5: Workflow & Search** - Requirement status flow (draft to done) and full-text search with filtering (completed 2026-03-04)
 - [x] **Phase 6: Role Views & Consensus** - Role-specific requirement views and multi-role sign-off workflow (completed 2026-03-01)
 - [x] **Phase 7: Communication** - Comments, @mentions, async discussion, in-app and external notifications
 - [x] **Phase 8: External Intake** - Public submission form for outside departments and progress tracking (completed 2026-03-02)
-- [ ] **Phase 9: Knowledge Base** - Document upload, code repo integration, and historical context accumulation
-- [ ] **Phase 10: Conflict Detection & Agent Architecture** - Cross-requirement contradiction detection and formalized agent plugin interface
+- [x] **Phase 9: Knowledge Base** - Document upload, code repo integration, and historical context accumulation (completed 2026-03-04)
+- [x] **Phase 10: Conflict Detection & Agent Architecture** - Cross-requirement contradiction detection and formalized agent plugin interface (completed 2026-03-04)
 
 ## Phase Details
 
@@ -38,8 +38,9 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 Plans:
 - [x] 01-01: Project scaffolding and database setup
-- [ ] 01-02: Authentication and role management
+- [x] 01-02: Authentication and role management
 - [x] 01-03: Event bus infrastructure
+- [x] 01-04: Migration recovery and event bus wiring verification
 
 ### Phase 2: Core AI Structuring
 **Goal**: Users can input fuzzy natural language requirements and receive a structured five-layer model (goal/assumption/behavior/scenario/verifiability)
@@ -66,12 +67,13 @@ Plans:
   2. AI applies user corrections and produces an updated model reflecting the feedback
   3. AI automatically identifies and displays implicit assumptions with confidence scores (high/medium/low)
   4. User can accept, reject, or modify each surfaced assumption
-**Plans**: TBD
+**Plans**: 4 plans
 
 Plans:
-- [ ] 03-01: Conversational refinement engine and chat UI
-- [ ] 03-02: Assumption surfacing with confidence scoring
-- [ ] 03-03: Model update pipeline (conversation -> model mutation)
+- [x] 03-01: Conversational refinement engine and chat UI
+- [x] 03-02: Assumption surfacing with confidence scoring
+- [x] 03-03: Model update pipeline (conversation -> model mutation)
+- [x] 03-04: Diff confirmation, undo, and assumption integration
 
 ### Phase 4: Model Versioning
 **Goal**: Every requirement model change is tracked as an immutable snapshot, and users can compare any two versions with structured diffs
@@ -100,8 +102,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 05-01-PLAN.md — Status enum migration, typed state machine, transitionStatus mutation, status control UI
-- [ ] 05-02-PLAN.md — Search tRPC query with ILIKE, filter bar UI, requirements list with URL-synced filters
+- [x] 05-01-PLAN.md — Status enum migration, typed state machine, transitionStatus mutation, status control UI
+- [x] 05-02-PLAN.md — Search tRPC query with ILIKE, filter bar UI, requirements list with URL-synced filters
 
 ### Phase 6: Role Views & Consensus
 **Goal**: Each role sees a tailored view of the same requirement model, and all required roles must sign off before status advances
@@ -115,8 +117,8 @@ Plans:
 **Plans**: 2 plans
 
 Plans:
-- [ ] 06-01-PLAN.md — ReviewSignoff Prisma model, signoffRouter tRPC API, consensus gate, sign-off invalidation
-- [ ] 06-02-PLAN.md — Role-view config maps, RoleViewTabs, SignoffPanel with checklists, ConsensusStatus display
+- [x] 06-01-PLAN.md — ReviewSignoff Prisma model, signoffRouter tRPC API, consensus gate, sign-off invalidation
+- [x] 06-02-PLAN.md — Role-view config maps, RoleViewTabs, SignoffPanel with checklists, ConsensusStatus display
 
 ### Phase 7: Communication
 **Goal**: Team members can discuss requirements asynchronously and receive timely notifications about relevant changes
@@ -145,7 +147,7 @@ Plans:
 
 Plans:
 - [x] 08-01-PLAN.md — ExternalSubmission Prisma model + migration, ExternalSubmitSchema, externalRouter (baseProcedure submit + status), wired into appRouter
-- [ ] 08-02-PLAN.md — Public /submit form page + /submit/status/[token] tracking page (unauthenticated, force-dynamic)
+- [x] 08-02-PLAN.md — Public /submit form page + /submit/status/[token] tracking page (unauthenticated, force-dynamic)
 
 ### Phase 9: Knowledge Base
 **Goal**: AI structuring leverages uploaded documents, connected code repos, and accumulated historical context to produce better models
@@ -174,11 +176,11 @@ Plans:
   2. AI flags inconsistencies between assumptions and behaviors within a requirement
   3. User can review, dismiss, or act on each detected conflict
   4. Agent plugin interface is documented and a second agent (conflict detector) runs through it
-**Plans**: TBD
+**Plans**: 2 plans
 
 Plans:
-- [ ] 10-01: Cross-requirement conflict detection engine
-- [ ] 10-02: Agent plugin interface extraction and formalization
+- [x] 10-01: Cross-requirement conflict detection engine
+- [x] 10-02: Agent plugin interface extraction and formalization
 
 ## Progress
 
@@ -189,13 +191,13 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation | 2/3 | In progress | - |
+| 1. Foundation | 4/4 | Complete | 2026-03-04 |
 | 2. Core AI Structuring | 3/3 | Complete | 2026-02-28 |
 | 3. Conversational Refinement | 4/4 | Complete   | 2026-02-28 |
 | 4. Model Versioning | 2/2 | Complete | 2026-02-28 |
-| 5. Workflow & Search | 1/2 | In Progress|  |
+| 5. Workflow & Search | 2/2 | Complete | 2026-03-04 |
 | 6. Role Views & Consensus | 2/2 | Complete   | 2026-03-01 |
 | 7. Communication | 2/2 | Complete | 2026-03-02 |
 | 8. External Intake | 2/2 | Complete   | 2026-03-02 |
-| 9. Knowledge Base | 5/5 | In Progress (verification pending) | - |
-| 10. Conflict Detection & Agent Architecture | 0/2 | Not started | - |
+| 9. Knowledge Base | 5/5 | Complete | 2026-03-04 |
+| 10. Conflict Detection & Agent Architecture | 2/2 | Complete | 2026-03-04 |

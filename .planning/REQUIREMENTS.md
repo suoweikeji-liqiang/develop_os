@@ -10,7 +10,7 @@
 - [x] **AI-01**: 用户可输入自然语言需求（中英文），AI 自动生成五层结构化模型（目标/假设/行为/场景/可验证性）
 - [x] **AI-02**: 用户可通过对话方式修正和精炼 AI 生成的结构化模型
 - [x] **AI-03**: AI 自动识别需求中的隐含假设并标注置信度
-- [ ] **AI-04**: AI 自动检测需求之间、假设与行为之间的矛盾冲突
+- [x] **AI-04**: AI 自动检测需求之间、假设与行为之间的矛盾冲突
 - [x] **AI-05**: AI 输出必须经过 schema 验证，失败自动重试
 
 ### 需求模型管理
@@ -42,7 +42,7 @@
 
 - [x] **INF-01**: 用户认证与角色管理（产品/开发/测试/UI/外部）
 - [x] **INF-02**: 事件驱动架构，模块间通过事件总线通信
-- [ ] **INF-03**: Agent 插件接口预留，当前实现澄清 Agent，未来可扩展
+- [x] **INF-03**: Agent 插件接口预留，当前实现澄清 Agent，未来可扩展
 
 ## v2 Requirements
 
@@ -69,7 +69,7 @@
 | AI-01 | Phase 2: Core AI Structuring | Complete |
 | AI-02 | Phase 3: Conversational Refinement | Complete |
 | AI-03 | Phase 3: Conversational Refinement | Complete |
-| AI-04 | Phase 10: Conflict Detection & Agent Architecture | Pending |
+| AI-04 | Phase 10: Conflict Detection & Agent Architecture | Complete |
 | AI-05 | Phase 2: Core AI Structuring | Complete |
 | MOD-01 | Phase 4: Model Versioning | Complete |
 | MOD-02 | Phase 4: Model Versioning | Complete |
@@ -84,15 +84,15 @@
 | KB-01 | Phase 9: Knowledge Base | Complete |
 | KB-02 | Phase 9: Knowledge Base | Complete |
 | KB-03 | Phase 9: Knowledge Base | Complete |
-| INF-01 | Phase 1: Foundation | In Progress |
+| INF-01 | Phase 1: Foundation | Complete |
 | INF-02 | Phase 1: Foundation | Complete |
-| INF-03 | Phase 10: Conflict Detection & Agent Architecture | Pending |
+| INF-03 | Phase 10: Conflict Detection & Agent Architecture | Complete |
 
 **Coverage:**
-- v1 requirements: 20 total
-- Mapped to phases: 20
+- v1 requirements: 21 total
+- Mapped to phases: 21
 - Unmapped: 0
 
 ---
 *Requirements defined: 2026-02-28*
-*Traceability updated: 2026-02-28*
+*Traceability updated: 2026-03-04*
