@@ -13,6 +13,7 @@ import { knowledgeDocumentRouter } from './routers/knowledgeDocument'
 import { codeRepositoryRouter } from './routers/codeRepository'
 import { conflictRouter } from './routers/conflict'
 import { testCaseRouter } from './routers/testCase'
+import { clarificationRouter } from './routers/clarification'
 
 export const appRouter = createTRPCRouter({
   auth: authRouter,
@@ -29,6 +30,7 @@ export const appRouter = createTRPCRouter({
   codeRepository: codeRepositoryRouter,
   conflict: conflictRouter,
   testCase: testCaseRouter,
+  clarification: clarificationRouter,
 })
 
 export type AppRouter = typeof appRouter

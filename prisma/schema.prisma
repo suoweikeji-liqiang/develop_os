@@ -48,6 +48,34 @@ enum ConflictSeverity {
   HIGH
 }
 
+enum ClarificationSessionStatus {
+  OPEN
+  CLOSED
+}
+
+enum ClarificationQuestionCategory {
+  GOAL
+  SCOPE
+  USER
+  IO
+  CONSTRAINT
+  ACCEPTANCE
+  RISK
+  OTHER
+}
+
+enum ClarificationQuestionStatus {
+  OPEN
+  ANSWERED
+  RESOLVED
+  SKIPPED
+}
+
+enum SpecArtifactFormat {
+  markdown
+  json
+}
+
 model User {
   id             String          @id @default(cuid())
   email          String          @unique
@@ -121,10 +149,72 @@ model Requirement {
   conflicts             RequirementConflict[] @relation("RequirementConflicts")
   relatedConflicts      RequirementConflict[] @relation("RelatedRequirementConflicts")
   testCaseSuites        RequirementTestCaseSuite[]
+  clarificationSessions ClarificationSession[]
+  modelChangeLogs       ModelChangeLog[]
+  specArtifacts         SpecArtifact[]
 
   @@index([status])
   @@index([createdBy])
   @@index([createdAt])
+}
+
+model ClarificationSession {
+  id            String                     @id @default(cuid())
+  requirementId String
+  status        ClarificationSessionStatus @default(OPEN)
+  createdAt     DateTime                   @default(now())
+  updatedAt     DateTime                   @updatedAt
+
+  requirement   Requirement                @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  questions     ClarificationQuestion[]
+
+  @@index([requirementId, createdAt])
+}
+
+model ClarificationQuestion {
+  id           String                      @id @default(cuid())
+  sessionId    String
+  category     ClarificationQuestionCategory
+  questionText String
+  status       ClarificationQuestionStatus @default(OPEN)
+  answerText   String?
+  createdAt    DateTime                    @default(now())
+  updatedAt    DateTime                    @updatedAt
+
+  session      ClarificationSession        @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, status])
+  @@index([category])
+}
+
+model ModelChangeLog {
+  id           String   @id @default(cuid())
+  requirementId String
+  changeSource String
+  patchJson    Json
+  rationale    String?
+  confidence   Float?
+  evidenceRefs Json?
+  createdAt    DateTime @default(now())
+
+  requirement  Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@index([requirementId, createdAt])
+  @@index([requirementId, changeSource, createdAt])
+}
+
+model SpecArtifact {
+  id            String           @id @default(cuid())
+  requirementId String
+  version       Int
+  format        SpecArtifactFormat
+  content       String           @db.Text
+  createdAt     DateTime         @default(now())
+
+  requirement   Requirement      @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+
+  @@index([requirementId, createdAt])
+  @@unique([requirementId, version])
 }
 
 model RequirementTestCaseSuite {

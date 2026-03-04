@@ -8,6 +8,12 @@ import { assertTransition, RequirementStatusEnum } from '@/lib/workflow/status-m
 import type { RequirementStatus } from '@/lib/workflow/status-machine'
 import { WORKFLOW_REVIEWER_ROLES, canManageRequirementWorkflow } from '@/lib/workflow/permissions'
 import { scanRequirementConflicts } from '@/server/conflicts/service'
+import {
+  computeCompleteness,
+  deriveSpecDraft,
+  deriveStructuredBundle,
+  renderSpecMarkdown,
+} from '@/server/ai/clarification'
 
 const RoleEnum = z.enum(['PRODUCT', 'DEV', 'TEST', 'UI', 'EXTERNAL'])
 
@@ -153,6 +159,157 @@ export const requirementRouter = createTRPCRouter({
       })
 
       return requirement
+    }),
+
+  structureFromRawInput: protectedProcedure
+    .input(z.object({ requirementId: z.string() }))
+    .mutation(async ({ input, ctx }) => {
+      const requirement = await prisma.requirement.findUniqueOrThrow({
+        where: { id: input.requirementId },
+        select: { id: true, title: true, rawInput: true },
+      })
+
+      const latestLog = await prisma.modelChangeLog.findFirst({
+        where: {
+          requirementId: requirement.id,
+          changeSource: 'ai-structure',
+          createdAt: { gte: new Date(Date.now() - 60_000) },
+        },
+      })
+      if (latestLog) {
+        throw new TRPCError({ code: 'TOO_MANY_REQUESTS', message: '一分钟内仅允许一次结构化' })
+      }
+
+      const bundle = await deriveStructuredBundle({
+        title: requirement.title,
+        rawInput: requirement.rawInput,
+      })
+
+      await prisma.$transaction(async (tx) => {
+        const current = await tx.requirement.findUniqueOrThrow({
+          where: { id: requirement.id },
+          select: { model: true, version: true, confidence: true },
+        })
+
+        if (current.model !== null) {
+          await tx.requirementVersion.create({
+            data: {
+              requirementId: requirement.id,
+              version: current.version,
+              model: current.model,
+              confidence: current.confidence ?? undefined,
+              changeSource: 'ai-structure',
+              createdBy: ctx.session.userId,
+            },
+          })
+        }
+
+        await tx.requirement.update({
+          where: { id: requirement.id },
+          data: {
+            model: bundle.model,
+            version: { increment: 1 },
+          },
+        })
+
+        const session = await tx.clarificationSession.create({
+          data: { requirementId: requirement.id },
+        })
+
+        await tx.clarificationQuestion.createMany({
+          data: bundle.clarificationQuestions.map((question) => ({
+            sessionId: session.id,
+            category: question.category,
+            questionText: question.questionText,
+          })),
+        })
+
+        await tx.modelChangeLog.create({
+          data: {
+            requirementId: requirement.id,
+            changeSource: 'ai-structure',
+            patchJson: bundle,
+            rationale: 'Initial structuring from raw input',
+            confidence: 0.7,
+            evidenceRefs: [],
+          },
+        })
+      })
+
+      const specMarkdown = renderSpecMarkdown(await deriveSpecDraft({
+        model: bundle.model,
+        assumptions: bundle.assumptions,
+        decisionPoints: bundle.decisionPoints,
+      }))
+
+      await prisma.specArtifact.create({
+        data: {
+          requirementId: requirement.id,
+          version: 1,
+          format: 'markdown',
+          content: specMarkdown,
+        },
+      })
+
+      return {
+        model: bundle.model,
+        assumptions: bundle.assumptions,
+        decisionPoints: bundle.decisionPoints,
+        completeness: computeCompleteness(bundle.model),
+      }
+    }),
+
+  generateSpec: protectedProcedure
+    .input(z.object({ requirementId: z.string() }))
+    .mutation(async ({ input }) => {
+      const requirement = await prisma.requirement.findUniqueOrThrow({
+        where: { id: input.requirementId },
+      })
+      if (!requirement.model) {
+        throw new TRPCError({ code: 'PRECONDITION_FAILED', message: '请先完成结构化建模' })
+      }
+
+      const changeLog = await prisma.modelChangeLog.findFirst({
+        where: { requirementId: requirement.id, changeSource: 'ai-structure' },
+        orderBy: { createdAt: 'desc' },
+      })
+      const payload = (changeLog?.patchJson ?? {}) as {
+        assumptions?: Array<{ type: string; content: string }>
+        decisionPoints?: Array<{ title: string; selected?: string | null; options?: string[] }>
+      }
+
+      const spec = await deriveSpecDraft({
+        model: requirement.model as z.infer<typeof FiveLayerModelSchema>,
+        assumptions: payload.assumptions ?? [],
+        decisionPoints: payload.decisionPoints ?? [],
+      })
+      const content = renderSpecMarkdown(spec)
+
+      const latest = await prisma.specArtifact.findFirst({
+        where: { requirementId: requirement.id },
+        orderBy: { version: 'desc' },
+      })
+
+      const artifact = await prisma.specArtifact.create({
+        data: {
+          requirementId: requirement.id,
+          version: (latest?.version ?? 0) + 1,
+          format: 'markdown',
+          content,
+        },
+      })
+
+      return { spec: content, artifact }
+    }),
+
+  getCompleteness: protectedProcedure
+    .input(z.object({ requirementId: z.string() }))
+    .query(async ({ input }) => {
+      const requirement = await prisma.requirement.findUniqueOrThrow({
+        where: { id: input.requirementId },
+        select: { model: true },
+      })
+      return computeCompleteness(requirement.model as z.infer<typeof FiveLayerModelSchema> | null)
     }),
 
   transitionStatus: protectedProcedure

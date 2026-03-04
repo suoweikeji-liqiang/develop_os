@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useRef, useCallback } from 'react'
+import { useState, useRef, useCallback, useEffect } from 'react'
 import {
   BookOpenText,
   GitBranch,
@@ -23,6 +23,8 @@ import type { ConversationResponse } from '@/lib/schemas/conversation'
 import type { UIMessage } from 'ai'
 import type { PendingAssumption } from './assumption-card'
 import { canManageRequirementWorkflow } from '@/lib/workflow/permissions'
+import { Button } from '@/components/ui/button'
+import { Textarea } from '@/components/ui/textarea'
 
 interface Props {
   requirementId: string
@@ -95,6 +97,22 @@ export function ExplorationDetailClient({
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [signoffRefreshToken, setSignoffRefreshToken] = useState(0)
   const [signoffInvalidationToken, setSignoffInvalidationToken] = useState(0)
+  const [structureLoading, setStructureLoading] = useState(false)
+  const [structureError, setStructureError] = useState<string | null>(null)
+  const [completeness, setCompleteness] = useState<{ score: number; missingFields: string[] } | null>(null)
+  const [clarificationSession, setClarificationSession] = useState<{
+    id: string
+    questions: Array<{
+      id: string
+      category: string
+      status: string
+      questionText: string
+      answerText?: string | null
+    }>
+  } | null>(null)
+  const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
+  const [specMarkdown, setSpecMarkdown] = useState('')
+  const [specLoading, setSpecLoading] = useState(false)
   const previousModelRef = useRef<FiveLayerModel | null>(null)
   const citations = (initialCitations ?? []) as CitationItem[]
   const explorationStage = getExplorationStage(currentStatus)
@@ -205,6 +223,135 @@ export function ExplorationDetailClient({
     }
     setPendingAssumptions(prev => prev.filter(a => a.id !== id))
   }, [invalidateSignoffs, model, pendingAssumptions, persistModel])
+
+  const refreshClarification = useCallback(async () => {
+    try {
+      const res = await fetch('/api/trpc/clarification.list', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requirementId }),
+      })
+      if (!res.ok) return
+      const data = await res.json() as {
+        result?: {
+          data?: {
+            id: string
+            questions: Array<{
+              id: string
+              category: string
+              status: string
+              questionText: string
+              answerText?: string | null
+            }>
+          } | null
+        }
+      }
+      setClarificationSession(data.result?.data ?? null)
+    } catch {
+      // degrade silently
+    }
+  }, [requirementId])
+
+  const refreshCompleteness = useCallback(async () => {
+    try {
+      const res = await fetch('/api/trpc/requirement.getCompleteness', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requirementId }),
+      })
+      if (!res.ok) return
+      const data = await res.json() as {
+        result?: {
+          data?: { score: number; missingFields: string[] }
+        }
+      }
+      if (data.result?.data) setCompleteness(data.result.data)
+    } catch {
+      // degrade silently
+    }
+  }, [requirementId])
+
+  useEffect(() => {
+    void refreshClarification()
+    void refreshCompleteness()
+  }, [refreshClarification, refreshCompleteness])
+
+  async function handleStructure() {
+    setStructureLoading(true)
+    setStructureError(null)
+    try {
+      const res = await fetch('/api/trpc/requirement.structureFromRawInput', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requirementId }),
+      })
+      if (!res.ok) throw new Error('结构化失败')
+      const data = await res.json() as {
+        result?: {
+          data?: {
+            model?: FiveLayerModel
+            completeness?: { score: number; missingFields: string[] }
+          }
+        }
+      }
+      if (data.result?.data?.model) setModel(data.result.data.model)
+      if (data.result?.data?.completeness) setCompleteness(data.result.data.completeness)
+      await refreshClarification()
+    } catch (error) {
+      setStructureError(error instanceof Error ? error.message : '结构化失败')
+    } finally {
+      setStructureLoading(false)
+    }
+  }
+
+  async function handleAnswerQuestion(questionId: string) {
+    const answerText = answerDrafts[questionId]?.trim()
+    if (!answerText) return
+
+    try {
+      const res = await fetch('/api/trpc/clarification.answer', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionId, answerText }),
+      })
+      if (!res.ok) throw new Error('回答失败')
+      const data = await res.json() as {
+        result?: {
+          data?: { model?: FiveLayerModel }
+        }
+      }
+      if (data.result?.data?.model) {
+        setModel(data.result.data.model)
+      }
+
+      setAnswerDrafts((prev) => ({ ...prev, [questionId]: '' }))
+      await Promise.all([refreshClarification(), refreshCompleteness()])
+    } catch {
+      // degrade silently
+    }
+  }
+
+  async function handleGenerateSpec() {
+    setSpecLoading(true)
+    try {
+      const res = await fetch('/api/trpc/requirement.generateSpec', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requirementId }),
+      })
+      if (!res.ok) throw new Error('Spec 生成失败')
+      const data = await res.json() as {
+        result?: {
+          data?: { spec?: string }
+        }
+      }
+      if (data.result?.data?.spec) {
+        setSpecMarkdown(data.result.data.spec)
+      }
+    } finally {
+      setSpecLoading(false)
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -349,6 +496,70 @@ export function ExplorationDetailClient({
             </div>
           )}
           <ConflictPanel requirementId={requirementId} hasModel={Boolean(model)} />
+          <section className="app-panel p-4 sm:p-5 space-y-4">
+            <details open>
+              <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">结构化区块</summary>
+              <div className="mt-3 space-y-3">
+                <Button onClick={handleStructure} disabled={structureLoading}>
+                  {structureLoading ? '结构化中...' : '自动结构化'}
+                </Button>
+                {structureError && <p className="text-sm text-red-500">{structureError}</p>}
+                <p className="text-sm text-slate-600">完成度：{completeness?.score ?? '-'} / 100</p>
+                {completeness?.missingFields?.length ? (
+                  <p className="text-xs text-slate-500">缺失字段：{completeness.missingFields.join(', ')}</p>
+                ) : null}
+              </div>
+            </details>
+          </section>
+
+          <section className="app-panel p-4 sm:p-5 space-y-4">
+            <details>
+              <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">澄清区块</summary>
+              <div className="mt-3 space-y-4">
+                <Button variant="outline" onClick={refreshClarification}>刷新问题队列</Button>
+                {(clarificationSession?.questions ?? []).map((question) => (
+                  <div key={question.id} className="rounded-md border p-3 space-y-2">
+                    <p className="text-xs text-slate-500">[{question.category}] {question.status}</p>
+                    <p className="text-sm text-slate-800">{question.questionText}</p>
+                    <Textarea
+                      placeholder="输入回答..."
+                      value={answerDrafts[question.id] ?? ''}
+                      onChange={(event) => setAnswerDrafts((prev) => ({ ...prev, [question.id]: event.target.value }))}
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => handleAnswerQuestion(question.id)}>提交</Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={async () => {
+                          await fetch('/api/trpc/clarification.updateQuestionStatus', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ questionId: question.id, status: 'SKIPPED' }),
+                          })
+                          await refreshClarification()
+                        }}
+                      >
+                        跳过
+                      </Button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </details>
+          </section>
+
+          <section className="app-panel p-4 sm:p-5 space-y-4">
+            <details>
+              <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">Spec 区块</summary>
+              <div className="mt-3 space-y-3">
+                <Button onClick={handleGenerateSpec} disabled={specLoading}>
+                  {specLoading ? '生成中...' : '生成 Spec'}
+                </Button>
+                <Textarea rows={14} value={specMarkdown} readOnly placeholder="未生成 Spec" />
+              </div>
+            </details>
+          </section>
           <TestCasePanel requirementId={requirementId} requirementTitle={title} hasModel={Boolean(model)} />
           <ConsensusStatus
             requirementId={requirementId}
