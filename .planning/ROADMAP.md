@@ -2,7 +2,7 @@
 
 ## Overview
 
-DevOS delivers an AI-driven requirements clarification platform in 10 phases. The journey starts with infrastructure and core AI structuring (the central hypothesis), layers on model management and collaboration workflows, adds external intake and knowledge base capabilities, and culminates with conflict detection and the agent plugin architecture that unlocks v2 extensibility. Each phase delivers a coherent, independently verifiable capability.
+DevOS delivers an AI-driven requirements clarification platform in 10 phases. The journey starts with infrastructure and core AI structuring (the central hypothesis), layers on model management and collaboration workflows, adds external intake and knowledge base capabilities, and culminates with conflict detection and the agent plugin architecture that unlocks v2 extensibility. Each phase delivers a coherent, independently verifiable capability. The v1 roadmap is complete; post-v1 work has begun with V2-01 test-case generation.
 
 ## Phases
 
@@ -201,3 +201,12 @@ Note: Phases 4 and 8 have independent dependency chains and may execute in paral
 | 8. External Intake | 2/2 | Complete   | 2026-03-02 |
 | 9. Knowledge Base | 5/5 | Complete | 2026-03-04 |
 | 10. Conflict Detection & Agent Architecture | 2/2 | Complete | 2026-03-04 |
+
+## Post-v1 Extension Status
+
+- [x] **V2-01: AI Test Case Generation** - Structured requirement test-case suite generation, persistence, and Markdown/CSV export (completed 2026-03-04)
+- [ ] **V2-02: AI Code Skeleton Generation**
+- [ ] **V2-03: AI Code Review Agent**
+- [ ] **V2-04: SSO / Feishu / Confluence Integrations**
+- [ ] **V2-05: Requirement Model API**
+- [ ] **V2-06: Change Impact Prediction Engine**

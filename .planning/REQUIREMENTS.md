@@ -46,12 +46,23 @@
 
 ## v2 Requirements
 
-- **V2-01**: AI 自动生成测试用例
-- **V2-02**: AI 自动生成代码骨架
-- **V2-03**: AI 代码审核 Agent
-- **V2-04**: SSO / 飞书 / Confluence 集成
-- **V2-05**: 需求模型 API（供下游工具消费）
-- **V2-06**: 变更影响预测引擎
+- [x] **V2-01**: AI 自动生成测试用例
+- [ ] **V2-02**: AI 自动生成代码骨架
+- [ ] **V2-03**: AI 代码审核 Agent
+- [ ] **V2-04**: SSO / 飞书 / Confluence 集成
+- [ ] **V2-05**: 需求模型 API（供下游工具消费）
+- [ ] **V2-06**: 变更影响预测引擎
+
+### v2 Status
+
+| Requirement | Status | Notes |
+|-------------|--------|-------|
+| V2-01 | Complete | 测试用例资产生成、持久化、Markdown/CSV 导出已落地 |
+| V2-02 | Not Started | 待选型代码生成范围与输出格式 |
+| V2-03 | Not Started | 待定义 review Agent 的触发点与输出契约 |
+| V2-04 | Not Started | 待确定集成优先级和目标系统 |
+| V2-05 | Not Started | 待定义模型 API 的读写边界和鉴权策略 |
+| V2-06 | Not Started | 待定义影响分析输入信号和评分模型 |
 
 ## Out of Scope
 

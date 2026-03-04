@@ -1,9 +1,27 @@
 import { z } from 'zod'
 import { TRPCError } from '@trpc/server'
+import { Prisma } from '@/generated/prisma/client'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { FiveLayerModelSchema } from '@/lib/schemas/requirement'
 import { applyPathPatch, deriveClarificationPatch } from '@/server/ai/clarification'
+
+function toInputJsonValue(value: unknown): Prisma.InputJsonValue | null {
+  if (value === null) return null
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return value
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => toInputJsonValue(item)) as Prisma.InputJsonArray
+  }
+  if (typeof value === 'object') {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>).map(([key, item]) => [key, toInputJsonValue(item)]),
+    ) as Prisma.InputJsonObject
+  }
+
+  return null
+}
 
 export const clarificationRouter = createTRPCRouter({
   list: protectedProcedure
@@ -63,6 +81,10 @@ export const clarificationRouter = createTRPCRouter({
         nextModel = applyPathPatch(nextModel, patch.path, patch.value)
       }
       nextModel = FiveLayerModelSchema.parse(nextModel)
+      const patchJson = parsed.modelPatch.map((patch) => ({
+        ...patch,
+        value: toInputJsonValue(patch.value),
+      })) as Prisma.InputJsonArray
 
       const updatedRequirement = await prisma.$transaction(async (tx) => {
         const current = await tx.requirement.findUniqueOrThrow({
@@ -87,7 +109,7 @@ export const clarificationRouter = createTRPCRouter({
           data: {
             requirementId: requirement.id,
             changeSource: 'ai-converse',
-            patchJson: parsed.modelPatch,
+            patchJson,
             rationale: parsed.modelPatch.map((item) => item.rationale).join('; ').slice(0, 500),
             confidence: parsed.modelPatch.length
               ? parsed.modelPatch.reduce((sum, item) => sum + item.confidence, 0) / parsed.modelPatch.length
