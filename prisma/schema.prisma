@@ -17,6 +17,41 @@ enum RequirementStatus {
   DONE
 }
 
+enum RequirementStabilityLevel {
+  S0_IDEA
+  S1_ROUGHLY_DEFINED
+  S2_MAIN_FLOW_CLEAR
+  S3_ALMOST_READY
+  S4_READY_FOR_DEVELOPMENT
+  S5_VERIFIED_STABLE
+}
+
+enum RequirementUnitStatus {
+  DRAFT
+  REFINING
+  AGREED
+  READY_FOR_DESIGN
+  READY_FOR_DEV
+  ARCHIVED
+}
+
+enum IssueUnitSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum IssueUnitStatus {
+  OPEN
+  TRIAGED
+  IN_PROGRESS
+  WAITING_CONFIRMATION
+  RESOLVED
+  REJECTED
+  ARCHIVED
+}
+
 enum Role {
   PRODUCT
   DEV
@@ -134,6 +169,11 @@ model Requirement {
   citations     Json?                 @default("[]")
   confidence    Json?
   status        RequirementStatus     @default(DRAFT)
+  stabilityLevel     RequirementStabilityLevel @default(S0_IDEA)
+  stabilityScore     Int?
+  stabilityReason    String?               @db.Text
+  stabilityUpdatedAt DateTime?
+  stabilityUpdatedBy String?
   tags          String[]              @default([])
   attempts      Int                   @default(1)
   version       Int                   @default(1)
@@ -152,10 +192,76 @@ model Requirement {
   clarificationSessions ClarificationSession[]
   modelChangeLogs       ModelChangeLog[]
   specArtifacts         SpecArtifact[]
+  requirementUnits      RequirementUnit[]
+  issueUnits            IssueUnit[]
 
   @@index([status])
+  @@index([stabilityLevel])
   @@index([createdBy])
   @@index([createdAt])
+}
+
+model RequirementUnit {
+  id               String                    @id @default(cuid())
+  requirementId    String
+  parentUnitId     String?
+  unitKey          String
+  title            String
+  summary          String                    @db.Text
+  layer            String
+  status           RequirementUnitStatus     @default(DRAFT)
+  stabilityLevel   RequirementStabilityLevel @default(S0_IDEA)
+  stabilityScore   Int?
+  stabilityReason  String?                   @db.Text
+  sourceType       String?
+  sourceRef        String?
+  acceptanceNotes  String?                   @db.Text
+  ownerId          String?
+  sortOrder        Int                       @default(0)
+  createdBy        String
+  createdAt        DateTime                  @default(now())
+  updatedAt        DateTime                  @updatedAt
+
+  requirement      Requirement               @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  parentUnit       RequirementUnit?          @relation("RequirementUnitParent", fields: [parentUnitId], references: [id], onDelete: SetNull)
+  childUnits       RequirementUnit[]         @relation("RequirementUnitParent")
+  issueUnits       IssueUnit[]               @relation("IssueUnitPrimaryRequirementUnit")
+
+  @@unique([requirementId, unitKey])
+  @@index([requirementId, sortOrder])
+  @@index([requirementId, layer, status])
+  @@index([requirementId, stabilityLevel])
+  @@index([parentUnitId])
+  @@index([ownerId])
+}
+
+model IssueUnit {
+  id                       String            @id @default(cuid())
+  requirementId            String
+  primaryRequirementUnitId String?
+  type                     String
+  severity                 IssueUnitSeverity @default(MEDIUM)
+  title                    String
+  description              String            @db.Text
+  status                   IssueUnitStatus   @default(OPEN)
+  blockDev                 Boolean           @default(false)
+  sourceType               String?
+  sourceRef                String?
+  suggestedResolution      String?           @db.Text
+  resolvedNote             String?           @db.Text
+  ownerId                  String?
+  createdBy                String
+  createdAt                DateTime          @default(now())
+  updatedAt                DateTime          @updatedAt
+
+  requirement              Requirement       @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  primaryRequirementUnit   RequirementUnit?  @relation("IssueUnitPrimaryRequirementUnit", fields: [primaryRequirementUnitId], references: [id], onDelete: SetNull)
+
+  @@index([requirementId, status, updatedAt])
+  @@index([requirementId, severity, status])
+  @@index([requirementId, blockDev, status])
+  @@index([primaryRequirementUnitId])
+  @@index([ownerId])
 }
 
 model ClarificationSession {

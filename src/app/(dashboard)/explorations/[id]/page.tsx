@@ -39,6 +39,9 @@ export default async function ExplorationDetailPage({
         requirementId={requirement.id}
         title={requirement.title}
         status={requirement.status}
+        stabilityLevel={requirement.stabilityLevel}
+        stabilityScore={requirement.stabilityScore}
+        stabilityReason={requirement.stabilityReason}
         version={requirement.version}
         rawInput={requirement.rawInput}
         initialModel={requirement.model ? (requirement.model as FiveLayerModel) : undefined}

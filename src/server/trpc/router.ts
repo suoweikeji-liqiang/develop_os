@@ -14,11 +14,15 @@ import { codeRepositoryRouter } from './routers/codeRepository'
 import { conflictRouter } from './routers/conflict'
 import { testCaseRouter } from './routers/testCase'
 import { clarificationRouter } from './routers/clarification'
+import { requirementUnitRouter } from './routers/requirementUnit'
+import { issueUnitRouter } from './routers/issueUnit'
 
 export const appRouter = createTRPCRouter({
   auth: authRouter,
   user: userRouter,
   requirement: requirementRouter,
+  requirementUnit: requirementUnitRouter,
+  issueUnit: issueUnitRouter,
   conversation: conversationRouter,
   version: versionRouter,
   signoff: signoffRouter,
