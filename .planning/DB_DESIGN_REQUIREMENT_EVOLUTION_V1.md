@@ -15,6 +15,12 @@
 - 已完成：`RequirementUnit`、`IssueUnit` 表已进入 Prisma schema 与 migration 草案
 - 已完成：`npx prisma migrate deploy` 已执行，新增表与字段已落到本地数据库
 - 已完成：已生成 Prisma Client，并通过 build 验证
+- 已完成：稳定度更新已接入 Requirement / RequirementUnit 读写链路
+- 已完成：状态更新已接入 RequirementUnit / IssueUnit 读写链路
+- 已完成：Clarification -> Issue 显式转换已接入现有对象链，复用 `IssueUnit(sourceType/sourceRef)` 追踪来源
+- 已完成：Issue Queue 视图层已聚合 `IssueUnit` 与 `RequirementConflict`，但底层仍保持双轨模型
+- 已完成：RequirementUnit / IssueUnit 的基础编辑读写链路
+- 已完成：Requirement 列表聚合统计链路，支持 RequirementUnit / Open Issue / Blocking Issue 数量汇总
 - 未完成：其他环境的迁移与存量数据策略验证
 - 未完成：`IssueUnitLink` 桥接表，本轮仍保持 deferred
 
@@ -241,7 +247,7 @@
 
 ### 第 5 步
 补业务代码中的列表查询、汇总统计和详情页接口。
-状态：基础查询与详情页只读展示已完成；写接口未开始。
+状态：基础查询、详情页最小展示、最小创建写接口、稳定度更新接口、状态更新接口、模型初始化接口、完整编辑接口已完成。
 
 原因：
 - 先完成 schema，再逐步接 UI 与服务

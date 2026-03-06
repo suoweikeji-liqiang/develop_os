@@ -276,4 +276,183 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
     const listAfterDelete = await ownerCaller.codeRepository.list()
     expect(listAfterDelete.some((item) => item.id === created.id)).toBeFalsy()
   })
+
+  it('covers requirement evolution phase-one flow', async () => {
+    const ownerCaller = createCaller(users.owner!)
+
+    const requirement = await ownerCaller.requirement.create({
+      title: `${runId}-evolution-${randomUUID()}`,
+      rawInput: 'Validate requirement evolution phase-one object flow.',
+    })
+    createdRequirementIds.add(requirement.id)
+
+    await ownerCaller.requirement.updateModel({
+      id: requirement.id,
+      changeSource: 'manual',
+      model: {
+        goal: {
+          summary: '用户可完成手机号注册并自动登录',
+          before: '用户尚未拥有账号',
+          after: '用户注册成功并进入系统首页',
+          metrics: ['注册完成率提升', '首次登录成功率可追踪'],
+        },
+        assumption: {
+          items: [
+            {
+              content: '手机号可正常接收验证码',
+              confidence: 'medium',
+              rationale: '依赖短信通道稳定性',
+            },
+          ],
+        },
+        behavior: {
+          actors: ['用户', '系统'],
+          actions: [
+            {
+              actor: '用户',
+              action: '输入手机号并提交验证码请求',
+            },
+            {
+              actor: '系统',
+              action: '校验验证码并创建账号',
+              postcondition: '新账号可用于登录',
+            },
+          ],
+        },
+        scenario: {
+          normal: [
+            {
+              name: '手机号注册主流程',
+              steps: ['输入手机号', '接收验证码', '完成注册', '自动登录'],
+            },
+          ],
+          edge: [
+            {
+              name: '验证码发送慢',
+              trigger: '短信通道响应延迟',
+              steps: ['用户等待', '页面展示重试入口'],
+            },
+          ],
+          error: [
+            {
+              name: '验证码错误',
+              steps: ['系统拒绝注册请求', '提示重新输入验证码'],
+              recovery: '允许重新发起验证码流程',
+            },
+          ],
+        },
+        verifiability: {
+          automated: [
+            {
+              criterion: '验证码正确时注册成功',
+              method: '接口自动化测试',
+            },
+          ],
+          manual: [
+            {
+              criterion: '短信文案符合预期',
+              reason: '依赖外部短信渠道展示',
+            },
+          ],
+        },
+      },
+    })
+
+    const updatedRequirement = await ownerCaller.requirement.updateStability({
+      requirementId: requirement.id,
+      stabilityLevel: 'S2_MAIN_FLOW_CLEAR',
+      stabilityScore: 60,
+      stabilityReason: '主流程已明确，但异常路径仍需补充',
+    })
+    expect(updatedRequirement.stabilityLevel).toBe('S2_MAIN_FLOW_CLEAR')
+
+    const bootstrapResult = await ownerCaller.requirementUnit.bootstrapFromModel({
+      requirementId: requirement.id,
+    })
+    expect(bootstrapResult.created).toBeGreaterThan(0)
+
+    const createdUnit = await ownerCaller.requirementUnit.create({
+      requirementId: requirement.id,
+      title: '注册异常补充',
+      summary: '单独追踪验证码错误和重试边界。',
+      layer: 'exception',
+    })
+
+    const units = await ownerCaller.requirementUnit.listByRequirement({ requirementId: requirement.id })
+    expect(units.length).toBeGreaterThanOrEqual(2)
+
+    await ownerCaller.requirementUnit.update({
+      requirementUnitId: createdUnit.id,
+      title: '注册异常与重试边界',
+      summary: '补充错误验证码、重试次数和短信延迟策略。',
+      layer: 'exception',
+    })
+
+    await ownerCaller.requirementUnit.updateStatus({
+      requirementUnitId: createdUnit.id,
+      status: 'REFINING',
+    })
+
+    await ownerCaller.requirementUnit.updateStability({
+      requirementUnitId: createdUnit.id,
+      stabilityLevel: 'S1_ROUGHLY_DEFINED',
+      stabilityScore: 35,
+      stabilityReason: '已有异常项，但仍缺明确约束',
+    })
+
+    const issue = await ownerCaller.issueUnit.create({
+      requirementId: requirement.id,
+      primaryRequirementUnitId: createdUnit.id,
+      type: 'risk',
+      severity: 'HIGH',
+      title: '短信通道不稳定',
+      description: '验证码发送超时会直接影响主流程完成率。',
+      blockDev: true,
+      suggestedResolution: '明确重试和降级策略。',
+    })
+
+    await ownerCaller.issueUnit.update({
+      issueUnitId: issue.id,
+      primaryRequirementUnitId: createdUnit.id,
+      type: 'risk',
+      severity: 'CRITICAL',
+      title: '短信通道高风险',
+      description: '验证码发送超时会阻断注册主流程。',
+      blockDev: true,
+      suggestedResolution: '增加重试、兜底和告警。',
+    })
+
+    await ownerCaller.issueUnit.updateStatus({
+      issueUnitId: issue.id,
+      status: 'IN_PROGRESS',
+    })
+
+    const session = await prisma.clarificationSession.create({
+      data: { requirementId: requirement.id },
+    })
+    const question = await prisma.clarificationQuestion.create({
+      data: {
+        sessionId: session.id,
+        category: 'RISK',
+        questionText: '如果短信服务失败，是否允许语音验证码兜底？',
+      },
+    })
+
+    const createdIssue = await ownerCaller.clarification.createIssue({
+      questionId: question.id,
+      blockDev: true,
+    })
+    expect(createdIssue.created).toBe(true)
+
+    const queue = await ownerCaller.issueUnit.listByRequirement({ requirementId: requirement.id })
+    expect(queue.some((item) => item.queueKind === 'issue')).toBe(true)
+
+    const searched = await ownerCaller.requirement.search({
+      stabilityLevel: 'S2_MAIN_FLOW_CLEAR',
+      hasBlockingIssues: true,
+    })
+    expect(searched.some((item) => item.id === requirement.id)).toBe(true)
+    expect(searched.find((item) => item.id === requirement.id)?.requirementUnitCount).toBeGreaterThan(0)
+    expect(searched.find((item) => item.id === requirement.id)?.blockingIssueCount).toBeGreaterThan(0)
+  })
 })

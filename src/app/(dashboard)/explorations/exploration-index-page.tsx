@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { ArrowRight, Orbit, Radar, Waves } from 'lucide-react'
 import { verifySession } from '@/lib/dal'
 import { prisma } from '@/server/db/client'
+import { attachRequirementOverviewStats } from '@/server/requirements/overview'
 import { ExplorationsListClient } from './explorations-list-client'
 
 export type ListView = 'explorations' | 'models' | 'evolution'
@@ -20,6 +21,7 @@ export async function ExplorationIndexPage({ listView }: Props) {
       title: true,
       rawInput: true,
       status: true,
+      stabilityLevel: true,
       tags: true,
       createdBy: true,
       createdAt: true,
@@ -28,7 +30,9 @@ export async function ExplorationIndexPage({ listView }: Props) {
     },
   })
 
-  const serialized = requirements.map((req) => ({
+  const enriched = await attachRequirementOverviewStats(requirements)
+
+  const serialized = enriched.map((req) => ({
     ...req,
     createdAt: req.createdAt.toISOString(),
     updatedAt: req.updatedAt.toISOString(),
@@ -64,6 +68,9 @@ export async function ExplorationIndexPage({ listView }: Props) {
   const Icon = heading.icon
   const evolvedCount = serialized.filter((item) => item.version > 1).length
   const taggedCount = serialized.filter((item) => item.tags.length > 0).length
+  const lowStabilityCount = serialized.filter((item) => (
+    item.stabilityLevel === 'S0_IDEA' || item.stabilityLevel === 'S1_ROUGHLY_DEFINED'
+  )).length
 
   return (
     <div className="space-y-8">
@@ -100,6 +107,11 @@ export async function ExplorationIndexPage({ listView }: Props) {
               <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/50">Tagged</p>
               <p className="mt-3 text-3xl font-semibold text-white">{taggedCount}</p>
               <p className="mt-2 text-sm text-white/58">已经被赋予主题标签的条目</p>
+            </div>
+            <div className="app-metric">
+              <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/50">Low Stability</p>
+              <p className="mt-3 text-3xl font-semibold text-white">{lowStabilityCount}</p>
+              <p className="mt-2 text-sm text-white/58">仍处于低稳定度的需求条目</p>
             </div>
           </div>
         </div>

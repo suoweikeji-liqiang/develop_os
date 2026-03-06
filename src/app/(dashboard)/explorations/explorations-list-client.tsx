@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { ArrowUpRight, Clock3, Sparkles, Tag } from 'lucide-react'
 import { SearchFilters, type FilterState } from './search-filters'
 import { STATUS_LABELS, STATUS_COLORS } from '@/lib/workflow/status-labels'
+import { STABILITY_CLASSES, STABILITY_LABELS, type RequirementStabilityLevel } from '@/lib/requirement-evolution'
 import type { RequirementStatus } from '@/lib/workflow/status-machine'
 
 type RequirementItem = {
@@ -13,11 +14,15 @@ type RequirementItem = {
   title: string
   rawInput: string
   status: string
+  stabilityLevel: RequirementStabilityLevel
   tags: string[]
   createdBy: string
   createdAt: string | Date
   updatedAt: string | Date
   version: number
+  requirementUnitCount: number
+  openIssueCount: number
+  blockingIssueCount: number
 }
 
 type Props = {
@@ -40,6 +45,8 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
   const currentFilters = useMemo(() => ({
     query: searchParams.get('q') ?? '',
     status: searchParams.get('status') ?? '',
+    stabilityLevel: searchParams.get('stability') ?? '',
+    hasBlockingIssues: searchParams.get('hasBlockingIssues') === 'true',
     tags: searchParams.get('tags')?.split(',').filter(Boolean) ?? [],
     role: searchParams.get('role') ?? '',
     dateFrom: searchParams.get('dateFrom') ?? '',
@@ -67,6 +74,8 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
         : '/explorations'
     if (merged.query) params.set('q', merged.query)
     if (merged.status) params.set('status', merged.status)
+    if (merged.stabilityLevel) params.set('stability', merged.stabilityLevel)
+    if (merged.hasBlockingIssues) params.set('hasBlockingIssues', 'true')
     if (merged.tags && merged.tags.length > 0) params.set('tags', merged.tags.join(','))
     if (merged.role) params.set('role', merged.role)
     if (merged.dateFrom) params.set('dateFrom', merged.dateFrom)
@@ -80,6 +89,8 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
       const input: Record<string, unknown> = {}
       if (merged.query) input.query = merged.query
       if (merged.status) input.status = merged.status
+      if (merged.stabilityLevel) input.stabilityLevel = merged.stabilityLevel
+      if (merged.hasBlockingIssues) input.hasBlockingIssues = true
       if (merged.tags && merged.tags.length > 0) input.tags = merged.tags
       if (merged.role) input.role = merged.role
       if (merged.dateFrom) input.dateFrom = merged.dateFrom
@@ -119,6 +130,8 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
       <SearchFilters
         query={currentFilters.query}
         status={currentFilters.status}
+        stabilityLevel={currentFilters.stabilityLevel}
+        hasBlockingIssues={currentFilters.hasBlockingIssues}
         tags={currentFilters.tags}
         role={currentFilters.role}
         dateFrom={currentFilters.dateFrom}
@@ -154,6 +167,9 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="app-chip">{viewLabel}</span>
                         <span className="app-chip">v{req.version}</span>
+                        <span className={`rounded-full px-3 py-1 text-xs font-medium ${STABILITY_CLASSES[req.stabilityLevel]}`}>
+                          {STABILITY_LABELS[req.stabilityLevel]}
+                        </span>
                       </div>
                       <h2 className="text-xl font-semibold text-slate-950">{req.title}</h2>
                     </div>
@@ -171,6 +187,13 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
                 </div>
 
                 <div className="space-y-4">
+                  <div className="flex flex-wrap gap-2 text-xs text-slate-500">
+                    <span className="app-chip">Units {req.requirementUnitCount}</span>
+                    <span className="app-chip">Open Issues {req.openIssueCount}</span>
+                    <span className={`app-chip ${req.blockingIssueCount > 0 ? 'text-red-700' : ''}`}>
+                      Blocking {req.blockingIssueCount}
+                    </span>
+                  </div>
                   {req.tags.length > 0 && (
                     <div className="flex flex-wrap gap-2">
                       {req.tags.map((tag) => (
