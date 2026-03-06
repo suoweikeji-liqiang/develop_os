@@ -426,33 +426,37 @@ export const requirementRouter = createTRPCRouter({
 
         for (const signoff of signoffs) {
           if (signoff.user.id === ctx.session.userId) continue
-          await prisma.notification.create({
-            data: {
-              userId: signoff.user.id,
-              type: 'STATUS_CHANGE',
-              requirementId: input.id,
-            },
-          })
-          eventBus.emit('notification.created', {
-            userId: signoff.user.id,
-            type: 'STATUS_CHANGE' as const,
-            requirementId: input.id,
-          })
-          void sendStatusChangeEmail({
-            to: signoff.user.email,
-            requirementTitle: title,
-            fromStatus: current.status,
-            toStatus: input.to,
-            changedBy: ctx.session.user.name,
-            requirementUrl,
-          })
-          if (signoff.user.webhookConfig) {
-            void deliverWebhook(signoff.user.webhookConfig.url, {
-              event: 'status_change',
-              requirementId: input.id,
-              from: current.status,
-              to: input.to,
+          try {
+            await prisma.notification.create({
+              data: {
+                userId: signoff.user.id,
+                type: 'STATUS_CHANGE',
+                requirementId: input.id,
+              },
             })
+            eventBus.emit('notification.created', {
+              userId: signoff.user.id,
+              type: 'STATUS_CHANGE' as const,
+              requirementId: input.id,
+            })
+            void sendStatusChangeEmail({
+              to: signoff.user.email,
+              requirementTitle: title,
+              fromStatus: current.status,
+              toStatus: input.to,
+              changedBy: ctx.session.user.name,
+              requirementUrl,
+            })
+            if (signoff.user.webhookConfig) {
+              void deliverWebhook(signoff.user.webhookConfig.url, {
+                event: 'status_change',
+                requirementId: input.id,
+                from: current.status,
+                to: input.to,
+              })
+            }
+          } catch (error) {
+            console.error('[notifications] failed to create status change notification:', error)
           }
         }
       })()

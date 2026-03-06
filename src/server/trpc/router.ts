@@ -16,6 +16,7 @@ import { testCaseRouter } from './routers/testCase'
 import { clarificationRouter } from './routers/clarification'
 import { requirementUnitRouter } from './routers/requirementUnit'
 import { issueUnitRouter } from './routers/issueUnit'
+import { changeUnitRouter } from './routers/changeUnit'
 
 export const appRouter = createTRPCRouter({
   auth: authRouter,
@@ -23,6 +24,7 @@ export const appRouter = createTRPCRouter({
   requirement: requirementRouter,
   requirementUnit: requirementUnitRouter,
   issueUnit: issueUnitRouter,
+  changeUnit: changeUnitRouter,
   conversation: conversationRouter,
   version: versionRouter,
   signoff: signoffRouter,

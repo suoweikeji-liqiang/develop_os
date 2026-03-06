@@ -447,6 +447,55 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
     const queue = await ownerCaller.issueUnit.listByRequirement({ requirementId: requirement.id })
     expect(queue.some((item) => item.queueKind === 'issue')).toBe(true)
 
+    const createdChange = await ownerCaller.changeUnit.create({
+      requirementId: requirement.id,
+      title: '注册异常处理策略变更',
+      reason: '短信通道高风险，需要正式引入重试、降级和兜底策略。',
+      changeScope: '注册主流程中的验证码发送、超时提示和语音验证码兜底。',
+      impactSummary: '影响注册原型、测试用例和验证码服务实现。',
+      riskLevel: 'HIGH',
+      requiresResignoff: true,
+      affectsTests: true,
+      affectsPrototype: true,
+      affectsCode: true,
+      requirementUnitIds: [createdUnit.id],
+      issueUnitIds: [issue.id],
+    })
+    expect(createdChange.changeKey).toBe('CHG-01')
+
+    await ownerCaller.changeUnit.update({
+      changeUnitId: createdChange.id,
+      title: '注册异常与兜底策略变更',
+      reason: '需要补齐验证码重试、超时提示和语音验证码兜底方案。',
+      changeScope: '注册流程、验证码服务、异常提示逻辑。',
+      impactSummary: '影响测试、原型与服务实现，需要重新确认评审意见。',
+      riskLevel: 'CRITICAL',
+      requiresResignoff: true,
+      affectsTests: true,
+      affectsPrototype: true,
+      affectsCode: true,
+      requirementUnitIds: [createdUnit.id],
+      issueUnitIds: [issue.id, createdIssue.issueId],
+    })
+
+    await ownerCaller.changeUnit.updateStatus({
+      changeUnitId: createdChange.id,
+      status: 'UNDER_REVIEW',
+    })
+    await ownerCaller.changeUnit.updateStatus({
+      changeUnitId: createdChange.id,
+      status: 'APPROVED',
+    })
+    const appliedChange = await ownerCaller.changeUnit.updateStatus({
+      changeUnitId: createdChange.id,
+      status: 'APPLIED',
+    })
+    expect(appliedChange.appliedAt).toBeTruthy()
+
+    const changeQueue = await ownerCaller.changeUnit.listByRequirement({ requirementId: requirement.id })
+    expect(changeQueue).toHaveLength(1)
+    expect(changeQueue[0]?.issueUnits).toHaveLength(2)
+
     const searched = await ownerCaller.requirement.search({
       stabilityLevel: 'S2_MAIN_FLOW_CLEAR',
       hasBlockingIssues: true,
@@ -454,5 +503,25 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
     expect(searched.some((item) => item.id === requirement.id)).toBe(true)
     expect(searched.find((item) => item.id === requirement.id)?.requirementUnitCount).toBeGreaterThan(0)
     expect(searched.find((item) => item.id === requirement.id)?.blockingIssueCount).toBeGreaterThan(0)
+    expect(searched.find((item) => item.id === requirement.id)?.openChangeCount).toBe(0)
+    expect(searched.find((item) => item.id === requirement.id)?.highRiskChangeCount).toBe(0)
+
+    const pendingChange = await ownerCaller.changeUnit.create({
+      requirementId: requirement.id,
+      title: '注册流程补充监控告警',
+      reason: '需要补充变更后的告警策略。',
+      riskLevel: 'HIGH',
+      affectsCode: true,
+      requirementUnitIds: [createdUnit.id],
+      issueUnitIds: [issue.id],
+    })
+    expect(pendingChange.status).toBe('PROPOSED')
+
+    const searchedWithOpenChange = await ownerCaller.requirement.search({
+      stabilityLevel: 'S2_MAIN_FLOW_CLEAR',
+      hasBlockingIssues: true,
+    })
+    expect(searchedWithOpenChange.find((item) => item.id === requirement.id)?.openChangeCount).toBe(1)
+    expect(searchedWithOpenChange.find((item) => item.id === requirement.id)?.highRiskChangeCount).toBe(1)
   })
 })

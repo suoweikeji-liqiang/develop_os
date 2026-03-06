@@ -35,10 +35,28 @@ export const IssueUnitStatusEnum = z.enum([
   'ARCHIVED',
 ])
 
+export const ChangeUnitRiskLevelEnum = z.enum([
+  'LOW',
+  'MEDIUM',
+  'HIGH',
+  'CRITICAL',
+])
+
+export const ChangeUnitStatusEnum = z.enum([
+  'PROPOSED',
+  'UNDER_REVIEW',
+  'APPROVED',
+  'REJECTED',
+  'APPLIED',
+  'ARCHIVED',
+])
+
 export type RequirementStabilityLevel = z.infer<typeof RequirementStabilityLevelEnum>
 export type RequirementUnitStatus = z.infer<typeof RequirementUnitStatusEnum>
 export type IssueUnitSeverity = z.infer<typeof IssueUnitSeverityEnum>
 export type IssueUnitStatus = z.infer<typeof IssueUnitStatusEnum>
+export type ChangeUnitRiskLevel = z.infer<typeof ChangeUnitRiskLevelEnum>
+export type ChangeUnitStatus = z.infer<typeof ChangeUnitStatusEnum>
 
 export const STABILITY_LABELS: Record<RequirementStabilityLevel, string> = {
   S0_IDEA: 'S0 Idea',
@@ -105,3 +123,45 @@ export const ISSUE_UNIT_SEVERITY_CLASSES: Record<IssueUnitSeverity, string> = {
   HIGH: 'bg-orange-100 text-orange-800',
   CRITICAL: 'bg-red-100 text-red-700',
 }
+
+export const CHANGE_UNIT_RISK_LABELS: Record<ChangeUnitRiskLevel, string> = {
+  LOW: '低风险',
+  MEDIUM: '中风险',
+  HIGH: '高风险',
+  CRITICAL: '严重风险',
+}
+
+export const CHANGE_UNIT_RISK_CLASSES: Record<ChangeUnitRiskLevel, string> = {
+  LOW: 'bg-slate-100 text-slate-700',
+  MEDIUM: 'bg-amber-100 text-amber-800',
+  HIGH: 'bg-orange-100 text-orange-800',
+  CRITICAL: 'bg-red-100 text-red-700',
+}
+
+export const CHANGE_UNIT_RISK_OPTIONS = ChangeUnitRiskLevelEnum.options.map((value) => ({
+  value,
+  label: CHANGE_UNIT_RISK_LABELS[value],
+}))
+
+export const CHANGE_UNIT_STATUS_LABELS: Record<ChangeUnitStatus, string> = {
+  PROPOSED: '待提出',
+  UNDER_REVIEW: '评审中',
+  APPROVED: '已批准',
+  REJECTED: '已驳回',
+  APPLIED: '已应用',
+  ARCHIVED: '已归档',
+}
+
+export const CHANGE_UNIT_STATUS_CLASSES: Record<ChangeUnitStatus, string> = {
+  PROPOSED: 'bg-slate-100 text-slate-700',
+  UNDER_REVIEW: 'bg-sky-100 text-sky-700',
+  APPROVED: 'bg-emerald-100 text-emerald-700',
+  REJECTED: 'bg-rose-100 text-rose-700',
+  APPLIED: 'bg-green-100 text-green-800',
+  ARCHIVED: 'bg-slate-200 text-slate-600',
+}
+
+export const CHANGE_UNIT_STATUS_OPTIONS = ChangeUnitStatusEnum.options.map((value) => ({
+  value,
+  label: CHANGE_UNIT_STATUS_LABELS[value],
+}))

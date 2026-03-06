@@ -20,6 +20,7 @@ import { ConflictPanel } from './conflict-panel'
 import { TestCasePanel } from './test-case-panel'
 import { RequirementUnitsPanel } from './requirement-units-panel'
 import { IssueUnitsPanel } from './issue-units-panel'
+import { ChangeUnitsPanel } from './change-units-panel'
 import { StabilityBadge } from './stability-badge'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import type { ConversationResponse } from '@/lib/schemas/conversation'
@@ -564,9 +565,9 @@ export function ExplorationDetailClient({
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
             <p className="app-kicker">Requirement Evolution</p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-950">第一阶段对象入口</h2>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950">需求演化对象入口</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              保持现有需求澄清主链不变，先把稳定度、Requirement Units 和 Issue Queue 接到当前详情页。
+              保持现有需求澄清主链不变，在当前详情页逐步接入稳定度、Requirement Units、Issue Queue 和 Change Queue。
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -647,6 +648,7 @@ export function ExplorationDetailClient({
           <ConflictPanel requirementId={requirementId} hasModel={Boolean(model)} />
           <RequirementUnitsPanel requirementId={requirementId} hasModel={Boolean(model)} />
           <IssueUnitsPanel requirementId={requirementId} refreshToken={issueRefreshToken} />
+          <ChangeUnitsPanel requirementId={requirementId} />
           <section className="app-panel p-4 sm:p-5 space-y-4">
             <details open>
               <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">结构化区块</summary>
