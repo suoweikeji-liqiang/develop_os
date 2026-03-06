@@ -52,6 +52,22 @@ enum IssueUnitStatus {
   ARCHIVED
 }
 
+enum ChangeUnitRiskLevel {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum ChangeUnitStatus {
+  PROPOSED
+  UNDER_REVIEW
+  APPROVED
+  REJECTED
+  APPLIED
+  ARCHIVED
+}
+
 enum Role {
   PRODUCT
   DEV
@@ -194,6 +210,7 @@ model Requirement {
   specArtifacts         SpecArtifact[]
   requirementUnits      RequirementUnit[]
   issueUnits            IssueUnit[]
+  changeUnits           ChangeUnit[]
 
   @@index([status])
   @@index([stabilityLevel])
@@ -226,6 +243,7 @@ model RequirementUnit {
   parentUnit       RequirementUnit?          @relation("RequirementUnitParent", fields: [parentUnitId], references: [id], onDelete: SetNull)
   childUnits       RequirementUnit[]         @relation("RequirementUnitParent")
   issueUnits       IssueUnit[]               @relation("IssueUnitPrimaryRequirementUnit")
+  changeLinks      ChangeUnitRequirementUnit[]
 
   @@unique([requirementId, unitKey])
   @@index([requirementId, sortOrder])
@@ -256,12 +274,75 @@ model IssueUnit {
 
   requirement              Requirement       @relation(fields: [requirementId], references: [id], onDelete: Cascade)
   primaryRequirementUnit   RequirementUnit?  @relation("IssueUnitPrimaryRequirementUnit", fields: [primaryRequirementUnitId], references: [id], onDelete: SetNull)
+  changeLinks              ChangeUnitIssueUnit[]
 
   @@index([requirementId, status, updatedAt])
   @@index([requirementId, severity, status])
   @@index([requirementId, blockDev, status])
   @@index([primaryRequirementUnitId])
   @@index([ownerId])
+}
+
+model ChangeUnit {
+  id                String              @id @default(cuid())
+  requirementId     String
+  changeKey         String
+  title             String
+  reason            String              @db.Text
+  changeScope       String?             @db.Text
+  impactSummary     String?             @db.Text
+  riskLevel         ChangeUnitRiskLevel @default(MEDIUM)
+  requiresResignoff Boolean             @default(false)
+  affectsTests      Boolean             @default(false)
+  affectsPrototype  Boolean             @default(false)
+  affectsCode       Boolean             @default(false)
+  sourceType        String?
+  sourceRef         String?
+  status            ChangeUnitStatus    @default(PROPOSED)
+  proposedBy        String
+  reviewedBy        String?
+  appliedAt         DateTime?
+  createdAt         DateTime            @default(now())
+  updatedAt         DateTime            @updatedAt
+
+  requirement       Requirement               @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  requirementUnits  ChangeUnitRequirementUnit[]
+  issueUnits        ChangeUnitIssueUnit[]
+
+  @@unique([requirementId, changeKey])
+  @@index([requirementId, status, updatedAt])
+  @@index([requirementId, riskLevel, status])
+  @@index([requirementId, requiresResignoff])
+  @@index([sourceType, sourceRef])
+  @@index([proposedBy])
+}
+
+model ChangeUnitRequirementUnit {
+  id                String          @id @default(cuid())
+  changeUnitId      String
+  requirementUnitId String
+  relationType      String?
+  createdAt         DateTime        @default(now())
+
+  changeUnit        ChangeUnit      @relation(fields: [changeUnitId], references: [id], onDelete: Cascade)
+  requirementUnit   RequirementUnit @relation(fields: [requirementUnitId], references: [id], onDelete: Cascade)
+
+  @@unique([changeUnitId, requirementUnitId])
+  @@index([requirementUnitId])
+}
+
+model ChangeUnitIssueUnit {
+  id           String     @id @default(cuid())
+  changeUnitId String
+  issueUnitId  String
+  relationType String?
+  createdAt    DateTime   @default(now())
+
+  changeUnit   ChangeUnit @relation(fields: [changeUnitId], references: [id], onDelete: Cascade)
+  issueUnit    IssueUnit  @relation(fields: [issueUnitId], references: [id], onDelete: Cascade)
+
+  @@unique([changeUnitId, issueUnitId])
+  @@index([issueUnitId])
 }
 
 model ClarificationSession {

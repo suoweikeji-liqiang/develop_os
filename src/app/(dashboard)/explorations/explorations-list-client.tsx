@@ -23,6 +23,8 @@ type RequirementItem = {
   requirementUnitCount: number
   openIssueCount: number
   blockingIssueCount: number
+  openChangeCount: number
+  highRiskChangeCount: number
 }
 
 type Props = {
@@ -192,6 +194,10 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
                     <span className="app-chip">Open Issues {req.openIssueCount}</span>
                     <span className={`app-chip ${req.blockingIssueCount > 0 ? 'text-red-700' : ''}`}>
                       Blocking {req.blockingIssueCount}
+                    </span>
+                    <span className="app-chip">Open Changes {req.openChangeCount}</span>
+                    <span className={`app-chip ${req.highRiskChangeCount > 0 ? 'text-orange-700' : ''}`}>
+                      High Risk {req.highRiskChangeCount}
                     </span>
                   </div>
                   {req.tags.length > 0 && (

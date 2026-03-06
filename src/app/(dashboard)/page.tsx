@@ -4,10 +4,20 @@ import { verifySession } from '@/lib/dal'
 import { prisma } from '@/server/db/client'
 import { STABILITY_LABELS } from '@/lib/requirement-evolution'
 import { Badge } from '@/components/ui/badge'
+import { HIGH_RISK_CHANGE_LEVELS, OPEN_CHANGE_STATUSES } from '@/server/requirements/change-units'
 
 export default async function DashboardPage() {
   const session = await verifySession()
-  const [totalRequirements, activeReviews, lowStabilityRequirements, blockingIssues, unitizedRequirements, recentRequirements] = await Promise.all([
+  const [
+    totalRequirements,
+    activeReviews,
+    lowStabilityRequirements,
+    blockingIssues,
+    unitizedRequirements,
+    pendingReviewChanges,
+    highRiskOpenChanges,
+    recentRequirements,
+  ] = await Promise.all([
     prisma.requirement.count(),
     prisma.requirement.count({
       where: {
@@ -35,6 +45,23 @@ export default async function DashboardPage() {
       where: {
         requirementUnits: {
           some: {},
+        },
+      },
+    }),
+    prisma.changeUnit.count({
+      where: {
+        status: {
+          in: ['UNDER_REVIEW', 'APPROVED'],
+        },
+      },
+    }),
+    prisma.changeUnit.count({
+      where: {
+        status: {
+          in: [...OPEN_CHANGE_STATUSES],
+        },
+        riskLevel: {
+          in: [...HIGH_RISK_CHANGE_LEVELS],
         },
       },
     }),
@@ -99,7 +126,7 @@ export default async function DashboardPage() {
               </p>
             </div>
 
-            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <div className="app-metric">
                 <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/55">Explorations</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{totalRequirements}</p>
@@ -119,6 +146,11 @@ export default async function DashboardPage() {
                 <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/55">Blocking / Unitized</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{blockingIssues} / {unitizedRequirements}</p>
                 <p className="mt-2 text-sm text-white/60">阻断问题总数 / 已对象化需求数</p>
+              </div>
+              <div className="app-metric">
+                <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/55">Changes</p>
+                <p className="mt-3 text-3xl font-semibold text-white">{pendingReviewChanges} / {highRiskOpenChanges}</p>
+                <p className="mt-2 text-sm text-white/60">待评审变更数 / 高风险未完成变更数</p>
               </div>
             </div>
           </div>
