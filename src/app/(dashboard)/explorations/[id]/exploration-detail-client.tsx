@@ -18,6 +18,9 @@ import { VersionHistory } from './version-history'
 import { StatusControl } from './status-control'
 import { ConflictPanel } from './conflict-panel'
 import { TestCasePanel } from './test-case-panel'
+import { RequirementUnitsPanel } from './requirement-units-panel'
+import { IssueUnitsPanel } from './issue-units-panel'
+import { StabilityBadge } from './stability-badge'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import type { ConversationResponse } from '@/lib/schemas/conversation'
 import type { UIMessage } from 'ai'
@@ -30,6 +33,9 @@ interface Props {
   requirementId: string
   title: string
   status: string
+  stabilityLevel: string | null
+  stabilityScore: number | null
+  stabilityReason: string | null
   version: number
   rawInput: string
   initialModel: FiveLayerModel | undefined
@@ -80,6 +86,9 @@ export function ExplorationDetailClient({
   requirementId,
   title,
   status,
+  stabilityLevel,
+  stabilityScore,
+  stabilityReason,
   version,
   rawInput,
   initialModel,
@@ -365,6 +374,7 @@ export function ExplorationDetailClient({
                 {explorationStage}
               </span>
               <span className="app-chip-dark">Status {currentStatus}</span>
+              <StabilityBadge level={stabilityLevel} />
               <span className="app-chip-dark">v{version}</span>
             </div>
 
@@ -464,6 +474,25 @@ export function ExplorationDetailClient({
         </div>
       </section>
 
+      <section className="app-panel p-4 sm:p-5">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="app-kicker">Requirement Evolution</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950">第一阶段对象入口</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+              保持现有需求澄清主链不变，先把稳定度、Requirement Units 和 Issue Queue 接到当前详情页。
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StabilityBadge level={stabilityLevel} />
+            {stabilityScore !== null ? <span className="app-chip">稳定度分 {stabilityScore}</span> : null}
+          </div>
+        </div>
+        <div className="mt-4 text-sm text-slate-600">
+          {stabilityReason ?? '当前仅完成稳定度字段与基础展示，后续再补人工更新和规则化判断。'}
+        </div>
+      </section>
+
       {showVersionHistory && model && (
         <VersionHistory
           requirementId={requirementId}
@@ -496,6 +525,8 @@ export function ExplorationDetailClient({
             </div>
           )}
           <ConflictPanel requirementId={requirementId} hasModel={Boolean(model)} />
+          <RequirementUnitsPanel requirementId={requirementId} />
+          <IssueUnitsPanel requirementId={requirementId} />
           <section className="app-panel p-4 sm:p-5 space-y-4">
             <details open>
               <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">结构化区块</summary>
