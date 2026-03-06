@@ -8,9 +8,16 @@
 - 已完成：详情页新增 Requirement Evolution 概览区块
 - 已完成：详情页左侧新增 `Requirement Units` 只读 panel
 - 已完成：详情页左侧新增 `Issue Queue` 只读 panel
-- 未完成：Requirement Unit / Issue Unit 的创建和编辑入口
-- 未完成：列表页稳定度筛选、阻断问题筛选与数量摘要
-- 未完成：Dashboard 扩展指标
+- 已完成：Requirement Unit / Issue Unit 的最小创建入口
+- 已完成：Requirement 稳定度手动更新入口
+- 已完成：Requirement Unit 稳定度手动更新入口
+- 已完成：从 ModelCard 初始化 Requirement Units 的触发入口
+- 已完成：Requirement Unit / Issue Unit 的最小状态更新入口
+- 已完成：在澄清区块中提供“转为 Issue”入口，并可触发 Issue Queue 刷新
+- 已完成：Issue Queue 中统一展示手工 Issue 与 Conflict Scan 投影，并保留各自处理边界
+- 已完成：Requirement Unit / Issue Unit 的完整内联编辑入口
+- 已完成：列表页稳定度筛选、阻断问题筛选与数量摘要
+- 已完成：Dashboard 扩展指标
 
 ## 当前 UI 现状
 - 详情页已经是工作台形态，包含状态推进、版本历史、对话、冲突检测、结构化、澄清、Spec、测试资产、签字、ModelCard

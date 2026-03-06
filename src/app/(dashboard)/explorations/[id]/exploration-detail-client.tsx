@@ -27,7 +27,9 @@ import type { UIMessage } from 'ai'
 import type { PendingAssumption } from './assumption-card'
 import { canManageRequirementWorkflow } from '@/lib/workflow/permissions'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
+import { STABILITY_OPTIONS } from '@/lib/requirement-evolution'
 
 interface Props {
   requirementId: string
@@ -99,6 +101,11 @@ export function ExplorationDetailClient({
   isAdmin,
 }: Props) {
   const [currentStatus, setCurrentStatus] = useState(status)
+  const [currentStabilityLevel, setCurrentStabilityLevel] = useState(stabilityLevel)
+  const [currentStabilityScore, setCurrentStabilityScore] = useState(stabilityScore)
+  const [currentStabilityReason, setCurrentStabilityReason] = useState(stabilityReason ?? '')
+  const [stabilitySaving, setStabilitySaving] = useState(false)
+  const [stabilityError, setStabilityError] = useState<string | null>(null)
   const [model, setModel] = useState<FiveLayerModel | undefined>(initialModel)
   const [pendingPatches, setPendingPatches] = useState<ConversationResponse['patches'] | null>(null)
   const [pendingAssumptions, setPendingAssumptions] = useState<PendingAssumption[]>([])
@@ -106,6 +113,7 @@ export function ExplorationDetailClient({
   const [showVersionHistory, setShowVersionHistory] = useState(false)
   const [signoffRefreshToken, setSignoffRefreshToken] = useState(0)
   const [signoffInvalidationToken, setSignoffInvalidationToken] = useState(0)
+  const [issueRefreshToken, setIssueRefreshToken] = useState(0)
   const [structureLoading, setStructureLoading] = useState(false)
   const [structureError, setStructureError] = useState<string | null>(null)
   const [completeness, setCompleteness] = useState<{ score: number; missingFields: string[] } | null>(null)
@@ -120,6 +128,10 @@ export function ExplorationDetailClient({
     }>
   } | null>(null)
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
+  const [clarificationIssueState, setClarificationIssueState] = useState<Record<string, {
+    loading: boolean
+    message: string | null
+  }>>({})
   const [specMarkdown, setSpecMarkdown] = useState('')
   const [specLoading, setSpecLoading] = useState(false)
   const previousModelRef = useRef<FiveLayerModel | null>(null)
@@ -362,6 +374,80 @@ export function ExplorationDetailClient({
     }
   }
 
+  async function handleCreateClarificationIssue(questionId: string) {
+    setClarificationIssueState((prev) => ({
+      ...prev,
+      [questionId]: { loading: true, message: null },
+    }))
+
+    try {
+      const res = await fetch('/api/trpc/clarification.createIssue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ questionId }),
+      })
+      const data = await res.json().catch(() => null)
+
+      if (!res.ok) {
+        throw new Error(data?.error?.message ?? '从澄清问题创建 Issue 失败')
+      }
+
+      const payload = data?.result?.data?.json ?? data?.result?.data
+      setClarificationIssueState((prev) => ({
+        ...prev,
+        [questionId]: {
+          loading: false,
+          message: payload?.created ? '已转为 Issue Unit' : '该澄清问题已存在 Issue Unit',
+        },
+      }))
+      setIssueRefreshToken((prev) => prev + 1)
+    } catch (error) {
+      setClarificationIssueState((prev) => ({
+        ...prev,
+        [questionId]: {
+          loading: false,
+          message: error instanceof Error ? error.message : '从澄清问题创建 Issue 失败',
+        },
+      }))
+    }
+  }
+
+  async function handleSaveRequirementStability() {
+    if (!currentStabilityLevel) return
+
+    setStabilitySaving(true)
+    setStabilityError(null)
+
+    try {
+      const res = await fetch('/api/trpc/requirement.updateStability', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          requirementId,
+          stabilityLevel: currentStabilityLevel,
+          stabilityScore: currentStabilityScore === null || currentStabilityScore === undefined || Number.isNaN(currentStabilityScore)
+            ? null
+            : currentStabilityScore,
+          stabilityReason: currentStabilityReason.trim() || null,
+        }),
+      })
+
+      const data = await res.json().catch(() => null)
+      if (!res.ok) {
+        throw new Error(data?.error?.message ?? '更新需求稳定度失败')
+      }
+
+      const payload = data?.result?.data?.json ?? data?.result?.data
+      setCurrentStabilityLevel(payload?.stabilityLevel ?? currentStabilityLevel)
+      setCurrentStabilityScore(payload?.stabilityScore ?? null)
+      setCurrentStabilityReason(payload?.stabilityReason ?? '')
+    } catch (error) {
+      setStabilityError(error instanceof Error ? error.message : '更新需求稳定度失败')
+    } finally {
+      setStabilitySaving(false)
+    }
+  }
+
   return (
     <div className="space-y-6">
       <section className="app-panel-dark surface-grid relative overflow-hidden px-6 py-7 sm:px-8 sm:py-8">
@@ -374,7 +460,7 @@ export function ExplorationDetailClient({
                 {explorationStage}
               </span>
               <span className="app-chip-dark">Status {currentStatus}</span>
-              <StabilityBadge level={stabilityLevel} />
+              <StabilityBadge level={currentStabilityLevel} />
               <span className="app-chip-dark">v{version}</span>
             </div>
 
@@ -484,12 +570,46 @@ export function ExplorationDetailClient({
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <StabilityBadge level={stabilityLevel} />
-            {stabilityScore !== null ? <span className="app-chip">稳定度分 {stabilityScore}</span> : null}
+            <StabilityBadge level={currentStabilityLevel} />
+            {currentStabilityScore !== null ? <span className="app-chip">稳定度分 {currentStabilityScore}</span> : null}
           </div>
         </div>
-        <div className="mt-4 text-sm text-slate-600">
-          {stabilityReason ?? '当前仅完成稳定度字段与基础展示，后续再补人工更新和规则化判断。'}
+        <div className="mt-4 grid gap-3 lg:grid-cols-[220px_120px_minmax(0,1fr)_120px]">
+          <select
+            value={currentStabilityLevel ?? 'S0_IDEA'}
+            onChange={(event) => setCurrentStabilityLevel(event.target.value)}
+            className="h-12 rounded-[1.1rem] border border-slate-200 bg-white/72 px-4 text-sm text-slate-800 outline-none focus-visible:border-slate-400"
+          >
+            {STABILITY_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <Input
+            value={currentStabilityScore ?? ''}
+            onChange={(event) => {
+              const next = event.target.value
+              setCurrentStabilityScore(next.trim() === '' ? null : Number(next))
+            }}
+            placeholder="分数"
+            inputMode="numeric"
+          />
+          <Textarea
+            rows={2}
+            value={currentStabilityReason}
+            onChange={(event) => setCurrentStabilityReason(event.target.value)}
+            placeholder="记录当前稳定度判断依据"
+          />
+          <Button onClick={handleSaveRequirementStability} disabled={stabilitySaving}>
+            {stabilitySaving ? '保存中...' : '保存稳定度'}
+          </Button>
+        </div>
+        {stabilityError ? (
+          <p className="mt-3 text-sm text-red-600">{stabilityError}</p>
+        ) : null}
+        <div className="mt-3 text-sm text-slate-600">
+          {currentStabilityReason || '当前已支持手动维护 Requirement 稳定度；规则化判断仍在后续阶段。'}
         </div>
       </section>
 
@@ -525,8 +645,8 @@ export function ExplorationDetailClient({
             </div>
           )}
           <ConflictPanel requirementId={requirementId} hasModel={Boolean(model)} />
-          <RequirementUnitsPanel requirementId={requirementId} />
-          <IssueUnitsPanel requirementId={requirementId} />
+          <RequirementUnitsPanel requirementId={requirementId} hasModel={Boolean(model)} />
+          <IssueUnitsPanel requirementId={requirementId} refreshToken={issueRefreshToken} />
           <section className="app-panel p-4 sm:p-5 space-y-4">
             <details open>
               <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">结构化区块</summary>
@@ -559,6 +679,16 @@ export function ExplorationDetailClient({
                     />
                     <div className="flex gap-2">
                       <Button size="sm" onClick={() => handleAnswerQuestion(question.id)}>提交</Button>
+                      {question.status !== 'RESOLVED' && (
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void handleCreateClarificationIssue(question.id)}
+                          disabled={clarificationIssueState[question.id]?.loading}
+                        >
+                          {clarificationIssueState[question.id]?.loading ? '转换中...' : '转为 Issue'}
+                        </Button>
+                      )}
                       <Button
                         size="sm"
                         variant="outline"
@@ -574,6 +704,9 @@ export function ExplorationDetailClient({
                         跳过
                       </Button>
                     </div>
+                    {clarificationIssueState[question.id]?.message ? (
+                      <p className="text-xs text-slate-500">{clarificationIssueState[question.id]?.message}</p>
+                    ) : null}
                   </div>
                 ))}
               </div>

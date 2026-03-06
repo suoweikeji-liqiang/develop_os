@@ -8,6 +8,8 @@ import { assertTransition, RequirementStatusEnum } from '@/lib/workflow/status-m
 import type { RequirementStatus } from '@/lib/workflow/status-machine'
 import { WORKFLOW_REVIEWER_ROLES, canManageRequirementWorkflow } from '@/lib/workflow/permissions'
 import { scanRequirementConflicts } from '@/server/conflicts/service'
+import { RequirementStabilityLevelEnum } from '@/lib/requirement-evolution'
+import { attachRequirementOverviewStats } from '@/server/requirements/overview'
 import {
   computeCompleteness,
   deriveSpecDraft,
@@ -20,6 +22,8 @@ const RoleEnum = z.enum(['PRODUCT', 'DEV', 'TEST', 'UI', 'EXTERNAL'])
 const SearchInputSchema = z.object({
   query: z.string().optional(),
   status: RequirementStatusEnum.optional(),
+  stabilityLevel: RequirementStabilityLevelEnum.optional(),
+  hasBlockingIssues: z.boolean().optional(),
   tags: z.array(z.string()).optional(),
   role: RoleEnum.optional(),
   dateFrom: z.coerce.date().optional(),
@@ -31,6 +35,7 @@ const searchSelect = {
   title: true,
   rawInput: true,
   status: true,
+  stabilityLevel: true,
   tags: true,
   createdBy: true,
   createdAt: true,
@@ -312,6 +317,33 @@ export const requirementRouter = createTRPCRouter({
       return computeCompleteness(requirement.model as z.infer<typeof FiveLayerModelSchema> | null)
     }),
 
+  updateStability: protectedProcedure
+    .input(z.object({
+      requirementId: z.string(),
+      stabilityLevel: RequirementStabilityLevelEnum,
+      stabilityScore: z.number().int().min(0).max(100).nullable().optional(),
+      stabilityReason: z.string().trim().max(1000).nullable().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      return prisma.requirement.update({
+        where: { id: input.requirementId },
+        data: {
+          stabilityLevel: input.stabilityLevel,
+          stabilityScore: input.stabilityScore ?? null,
+          stabilityReason: input.stabilityReason ?? null,
+          stabilityUpdatedAt: new Date(),
+          stabilityUpdatedBy: ctx.session.userId,
+        },
+        select: {
+          id: true,
+          stabilityLevel: true,
+          stabilityScore: true,
+          stabilityReason: true,
+          stabilityUpdatedAt: true,
+        },
+      })
+    }),
+
   transitionStatus: protectedProcedure
     .input(z.object({ id: z.string(), to: RequirementStatusEnum }))
     .mutation(async ({ input, ctx }) => {
@@ -447,8 +479,23 @@ export const requirementRouter = createTRPCRouter({
         conditions.push({ status: filters.status })
       }
 
+      if (filters.stabilityLevel) {
+        conditions.push({ stabilityLevel: filters.stabilityLevel })
+      }
+
       if (filters.tags && filters.tags.length > 0) {
         conditions.push({ tags: { hasSome: filters.tags } })
+      }
+
+      if (filters.hasBlockingIssues) {
+        conditions.push({
+          issueUnits: {
+            some: {
+              blockDev: true,
+              status: { in: ['OPEN', 'TRIAGED', 'IN_PROGRESS', 'WAITING_CONFIRMATION'] },
+            },
+          },
+        })
       }
 
       if (filters.role) {
@@ -470,11 +517,13 @@ export const requirementRouter = createTRPCRouter({
 
       const where = conditions.length > 0 ? { AND: conditions } : undefined
 
-      return prisma.requirement.findMany({
+      const requirements = await prisma.requirement.findMany({
         where,
         orderBy: { updatedAt: 'desc' },
         select: searchSelect,
       })
+
+      return attachRequirementOverviewStats(requirements)
     }),
 
   addTag: protectedProcedure

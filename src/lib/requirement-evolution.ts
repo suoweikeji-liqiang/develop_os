@@ -49,6 +49,11 @@ export const STABILITY_LABELS: Record<RequirementStabilityLevel, string> = {
   S5_VERIFIED_STABLE: 'S5 Verified Stable',
 }
 
+export const STABILITY_OPTIONS = RequirementStabilityLevelEnum.options.map((value) => ({
+  value,
+  label: STABILITY_LABELS[value],
+}))
+
 export const STABILITY_CLASSES: Record<RequirementStabilityLevel, string> = {
   S0_IDEA: 'bg-rose-100 text-rose-700',
   S1_ROUGHLY_DEFINED: 'bg-orange-100 text-orange-700',
@@ -67,6 +72,11 @@ export const REQUIREMENT_UNIT_STATUS_LABELS: Record<RequirementUnitStatus, strin
   ARCHIVED: '已归档',
 }
 
+export const REQUIREMENT_UNIT_STATUS_OPTIONS = RequirementUnitStatusEnum.options.map((value) => ({
+  value,
+  label: REQUIREMENT_UNIT_STATUS_LABELS[value],
+}))
+
 export const ISSUE_UNIT_STATUS_LABELS: Record<IssueUnitStatus, string> = {
   OPEN: '待处理',
   TRIAGED: '已分诊',
@@ -76,6 +86,11 @@ export const ISSUE_UNIT_STATUS_LABELS: Record<IssueUnitStatus, string> = {
   REJECTED: '已驳回',
   ARCHIVED: '已归档',
 }
+
+export const ISSUE_UNIT_STATUS_OPTIONS = IssueUnitStatusEnum.options.map((value) => ({
+  value,
+  label: ISSUE_UNIT_STATUS_LABELS[value],
+}))
 
 export const ISSUE_UNIT_SEVERITY_LABELS: Record<IssueUnitSeverity, string> = {
   LOW: '低',

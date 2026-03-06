@@ -5,6 +5,7 @@ import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { FiveLayerModelSchema } from '@/lib/schemas/requirement'
 import { applyPathPatch, deriveClarificationPatch } from '@/server/ai/clarification'
+import { IssueUnitSeverityEnum } from '@/lib/requirement-evolution'
 
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue | null {
   if (value === null) return null
@@ -154,5 +155,83 @@ export const clarificationRouter = createTRPCRouter({
         where: { id: input.questionId },
         data: { status: input.status },
       })
+    }),
+
+  createIssue: protectedProcedure
+    .input(z.object({
+      questionId: z.string(),
+      severity: IssueUnitSeverityEnum.optional(),
+      blockDev: z.boolean().optional(),
+    }))
+    .mutation(async ({ input, ctx }) => {
+      const question = await prisma.clarificationQuestion.findUnique({
+        where: { id: input.questionId },
+        include: {
+          session: {
+            select: {
+              requirementId: true,
+            },
+          },
+        },
+      })
+
+      if (!question) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Question not found' })
+      }
+
+      const existing = await prisma.issueUnit.findFirst({
+        where: {
+          requirementId: question.session.requirementId,
+          sourceType: 'clarification',
+          sourceRef: question.id,
+        },
+        select: {
+          id: true,
+          status: true,
+        },
+      })
+
+      if (existing) {
+        return {
+          created: false,
+          issueId: existing.id,
+          status: existing.status,
+        }
+      }
+
+      const severity = input.severity ?? (question.category === 'RISK' ? 'HIGH' : 'MEDIUM')
+      const blockDev = input.blockDev ?? false
+      const type = question.category === 'RISK' ? 'risk' : 'pending_confirmation'
+      const titlePrefix = question.category === 'RISK' ? '澄清风险项' : '澄清待确认项'
+
+      const issue = await prisma.issueUnit.create({
+        data: {
+          requirementId: question.session.requirementId,
+          type,
+          severity,
+          title: `${titlePrefix}: ${question.questionText.slice(0, 80)}`,
+          description: [
+            `澄清问题：${question.questionText}`,
+            question.answerText ? `当前回答：${question.answerText}` : null,
+            `澄清状态：${question.status}`,
+          ].filter(Boolean).join('\n'),
+          status: 'OPEN',
+          blockDev,
+          sourceType: 'clarification',
+          sourceRef: question.id,
+          suggestedResolution: '确认该澄清问题，并将结论回填到 Requirement Unit 或 ModelCard。',
+          createdBy: ctx.session.userId,
+        },
+        select: {
+          id: true,
+          status: true,
+        },
+      })
+
+      return {
+        created: true,
+        issueId: issue.id,
+        status: issue.status,
+      }
     }),
 })

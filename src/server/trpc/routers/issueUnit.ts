@@ -1,37 +1,241 @@
 import { z } from 'zod'
+import { TRPCError } from '@trpc/server'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
+import { IssueUnitSeverityEnum, IssueUnitStatusEnum } from '@/lib/requirement-evolution'
+
+const CreateIssueUnitInput = z.object({
+  requirementId: z.string(),
+  primaryRequirementUnitId: z.string().optional(),
+  type: z.string().trim().min(1).max(40),
+  severity: IssueUnitSeverityEnum.default('MEDIUM'),
+  title: z.string().trim().min(1).max(120),
+  description: z.string().trim().min(1).max(2000),
+  blockDev: z.boolean().default(false),
+  suggestedResolution: z.string().trim().max(1000).optional(),
+})
+
+const UpdateIssueUnitInput = z.object({
+  issueUnitId: z.string(),
+  primaryRequirementUnitId: z.string().nullable().optional(),
+  type: z.string().trim().min(1).max(40),
+  severity: IssueUnitSeverityEnum,
+  title: z.string().trim().min(1).max(120),
+  description: z.string().trim().min(1).max(2000),
+  blockDev: z.boolean(),
+  suggestedResolution: z.string().trim().max(1000).nullable().optional(),
+})
 
 export const issueUnitRouter = createTRPCRouter({
   listByRequirement: protectedProcedure
     .input(z.object({ requirementId: z.string() }))
     .query(async ({ input }) => {
-      return prisma.issueUnit.findMany({
-        where: { requirementId: input.requirementId },
-        orderBy: [
-          { blockDev: 'desc' },
-          { updatedAt: 'desc' },
-        ],
-        select: {
-          id: true,
-          type: true,
-          severity: true,
-          title: true,
-          description: true,
-          status: true,
-          blockDev: true,
-          sourceType: true,
-          sourceRef: true,
-          suggestedResolution: true,
-          ownerId: true,
-          updatedAt: true,
-          primaryRequirementUnit: {
-            select: {
-              id: true,
-              unitKey: true,
-              title: true,
+      const [issueUnits, conflicts] = await Promise.all([
+        prisma.issueUnit.findMany({
+          where: { requirementId: input.requirementId },
+          orderBy: [
+            { blockDev: 'desc' },
+            { updatedAt: 'desc' },
+          ],
+          select: {
+            id: true,
+            type: true,
+            severity: true,
+            title: true,
+            description: true,
+            status: true,
+            blockDev: true,
+            sourceType: true,
+            sourceRef: true,
+            suggestedResolution: true,
+            ownerId: true,
+            updatedAt: true,
+            primaryRequirementUnit: {
+              select: {
+                id: true,
+                unitKey: true,
+                title: true,
+              },
             },
           },
+        }),
+        prisma.requirementConflict.findMany({
+          where: { requirementId: input.requirementId },
+          orderBy: [
+            { status: 'asc' },
+            { severity: 'desc' },
+            { updatedAt: 'desc' },
+          ],
+          select: {
+            id: true,
+            severity: true,
+            status: true,
+            title: true,
+            summary: true,
+            recommendedAction: true,
+            updatedAt: true,
+          },
+        }),
+      ])
+
+      const queue = [
+        ...issueUnits.map((item) => ({
+          id: item.id,
+          entityId: item.id,
+          queueKind: 'issue' as const,
+          type: item.type,
+          severity: item.severity,
+          title: item.title,
+          description: item.description,
+          status: item.status,
+          blockDev: item.blockDev,
+          sourceType: item.sourceType,
+          sourceRef: item.sourceRef,
+          sourceLabel: item.sourceType === 'clarification' ? 'Clarification' : 'Issue Unit',
+          suggestedResolution: item.suggestedResolution,
+          ownerId: item.ownerId,
+          updatedAt: item.updatedAt,
+          primaryRequirementUnit: item.primaryRequirementUnit,
+        })),
+        ...conflicts.map((item) => ({
+          id: `conflict:${item.id}`,
+          entityId: item.id,
+          queueKind: 'conflict' as const,
+          type: 'conflict',
+          severity: item.severity === 'HIGH' ? 'HIGH' as const : item.severity,
+          title: item.title,
+          description: item.summary,
+          status: item.status === 'OPEN'
+            ? 'OPEN'
+            : item.status === 'DISMISSED'
+              ? 'REJECTED'
+              : 'RESOLVED',
+          blockDev: false,
+          sourceType: 'conflict-scan',
+          sourceRef: item.id,
+          sourceLabel: 'Conflict Scan',
+          suggestedResolution: item.recommendedAction,
+          ownerId: null,
+          updatedAt: item.updatedAt,
+          primaryRequirementUnit: null,
+        })),
+      ]
+
+      return queue.sort((a, b) => {
+        if (a.queueKind !== b.queueKind) return a.queueKind === 'issue' ? -1 : 1
+        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+      })
+    }),
+
+  create: protectedProcedure
+    .input(CreateIssueUnitInput)
+    .mutation(async ({ input, ctx }) => {
+      const requirement = await prisma.requirement.findUnique({
+        where: { id: input.requirementId },
+        select: { id: true },
+      })
+
+      if (!requirement) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Requirement not found' })
+      }
+
+      if (input.primaryRequirementUnitId) {
+        const unit = await prisma.requirementUnit.findFirst({
+          where: {
+            id: input.primaryRequirementUnitId,
+            requirementId: input.requirementId,
+          },
+          select: { id: true },
+        })
+
+        if (!unit) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Primary requirement unit is invalid' })
+        }
+      }
+
+      return prisma.issueUnit.create({
+        data: {
+          requirementId: input.requirementId,
+          primaryRequirementUnitId: input.primaryRequirementUnitId,
+          type: input.type.toLowerCase(),
+          severity: input.severity,
+          title: input.title,
+          description: input.description,
+          blockDev: input.blockDev,
+          sourceType: 'manual',
+          suggestedResolution: input.suggestedResolution || null,
+          createdBy: ctx.session.userId,
+        },
+      })
+    }),
+
+  update: protectedProcedure
+    .input(UpdateIssueUnitInput)
+    .mutation(async ({ input }) => {
+      const existing = await prisma.issueUnit.findUnique({
+        where: { id: input.issueUnitId },
+        select: {
+          id: true,
+          requirementId: true,
+        },
+      })
+
+      if (!existing) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Issue unit not found' })
+      }
+
+      if (input.primaryRequirementUnitId) {
+        const unit = await prisma.requirementUnit.findFirst({
+          where: {
+            id: input.primaryRequirementUnitId,
+            requirementId: existing.requirementId,
+          },
+          select: { id: true },
+        })
+
+        if (!unit) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Primary requirement unit is invalid' })
+        }
+      }
+
+      return prisma.issueUnit.update({
+        where: { id: input.issueUnitId },
+        data: {
+          primaryRequirementUnitId: input.primaryRequirementUnitId ?? null,
+          type: input.type.toLowerCase(),
+          severity: input.severity,
+          title: input.title,
+          description: input.description,
+          blockDev: input.blockDev,
+          suggestedResolution: input.suggestedResolution ?? null,
+        },
+        select: {
+          id: true,
+          title: true,
+          description: true,
+          type: true,
+          severity: true,
+          blockDev: true,
+          suggestedResolution: true,
+          primaryRequirementUnitId: true,
+          updatedAt: true,
+        },
+      })
+    }),
+
+  updateStatus: protectedProcedure
+    .input(z.object({
+      issueUnitId: z.string(),
+      status: IssueUnitStatusEnum,
+    }))
+    .mutation(async ({ input }) => {
+      return prisma.issueUnit.update({
+        where: { id: input.issueUnitId },
+        data: { status: input.status },
+        select: {
+          id: true,
+          status: true,
+          updatedAt: true,
         },
       })
     }),

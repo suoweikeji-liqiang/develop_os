@@ -3,10 +3,13 @@
 import { useDeferredValue, useEffect, useState } from 'react'
 import { CalendarRange, Search, SlidersHorizontal, X } from 'lucide-react'
 import { STATUS_LABELS } from '@/lib/workflow/status-labels'
+import { STABILITY_LABELS } from '@/lib/requirement-evolution'
 
 export type FilterState = {
   query?: string
   status?: string
+  stabilityLevel?: string
+  hasBlockingIssues?: boolean
   tags?: string[]
   role?: string
   dateFrom?: string
@@ -24,6 +27,8 @@ const ROLE_LABELS: Record<string, string> = {
 type SearchFiltersProps = {
   query: string
   status: string
+  stabilityLevel: string
+  hasBlockingIssues: boolean
   tags: string[]
   role: string
   dateFrom: string
@@ -35,6 +40,8 @@ type SearchFiltersProps = {
 export function SearchFilters({
   query,
   status,
+  stabilityLevel,
+  hasBlockingIssues,
   tags,
   role,
   dateFrom,
@@ -45,7 +52,7 @@ export function SearchFilters({
   const [localQuery, setLocalQuery] = useState(query)
   const deferredQuery = useDeferredValue(localQuery)
   const hasActiveFilters = Boolean(
-    query || status || role || dateFrom || dateTo || tags.length > 0,
+    query || status || stabilityLevel || hasBlockingIssues || role || dateFrom || dateTo || tags.length > 0,
   )
 
   useEffect(() => {
@@ -71,6 +78,8 @@ export function SearchFilters({
                 onFilterChange({
                   query: undefined,
                   status: undefined,
+                  stabilityLevel: undefined,
+                  hasBlockingIssues: false,
                   tags: [],
                   role: undefined,
                   dateFrom: undefined,
@@ -85,7 +94,7 @@ export function SearchFilters({
           )}
         </div>
 
-        <div className="grid gap-3 xl:grid-cols-[minmax(0,1.5fr)_repeat(4,minmax(0,0.7fr))]">
+        <div className="grid gap-3 xl:grid-cols-[minmax(0,1.5fr)_repeat(6,minmax(0,0.7fr))]">
           <div className="rounded-[22px] border border-white/65 bg-white/72 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]">
             <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
               <Search className="size-3.5" />
@@ -114,6 +123,26 @@ export function SearchFilters({
             >
               <option value="">全部状态</option>
               {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ))}
+              </select>
+          </div>
+
+          <div className="rounded-[22px] border border-white/65 bg-white/72 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]">
+            <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
+              <SlidersHorizontal className="size-3.5" />
+              Stability
+            </div>
+            <select
+              value={stabilityLevel}
+              onChange={(e) => onFilterChange({ stabilityLevel: e.target.value || undefined })}
+              aria-label="按稳定度筛选"
+              className="w-full bg-transparent text-sm text-slate-900 focus:outline-none"
+            >
+              <option value="">全部稳定度</option>
+              {Object.entries(STABILITY_LABELS).map(([value, label]) => (
                 <option key={value} value={value}>
                   {label}
                 </option>
@@ -167,6 +196,22 @@ export function SearchFilters({
               aria-label="结束日期"
               className="w-full bg-transparent text-sm text-slate-900 focus:outline-none"
             />
+          </div>
+
+          <div className="rounded-[22px] border border-white/65 bg-white/72 px-4 py-3 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)]">
+            <div className="mb-2 flex items-center gap-2 text-xs uppercase tracking-[0.22em] text-slate-500">
+              <SlidersHorizontal className="size-3.5" />
+              Blocking
+            </div>
+            <select
+              value={hasBlockingIssues ? 'true' : ''}
+              onChange={(e) => onFilterChange({ hasBlockingIssues: e.target.value === 'true' })}
+              aria-label="按阻断问题筛选"
+              className="w-full bg-transparent text-sm text-slate-900 focus:outline-none"
+            >
+              <option value="">全部</option>
+              <option value="true">仅看有阻断问题</option>
+            </select>
           </div>
         </div>
 

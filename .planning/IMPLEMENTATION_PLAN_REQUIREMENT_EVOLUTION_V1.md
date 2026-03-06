@@ -10,9 +10,19 @@
 - 已完成：`RequirementUnit` Prisma 模型、迁移草案、基础查询 router
 - 已完成：`IssueUnit` Prisma 模型、迁移草案、基础查询 router
 - 已完成：在现有 `/explorations/[id]` 页面加入 Stability、Requirement Units、Issue Queue 的最小入口
-- 未完成：Requirement Unit / Issue Unit 的创建、编辑、状态更新、稳定度更新
-- 未完成：基于模型自动初始化 Requirement Units
-- 未完成：Issue 与 Conflict、Clarification 的自动串联
+- 已完成：Requirement Unit / Issue Unit 的最小创建入口
+- 已完成：Requirement 与 Requirement Unit 的最小稳定度更新入口
+- 已完成：基于当前五层模型初始化 Requirement Units 草稿
+- 已完成：Requirement Unit / Issue Unit 的最小状态更新入口
+- 已完成：Clarification Question 显式转为 Issue Unit 的最小串联
+- 已完成：Issue Queue 统一展示 IssueUnit 与 Conflict Scan 投影
+- 已完成：Requirement Unit / Issue Unit 的完整内联编辑入口
+- 已完成：列表页展示稳定度、Requirement Unit 数、Open/Blocking Issue 数
+- 已完成：列表页最小筛选 `stability` / `hasBlockingIssues`
+- 已完成：Dashboard 增加低稳定度、阻断问题、对象化覆盖率指标
+- 已完成：阶段一验收清单与数据库级业务流测试
+- 未完成：Issue 与 Conflict 的自动串联
+- 未完成：Clarification 到 Issue 的自动转换或自动回流
 
 ## 范围
 本轮只做最小必要闭环：
@@ -227,11 +237,11 @@
    - Issue Queue
    状态：已完成基础只读展示
 3. 先支持手动维护 Requirement Unit / Issue Unit，不依赖 AI 自动拆解
-   状态：未开始
+   状态：已完成最小创建、稳定度更新、状态更新；完整编辑未开始
 4. 再补一个轻量初始化动作：
    - 从五层模型生成建议的 Requirement Units 草稿
    - 由人工确认后保存
-   状态：未开始
+   状态：已完成“手动触发初始化”版本；自动同步未开始
 
 这个切口最小、风险最低，因为：
 - 不需要推翻现有 `Requirement` 主对象
