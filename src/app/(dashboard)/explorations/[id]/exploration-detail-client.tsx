@@ -86,8 +86,14 @@ interface WorksurfaceSummary {
     affectedRequirementUnitCount: number
     openIssueCount: number
     blockingIssueCount: number
+    openConflictCount: number
+    pendingClarificationCount: number
+    unitsBelowTarget: number
     hasBlockingIssue: boolean
     mayAffectStability: boolean
+    headline: string
+    nextStep: string
+    signals: RequirementGuidanceHint[]
     reasons: string[]
   }
 }
@@ -767,7 +773,7 @@ export function ExplorationDetailClient({
             <div>
               <p className="text-sm font-semibold text-slate-900">Impact Summary</p>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                第一版只做轻量规则摘要，用于回答“这次推进现在会影响到什么”。</p>
+                第一版只做轻量规则摘要，用于解释“当前推进为什么会影响到这些对象”。</p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
               <span className="app-chip">影响 Units {worksurfaceSummary?.impactSummary.affectedRequirementUnitCount ?? 0}</span>
@@ -775,11 +781,36 @@ export function ExplorationDetailClient({
               <span className={`app-chip ${(worksurfaceSummary?.impactSummary.hasBlockingIssue ?? false) ? 'text-red-700' : ''}`}>
                 Blocking {worksurfaceSummary?.impactSummary.blockingIssueCount ?? 0}
               </span>
+              <span className="app-chip">Open Conflicts {worksurfaceSummary?.impactSummary.openConflictCount ?? 0}</span>
+              <span className="app-chip">Pending Clarifications {worksurfaceSummary?.impactSummary.pendingClarificationCount ?? 0}</span>
+              <span className="app-chip">Below Target {worksurfaceSummary?.impactSummary.unitsBelowTarget ?? 0}</span>
               <span className={`app-chip ${(worksurfaceSummary?.impactSummary.mayAffectStability ?? false) ? 'text-amber-700' : ''}`}>
                 {worksurfaceSummary?.impactSummary.mayAffectStability ? '可能影响稳定度判断' : '当前未发现明显稳定度波动'}
               </span>
             </div>
           </div>
+          <p className="mt-3 text-sm leading-6 text-slate-700">
+            {worksurfaceSummary?.impactSummary.headline ?? '当前未发现明显的推进外溢信号。'}
+          </p>
+          {worksurfaceSummary?.impactSummary.signals?.length ? (
+            <div className="mt-4 grid gap-3 md:grid-cols-2">
+              {worksurfaceSummary.impactSummary.signals.map((signal) => (
+                <div
+                  key={`${signal.level}-${signal.title}`}
+                  className={`rounded-[18px] border px-4 py-3 text-sm ${
+                    signal.level === 'critical'
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : signal.level === 'warning'
+                        ? 'border-amber-200 bg-amber-50 text-amber-700'
+                        : 'border-sky-200 bg-sky-50 text-sky-700'
+                  }`}
+                >
+                  <p className="font-semibold">{signal.title}</p>
+                  <p className="mt-1 leading-6">{signal.message}</p>
+                </div>
+              ))}
+            </div>
+          ) : null}
           {worksurfaceSummary?.impactSummary.reasons?.length ? (
             <ul className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
               {worksurfaceSummary.impactSummary.reasons.map((reason) => (
@@ -793,6 +824,12 @@ export function ExplorationDetailClient({
               当前还没有明显的阻断或低成熟度信号。
             </p>
           )}
+          <div className="mt-4 rounded-[18px] border border-slate-200 bg-white px-4 py-3">
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Suggested Next Step</p>
+            <p className="mt-2 text-sm leading-6 text-slate-700">
+              {worksurfaceSummary?.impactSummary.nextStep ?? '继续按当前 Requirement Worksurface 推进。'}
+            </p>
+          </div>
         </div>
       </section>
 

@@ -335,6 +335,25 @@
 2. 基于现有 Requirement / Requirement Unit / Issue 数据做规则驱动摘要
 3. 展示“影响到多少单元 / 多少 open issues / 是否有 blocking issue / 是否可能影响稳定度”
 
+### P2-lite 当前已落地
+
+- 顶部 `Impact Summary` 已从“纯数字 + 原因标签”增强为：
+  - headline
+  - signal cards
+  - suggested next step
+- 当前使用的信号仍全部来自现有对象聚合，不引入 Change Unit 子系统：
+  - `affectedRequirementUnitCount`
+  - `openIssueCount`
+  - `blockingIssueCount`
+  - `openConflictCount`
+  - `pendingClarificationCount`
+  - `unitsBelowTarget`
+  - `requirementStabilityLevel`
+- 当前解释重点是：
+  - 为什么系统认为这次推进会继续牵动其他 Requirement Units
+  - 为什么 Issue Queue / Clarification / Conflict / Stability 会继续影响推进
+  - 下一步建议优先回到哪里处理
+
 ### 本轮明确不做
 
 - 正式 Change Unit 全量扩展

@@ -540,6 +540,7 @@ export const requirementRouter = createTRPCRouter({
           openConflictCount,
           pendingClarificationCount,
           unitsBelowTarget: unitsBelowTarget.length,
+          unitsBelowTargetSummary,
           requirementStabilityLevel: requirement.stabilityLevel,
         }),
       }
