@@ -8,43 +8,52 @@
   - `src/app/(dashboard)/requirements/[id]/requirement-detail-client.tsx`
 - `/explorations/[id]` 已退回 alias wrapper：
   - `src/app/(dashboard)/explorations/[id]/page.tsx`
-- 但以下 Requirement 主路径仍残留 `explorations/*` 依附：
-  - `/requirements` -> `src/app/(dashboard)/explorations/exploration-index-page.tsx`
-  - `/requirements/new` -> `src/app/(dashboard)/explorations/new/page.tsx`
-  - Requirement detail client 仍引用很多 `explorations/[id]/*` 子组件
+- 当前主要残留依附已收缩到 Requirement 详情页的非核心共享子组件：
+  - `comments-panel.tsx`
+  - `model-tabs.tsx`
+  - `role-view-tabs.tsx`
+  - `signoff-panel.tsx`
+  - `consensus-status.tsx`
+  - `chat-panel.tsx`
+  - `version-history.tsx`
+  - `status-control.tsx`
+  - `test-case-panel.tsx`
+  - `change-units-panel.tsx`
 
 ### Requirement 列表页现状
 - `src/app/(dashboard)/requirements/page.tsx`
-  - 当前仍直接渲染 `ExplorationIndexPage`
-- 真实主实现仍在：
-  - `src/app/(dashboard)/explorations/exploration-index-page.tsx`
-  - `src/app/(dashboard)/explorations/explorations-list-client.tsx`
+  - 当前直接渲染 `RequirementIndexPage`
+- 真实主实现已迁到：
+  - `src/app/(dashboard)/requirements/requirement-index-page.tsx`
+  - `src/app/(dashboard)/requirements/requirements-list-client.tsx`
 
 ### Requirement 新建页现状
 - `src/app/(dashboard)/requirements/new/page.tsx`
-  - 当前仍直接 re-export `../../explorations/new/page`
-- 真实主实现仍在：
-  - `src/app/(dashboard)/explorations/new/page.tsx`
-  - `src/app/(dashboard)/explorations/new/exploration-form.tsx`
+  - 当前直接渲染 `new-requirement-page`
+- 真实主实现已迁到：
+  - `src/app/(dashboard)/requirements/new/new-requirement-page.tsx`
+  - `src/app/(dashboard)/requirements/new/requirement-form.tsx`
 
 ### 详情页子组件现状
 - detail client 已迁到 `requirements/[id]`
-- 但以下核心子组件仍主要位于 `explorations/[id]/*`：
+- 3 个核心子组件已迁到 `requirements/[id]/*`：
   - `issue-units-panel.tsx`
   - `requirement-units-panel.tsx`
   - `conflict-panel.tsx`
+- 当前仍留在 `explorations/[id]/*` 的主要是非核心共享子组件：
   - `status-control.tsx`
   - `version-history.tsx`
   - `change-units-panel.tsx`
+  - 以及其余辅助面板
 
 ## 本轮范围
 
 ### 本轮建议先迁哪些
 1. Requirement 列表页主实现
-   - 当前 `/requirements` 仍直接依赖 `ExplorationIndexPage`
+   - 目标是把 Requirement 主入口的真实实现迁回 `requirements/*`
    - 这是主入口残留最明显的一块
 2. Requirement 新建页主实现
-   - 当前 `/requirements/new` 仍直接依赖 `NewExplorationPage`
+   - 目标是把新建入口的真实实现迁回 `requirements/new/*`
 3. 详情页最核心子组件
    - 优先迁最常改、最直接影响闭环的几个：
      - `issue-units-panel.tsx`
@@ -92,3 +101,19 @@
 - 列表页、新建页迁完后，再继续清理详情页共享子组件
 - 后续再考虑组件名层面的 `Exploration* -> Requirement*` rename
 - 兼容 alias 长期可保留，但应退化为薄 wrapper
+
+## 已完成
+- `/requirements` 列表页主实现已迁回 `requirements/*`
+- `/requirements/new` 新建页主实现已迁回 `requirements/new/*`
+- `IssueUnitsPanel`、`RequirementUnitsPanel`、`ConflictPanel` 已迁回 `requirements/[id]/*`
+- 旧 `explorations/*` 对应文件已经退为 wrapper / alias
+
+## 当前残留
+- Requirement 详情页仍有一批非核心共享子组件留在 `explorations/[id]/*`
+- `/models` 与 `/evolution` 仍通过旧 wrapper 进入新的 Requirement 列表实现
+- 组件和类型名层面仍残留少量历史 `Exploration*` 命名
+
+## 下一轮建议
+1. 继续迁移 `status-control`、`version-history`、`change-units-panel`、`comments-panel`
+2. 再做一轮组件名与类型名的最小清理，减少新的认知债
+3. 继续保留 `/explorations*` 路由兼容，但不再让它承载主实现

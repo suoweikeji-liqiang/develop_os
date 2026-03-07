@@ -5,7 +5,7 @@ import { prisma } from '@/server/db/client'
 import { attachRequirementOverviewStats } from '@/server/requirements/overview'
 import { RequirementsListClient } from './requirements-list-client'
 
-export type ListView = 'explorations' | 'models' | 'evolution'
+export type ListView = 'requirements' | 'models' | 'evolution'
 
 interface Props {
   listView: ListView
@@ -46,7 +46,7 @@ export async function RequirementIndexPage({ listView }: Props) {
     subtitle: string
     icon: typeof Orbit
   }> = {
-    explorations: {
+    requirements: {
       eyebrow: 'Requirement Worksurface',
       title: '需求总览',
       subtitle: '从 Requirement 视角统一查看顶层边界、需求颗粒、问题队列与稳定度推进状态。',

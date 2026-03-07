@@ -69,6 +69,9 @@
   - Issue Queue 单项会直接解释自己怎样影响当前稳定度和阶段推进
   - Stability Summary 会点名当前压力最大的 issue 类型与 layer
   - 当前应先回到 Issue Queue 处理什么，已开始变成明确建议而不是泛泛提醒
+- `ISSUE 4` 已开始把 Requirement 主路径实现迁回：
+  - `/requirements`、`/requirements/new` 以及 3 个核心详情子组件已迁到 `requirements/*`
+  - `explorations/*` 对应位置已退为 wrapper / alias
 
 ### 预期落点
 - Clarification 区、Issue Queue、Requirement Units 区、Impact Summary 区之间的回链更短
@@ -103,6 +106,22 @@
 - 更明确的 Clarification -> Unit 推荐绑定动作
 - 更细的 issue 对 layer / unit / stage 的影响映射
 - Requirement 列表页、新建页和详情子组件的进一步迁移
+
+## 已完成
+- Clarification -> Issue Queue -> Requirement Unit 已形成最小直接回链
+- Requirement Unit -> Impact Summary 已形成可见的双向解释
+- Issue Queue -> Stability 已形成轻量 pressure / guidance 联动
+- Requirement 主入口的列表页、新建页与 3 个核心详情子组件已迁回 `requirements/*`
+
+## 当前残留
+- Clarification 关闭后对 Unit 的改善仍主要依赖人工确认，不会自动提升状态或稳定度
+- Issue pressure 仍是 current-state 规则聚合，不是事件级变化分析
+- Requirement 详情页仍有一批非核心子组件留在 `explorations/[id]/*`
+
+## 下一轮建议
+1. 继续迁移 `status-control`、`version-history`、`change-units-panel`、`comments-panel`
+2. 把 Clarification / Unit / Impact Summary 的回链继续补成“结论沉淀”视角
+3. 细化 issue 对 layer / stage 的影响排序，但仍保持轻量规则实现
 
 ## 实现顺序建议
 1. 先补 Clarification -> Requirement Unit 的直接回链

@@ -29,7 +29,7 @@ type RequirementItem = {
 
 type Props = {
   initialRequirements: RequirementItem[]
-  initialView: 'explorations' | 'models' | 'evolution'
+  initialView: 'requirements' | 'models' | 'evolution'
 }
 
 // Primary location: this client renders the Requirement list/cards.

@@ -105,3 +105,18 @@
 - Clarification -> Unit 的更明确推荐绑定动作
 - Unit 局部的更多来源问题摘要
 - Impact Summary 与来源问题类型的更细归因
+
+## 已完成
+- Clarification 转入或重入 Issue Queue 时可以直接绑定 `primaryRequirementUnitId`
+- Clarification、Issue Queue、Requirement Unit 三处都能看到这条回链
+- Impact Summary 已开始按具体 Unit 给出推进 / 补齐建议
+
+## 当前残留
+- 一条来源问题仍只支持一个主 Unit 绑定，不处理多 Unit 影响
+- 问题关闭后对 Unit 的改善仍然是提示，不会自动沉淀到 Unit 状态
+- 回链表达目前主要聚焦 Clarification 来源，尚未扩展到更多来源类型
+
+## 下一轮建议
+1. 增加更明确的 Clarification -> Unit 推荐绑定动作
+2. 补更细的“问题关闭后结论沉淀到哪个 Unit 字段/状态”提示
+3. 继续把 Impact Summary 对来源问题的归因做得更具体但不引入重型图谱
