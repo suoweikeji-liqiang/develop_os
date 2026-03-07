@@ -34,9 +34,10 @@ interface RequirementUnitItem {
 interface Props {
   requirementId: string
   hasModel: boolean
+  onDataChanged?: () => void
 }
 
-export function RequirementUnitsPanel({ requirementId, hasModel }: Props) {
+export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }: Props) {
   const [items, setItems] = useState<RequirementUnitItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -150,6 +151,7 @@ export function RequirementUnitsPanel({ requirementId, hasModel }: Props) {
       setSummaryText('')
       setLayer('scenario')
       await loadItems()
+      onDataChanged?.()
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : '创建 Requirement Unit 失败')
     } finally {
@@ -176,6 +178,7 @@ export function RequirementUnitsPanel({ requirementId, hasModel }: Props) {
       const payload = data?.result?.data?.json ?? data?.result?.data
       setBootstrapMessage(`已创建 ${payload?.created ?? 0} 个，跳过 ${payload?.skipped ?? 0} 个重复单元。`)
       await loadItems()
+      onDataChanged?.()
     } catch (err) {
       setBootstrapMessage(err instanceof Error ? err.message : '从模型初始化 Requirement Units 失败')
     } finally {
@@ -244,6 +247,7 @@ export function RequirementUnitsPanel({ requirementId, hasModel }: Props) {
       }
 
       await loadItems()
+      onDataChanged?.()
     } catch (err) {
       updateDraft(id, {
         saving: false,
@@ -277,6 +281,7 @@ export function RequirementUnitsPanel({ requirementId, hasModel }: Props) {
       }
 
       await loadItems()
+      onDataChanged?.()
     } catch (err) {
       updateDraft(id, {
         statusSaving: false,
@@ -312,6 +317,7 @@ export function RequirementUnitsPanel({ requirementId, hasModel }: Props) {
       }
 
       await loadItems()
+      onDataChanged?.()
       updateEditDraft(id, { open: false, saving: false, error: null })
     } catch (err) {
       updateEditDraft(id, {
@@ -327,7 +333,7 @@ export function RequirementUnitsPanel({ requirementId, hasModel }: Props) {
         <div>
           <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">Requirement Units</h3>
           <p className="mt-2 text-sm leading-6 text-slate-500">
-            把整份需求拆成可追踪对象单元。当前已支持最小手动创建，先打通对象化闭环。
+            Requirement 负责顶层边界，Requirement Unit 负责颗粒推进。这里承载单元拆分、单元状态与单元稳定度。
           </p>
         </div>
         <div className="flex flex-wrap gap-2 text-xs">

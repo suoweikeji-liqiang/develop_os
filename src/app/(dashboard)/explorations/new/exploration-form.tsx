@@ -71,7 +71,7 @@ export function ExplorationForm() {
 
       clearDraft(draftId)
       sessionStorage.removeItem('devos-current-draft-id')
-      router.push(`/explorations/${requirementId}`)
+      router.push(`/requirements/${requirementId}`)
     } catch (err) {
       setError(err instanceof Error ? err.message : '创建失败')
       setSubmitting(false)
@@ -90,7 +90,7 @@ export function ExplorationForm() {
         <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_220px]">
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="title">Exploration 标题</Label>
+              <Label htmlFor="title">Requirement 标题</Label>
               <Input
                 id="title"
                 value={title}
@@ -106,7 +106,7 @@ export function ExplorationForm() {
                 id="rawInput"
                 value={rawInput}
                 onChange={(e) => setRawInput(e.target.value)}
-                placeholder={"请输入本次探索的上下文、限制和目标...\n\n例如：在移动端网络抖动下，用户通过手机号注册账号，注册后自动登录，首次登录需要完善个人信息。"}
+                placeholder={"请输入本次需求的上下文、限制和目标...\n\n例如：在移动端网络抖动下，用户通过手机号注册账号，注册后自动登录，首次登录需要完善个人信息。"}
                 rows={14}
                 className="resize-y"
                 required
@@ -149,10 +149,10 @@ export function ExplorationForm() {
 
         <div className="flex flex-wrap items-center justify-between gap-3">
           <p className="text-sm text-slate-500">
-            提交后会创建需求记录，并进入可对话的 ModelCard 工作区。
+            提交后会创建 Requirement，并进入统一的需求推进工作面。
           </p>
           <Button type="submit" disabled={submitting || !title.trim() || !rawInput.trim()}>
-            {submitting ? '提交中...' : '生成 ModelCard'}
+            {submitting ? '提交中...' : '创建 Requirement'}
             <ArrowRight className="size-4" />
           </Button>
         </div>

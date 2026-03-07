@@ -1,8 +1,6 @@
 import { prisma } from '@/server/db/client'
 import { HIGH_RISK_CHANGE_LEVELS, OPEN_CHANGE_STATUSES } from './change-units'
-
-const OPEN_ISSUE_STATUSES = ['OPEN', 'TRIAGED', 'IN_PROGRESS', 'WAITING_CONFIRMATION'] as const
-const BLOCKING_ISSUE_STATUSES = ['OPEN', 'TRIAGED', 'IN_PROGRESS', 'WAITING_CONFIRMATION'] as const
+import { ACTIVE_ISSUE_UNIT_STATUSES } from '@/lib/issue-queue'
 
 interface RequirementOverviewSeed {
   id: string
@@ -24,7 +22,7 @@ export async function attachRequirementOverviewStats<T extends RequirementOvervi
       by: ['requirementId'],
       where: {
         requirementId: { in: requirementIds },
-        status: { in: [...OPEN_ISSUE_STATUSES] },
+        status: { in: [...ACTIVE_ISSUE_UNIT_STATUSES] },
       },
       _count: { _all: true },
     }),
@@ -33,7 +31,7 @@ export async function attachRequirementOverviewStats<T extends RequirementOvervi
       where: {
         requirementId: { in: requirementIds },
         blockDev: true,
-        status: { in: [...BLOCKING_ISSUE_STATUSES] },
+        status: { in: [...ACTIVE_ISSUE_UNIT_STATUSES] },
       },
       _count: { _all: true },
     }),

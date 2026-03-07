@@ -1,7 +1,5 @@
-import { redirect } from 'next/navigation'
+import NewExplorationPage from '../../explorations/new/page'
 
 export const dynamic = 'force-dynamic'
 
-export default async function NewRequirementPage() {
-  redirect('/explorations/new')
-}
+export default NewExplorationPage

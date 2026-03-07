@@ -45,9 +45,9 @@ export async function ExplorationIndexPage({ listView }: Props) {
     icon: typeof Orbit
   }> = {
     explorations: {
-      eyebrow: 'Signal Flow',
-      title: '探索流总览',
-      subtitle: '把上下文、对话、实验和模型演化收束到一张连续的需求轨迹图上。',
+      eyebrow: 'Requirement Worksurface',
+      title: '需求总览',
+      subtitle: '从 Requirement 视角统一查看顶层边界、需求颗粒、问题队列与稳定度推进状态。',
       icon: Orbit,
     },
     models: {
@@ -121,14 +121,14 @@ export async function ExplorationIndexPage({ listView }: Props) {
         <div className="space-y-1">
           <p className="app-kicker">Launch lane</p>
           <h2 className="text-2xl font-semibold text-slate-950">
-            在当前流里继续推进
+            在当前需求工作面继续推进
           </h2>
         </div>
         <Link
-          href="/explorations/new"
+          href="/requirements/new"
           className="inline-flex items-center gap-2 rounded-full border border-cyan-300/50 bg-[linear-gradient(135deg,rgba(32,99,246,0.98),rgba(15,195,255,0.92))] px-5 py-3 text-sm font-medium text-white shadow-[0_18px_48px_rgba(31,109,255,0.28)] hover:-translate-y-0.5"
         >
-          Start Exploration
+          New Requirement
           <ArrowRight className="size-4" />
         </Link>
       </section>

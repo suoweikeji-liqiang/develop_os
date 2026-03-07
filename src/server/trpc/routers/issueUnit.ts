@@ -3,11 +3,18 @@ import { TRPCError } from '@trpc/server'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { IssueUnitSeverityEnum, IssueUnitStatusEnum } from '@/lib/requirement-evolution'
+import {
+  compareIssueQueueItems,
+  getIssueQueueSourceLabel,
+  IssueUnitTypeEnum,
+  mapConflictStatusToIssueStatus,
+  normalizeIssueType,
+} from '@/lib/issue-queue'
 
 const CreateIssueUnitInput = z.object({
   requirementId: z.string(),
   primaryRequirementUnitId: z.string().optional(),
-  type: z.string().trim().min(1).max(40),
+  type: IssueUnitTypeEnum,
   severity: IssueUnitSeverityEnum.default('MEDIUM'),
   title: z.string().trim().min(1).max(120),
   description: z.string().trim().min(1).max(2000),
@@ -18,7 +25,7 @@ const CreateIssueUnitInput = z.object({
 const UpdateIssueUnitInput = z.object({
   issueUnitId: z.string(),
   primaryRequirementUnitId: z.string().nullable().optional(),
-  type: z.string().trim().min(1).max(40),
+  type: IssueUnitTypeEnum,
   severity: IssueUnitSeverityEnum,
   title: z.string().trim().min(1).max(120),
   description: z.string().trim().min(1).max(2000),
@@ -91,7 +98,7 @@ export const issueUnitRouter = createTRPCRouter({
           blockDev: item.blockDev,
           sourceType: item.sourceType,
           sourceRef: item.sourceRef,
-          sourceLabel: item.sourceType === 'clarification' ? 'Clarification' : 'Issue Unit',
+          sourceLabel: getIssueQueueSourceLabel(item.sourceType, 'issue'),
           suggestedResolution: item.suggestedResolution,
           ownerId: item.ownerId,
           updatedAt: item.updatedAt,
@@ -105,15 +112,11 @@ export const issueUnitRouter = createTRPCRouter({
           severity: item.severity === 'HIGH' ? 'HIGH' as const : item.severity,
           title: item.title,
           description: item.summary,
-          status: item.status === 'OPEN'
-            ? 'OPEN'
-            : item.status === 'DISMISSED'
-              ? 'REJECTED'
-              : 'RESOLVED',
+          status: mapConflictStatusToIssueStatus(item.status),
           blockDev: false,
           sourceType: 'conflict-scan',
           sourceRef: item.id,
-          sourceLabel: 'Conflict Scan',
+          sourceLabel: getIssueQueueSourceLabel('conflict-scan', 'conflict'),
           suggestedResolution: item.recommendedAction,
           ownerId: null,
           updatedAt: item.updatedAt,
@@ -121,10 +124,7 @@ export const issueUnitRouter = createTRPCRouter({
         })),
       ]
 
-      return queue.sort((a, b) => {
-        if (a.queueKind !== b.queueKind) return a.queueKind === 'issue' ? -1 : 1
-        return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
-      })
+      return queue.sort(compareIssueQueueItems)
     }),
 
   create: protectedProcedure
@@ -157,7 +157,7 @@ export const issueUnitRouter = createTRPCRouter({
         data: {
           requirementId: input.requirementId,
           primaryRequirementUnitId: input.primaryRequirementUnitId,
-          type: input.type.toLowerCase(),
+          type: normalizeIssueType(input.type),
           severity: input.severity,
           title: input.title,
           description: input.description,
@@ -202,7 +202,7 @@ export const issueUnitRouter = createTRPCRouter({
         where: { id: input.issueUnitId },
         data: {
           primaryRequirementUnitId: input.primaryRequirementUnitId ?? null,
-          type: input.type.toLowerCase(),
+          type: normalizeIssueType(input.type),
           severity: input.severity,
           title: input.title,
           description: input.description,

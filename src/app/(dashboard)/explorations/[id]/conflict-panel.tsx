@@ -24,6 +24,7 @@ interface ConflictItem {
 interface Props {
   requirementId: string
   hasModel: boolean
+  onDataChanged?: () => void
 }
 
 const STATUS_LABELS: Record<ConflictStatus, string> = {
@@ -49,7 +50,7 @@ const SEVERITY_CLASSES: Record<ConflictSeverity, string> = {
   HIGH: 'bg-red-100 text-red-700',
 }
 
-export function ConflictPanel({ requirementId, hasModel }: Props) {
+export function ConflictPanel({ requirementId, hasModel, onDataChanged }: Props) {
   const [conflicts, setConflicts] = useState<ConflictItem[]>([])
   const [loading, setLoading] = useState(hasModel)
   const [scanning, setScanning] = useState(false)
@@ -99,6 +100,7 @@ export function ConflictPanel({ requirementId, hasModel }: Props) {
       }
 
       await loadConflicts()
+      onDataChanged?.()
     } catch (err) {
       setError(err instanceof Error ? err.message : '重新扫描失败')
     } finally {
@@ -119,6 +121,7 @@ export function ConflictPanel({ requirementId, hasModel }: Props) {
     }
 
     await loadConflicts()
+    onDataChanged?.()
   }
 
   async function handleDismiss(conflictId: string) {
@@ -145,7 +148,7 @@ export function ConflictPanel({ requirementId, hasModel }: Props) {
         <div>
           <h3 className="text-sm font-semibold text-gray-700">冲突检测</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            自动检查当前需求内部矛盾，以及与其他需求之间的显著冲突。
+            保留为扫描详情与证据面；默认问题推进请优先回到上方 Issue Queue。
           </p>
         </div>
         <button
@@ -203,7 +206,7 @@ export function ConflictPanel({ requirementId, hasModel }: Props) {
                 {conflict.relatedRequirement && (
                   <p>
                     <span className="font-medium text-gray-800">相关需求：</span>
-                    <a href={`/explorations/${conflict.relatedRequirement.id}`} className="text-blue-600 hover:underline">
+                    <a href={`/requirements/${conflict.relatedRequirement.id}`} className="text-blue-600 hover:underline">
                       {conflict.relatedRequirement.title}
                     </a>
                   </p>

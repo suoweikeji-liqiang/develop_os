@@ -13,12 +13,12 @@ export default async function NewExplorationPage() {
         <div className="absolute left-[18%] top-[-4rem] h-40 w-40 rounded-full bg-cyan-400/20 blur-3xl" />
         <div className="relative space-y-8">
           <div className="space-y-4">
-            <p className="app-kicker text-cyan-200/90">Launch new lane</p>
+            <p className="app-kicker text-cyan-200/90">New Requirement</p>
             <h1 className="app-display text-4xl font-semibold leading-none text-white">
-              把新的需求上下文推入探索流
+              把新的需求上下文推入 Requirement Worksurface
             </h1>
             <p className="max-w-xl text-base leading-7 text-white/70">
-              录入原始场景后，系统会从这里启动结构化建模、冲突检测和后续的协作链条。
+              录入原始场景后，系统会从这里启动 Requirement、Requirement Units、Issue Queue 和 Stability 的后续推进链条。
             </p>
           </div>
 
@@ -50,8 +50,8 @@ export default async function NewExplorationPage() {
 
       <section className="space-y-4">
         <div className="space-y-2">
-          <p className="app-kicker">Input console</p>
-          <h2 className="text-3xl font-semibold text-slate-950">创建探索入口</h2>
+          <p className="app-kicker">Requirement Intake</p>
+          <h2 className="text-3xl font-semibold text-slate-950">创建 Requirement 入口</h2>
         </div>
         <ExplorationForm />
       </section>

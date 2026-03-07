@@ -81,15 +81,15 @@ export default async function DashboardPage() {
 
   const launchCards = [
     {
-      href: '/explorations/new',
-      title: 'Start Exploration',
-      description: '把一个真实上下文送进系统，生成第一版 ModelCard 与演化轨迹。',
+      href: '/requirements/new',
+      title: 'New Requirement',
+      description: '把一个真实上下文送进系统，生成第一版 Requirement Worksurface 与推进骨架。',
       icon: Sparkles,
     },
     {
-      href: '/explorations',
-      title: 'Review Signal Flows',
-      description: '按状态、角色与时间回看探索流，快速定位正在推进的需求。',
+      href: '/requirements',
+      title: 'Review Requirements',
+      description: '按状态、角色与时间回看 Requirement 工作面，快速定位正在推进的需求。',
       icon: Atom,
     },
     ...(session.isAdmin
@@ -128,9 +128,9 @@ export default async function DashboardPage() {
 
             <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5">
               <div className="app-metric">
-                <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/55">Explorations</p>
+                <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/55">Requirements</p>
                 <p className="mt-3 text-3xl font-semibold text-white">{totalRequirements}</p>
-                <p className="mt-2 text-sm text-white/60">累计进入系统的需求探索流</p>
+                <p className="mt-2 text-sm text-white/60">累计进入系统的需求工作面</p>
               </div>
               <div className="app-metric">
                 <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/55">Consensus Queue</p>
@@ -163,13 +163,13 @@ export default async function DashboardPage() {
             <div className="mt-5 space-y-3">
               {recentRequirements.length === 0 ? (
                 <div className="rounded-[22px] border border-white/10 bg-white/6 px-4 py-5 text-sm text-white/55">
-                  还没有探索流，先创建一个新的探索入口。
+                  还没有 Requirement，先创建一个新的需求入口。
                 </div>
               ) : (
                 recentRequirements.map((item) => (
                   <Link
                     key={item.id}
-                    href={`/explorations/${item.id}`}
+                    href={`/requirements/${item.id}`}
                     className="block rounded-[22px] border border-white/10 bg-white/6 px-4 py-4 hover:bg-white/10"
                   >
                     <div className="flex items-center justify-between gap-3">

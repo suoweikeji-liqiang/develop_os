@@ -1,12 +1,5 @@
-import { redirect } from 'next/navigation'
+import ExplorationDetailPage from '../../explorations/[id]/page'
 
 export const dynamic = 'force-dynamic'
 
-export default async function RequirementDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
-  const { id } = await params
-  redirect(`/explorations/${id}`)
-}
+export default ExplorationDetailPage

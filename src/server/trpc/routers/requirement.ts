@@ -14,8 +14,18 @@ import {
   ACTIVE_CHANGE_STATUSES,
   buildRequirementGateHints,
   HIGH_RISK_CHANGE_LEVELS,
-  OPEN_ISSUE_STATUSES,
 } from '@/server/requirements/change-units'
+import {
+  ACTIVE_ISSUE_UNIT_STATUSES,
+  getIssueTypeLabel,
+  isIssueType,
+} from '@/lib/issue-queue'
+import {
+  buildRequirementImpactSummary,
+  buildRequirementWorksurfaceGuidance,
+  isRequirementStabilityAtLeast,
+  TARGET_REQUIREMENT_UNIT_STABILITY_LEVEL,
+} from '@/server/requirements/worksurface'
 import {
   computeCompleteness,
   deriveSpecDraft,
@@ -347,7 +357,7 @@ export const requirementRouter = createTRPCRouter({
           where: {
             requirementId: input.requirementId,
             blockDev: true,
-            status: { in: [...OPEN_ISSUE_STATUSES] },
+            status: { in: [...ACTIVE_ISSUE_UNIT_STATUSES] },
           },
         }),
         prisma.changeUnit.count({
@@ -374,6 +384,155 @@ export const requirementRouter = createTRPCRouter({
           blockingIssueCount,
           highRiskChangeCount,
           resignoffChangeCount,
+        }),
+      }
+    }),
+
+  getWorksurfaceSummary: protectedProcedure
+    .input(z.object({ requirementId: z.string() }))
+    .query(async ({ input }) => {
+      const requirement = await prisma.requirement.findUnique({
+        where: { id: input.requirementId },
+        select: {
+          id: true,
+          stabilityLevel: true,
+        },
+      })
+
+      if (!requirement) {
+        throw new TRPCError({ code: 'NOT_FOUND', message: 'Requirement not found' })
+      }
+
+      const [units, activeIssueUnits, openConflictCount, pendingClarificationCount, highRiskChangeCount, resignoffChangeCount] = await Promise.all([
+        prisma.requirementUnit.findMany({
+          where: { requirementId: input.requirementId },
+          select: {
+            id: true,
+            status: true,
+            stabilityLevel: true,
+          },
+        }),
+        prisma.issueUnit.findMany({
+          where: {
+            requirementId: input.requirementId,
+            status: { in: [...ACTIVE_ISSUE_UNIT_STATUSES] },
+          },
+          select: {
+            id: true,
+            type: true,
+            blockDev: true,
+            primaryRequirementUnitId: true,
+          },
+        }),
+        prisma.requirementConflict.count({
+          where: {
+            requirementId: input.requirementId,
+            status: 'OPEN',
+          },
+        }),
+        prisma.clarificationQuestion.count({
+          where: {
+            session: {
+              is: {
+                requirementId: input.requirementId,
+              },
+            },
+            status: {
+              in: ['OPEN', 'ANSWERED'],
+            },
+          },
+        }),
+        prisma.changeUnit.count({
+          where: {
+            requirementId: input.requirementId,
+            status: { in: [...ACTIVE_CHANGE_STATUSES] },
+            riskLevel: { in: [...HIGH_RISK_CHANGE_LEVELS] },
+          },
+        }),
+        prisma.changeUnit.count({
+          where: {
+            requirementId: input.requirementId,
+            status: { in: [...ACTIVE_CHANGE_STATUSES] },
+            requiresResignoff: true,
+          },
+        }),
+      ])
+
+      const activeUnits = units.filter((unit) => unit.status !== 'ARCHIVED')
+      const readyUnits = activeUnits.filter((unit) => unit.status === 'READY_FOR_DEV')
+      const unitsBelowTarget = activeUnits.filter((unit) => !isRequirementStabilityAtLeast(unit.stabilityLevel, TARGET_REQUIREMENT_UNIT_STABILITY_LEVEL))
+      const blockingIssueCount = activeIssueUnits.filter((issue) => issue.blockDev).length
+      const activeIssueCount = activeIssueUnits.length + openConflictCount
+
+      const typeCounter = new Map<string, { count: number; blockingCount: number }>()
+      for (const issue of activeIssueUnits) {
+        const key = issue.type
+        const current = typeCounter.get(key) ?? { count: 0, blockingCount: 0 }
+        typeCounter.set(key, {
+          count: current.count + 1,
+          blockingCount: current.blockingCount + (issue.blockDev ? 1 : 0),
+        })
+      }
+      if (openConflictCount > 0) {
+        const current = typeCounter.get('conflict') ?? { count: 0, blockingCount: 0 }
+        typeCounter.set('conflict', {
+          count: current.count + openConflictCount,
+          blockingCount: current.blockingCount,
+        })
+      }
+
+      const impactedRequirementUnitIds = new Set<string>()
+      for (const issue of activeIssueUnits) {
+        if (issue.primaryRequirementUnitId) {
+          impactedRequirementUnitIds.add(issue.primaryRequirementUnitId)
+        }
+      }
+      for (const unit of unitsBelowTarget) {
+        impactedRequirementUnitIds.add(unit.id)
+      }
+
+      const issueBreakdown = Array.from(typeCounter.entries())
+        .map(([type, stats]) => ({
+          type,
+          label: isIssueType(type) ? getIssueTypeLabel(type) : type,
+          count: stats.count,
+          blockingCount: stats.blockingCount,
+        }))
+        .sort((a, b) => b.count - a.count)
+
+      return {
+        counts: {
+          totalUnits: units.length,
+          activeUnits: activeUnits.length,
+          readyUnits: readyUnits.length,
+          unitsBelowTarget: unitsBelowTarget.length,
+          openIssues: activeIssueCount,
+          blockingIssues: blockingIssueCount,
+          openConflicts: openConflictCount,
+          pendingClarifications: pendingClarificationCount,
+        },
+        targetRequirementUnitStabilityLevel: TARGET_REQUIREMENT_UNIT_STABILITY_LEVEL,
+        issueBreakdown,
+        guidance: buildRequirementWorksurfaceGuidance({
+          requirementStabilityLevel: requirement.stabilityLevel,
+          totalUnits: units.length,
+          activeUnits: activeUnits.length,
+          unitsBelowTarget: unitsBelowTarget.length,
+          openIssueCount: activeIssueCount,
+          blockingIssueCount,
+          openConflictCount,
+          pendingClarificationCount,
+          highRiskChangeCount,
+          resignoffChangeCount,
+        }),
+        impactSummary: buildRequirementImpactSummary({
+          affectedRequirementUnitCount: impactedRequirementUnitIds.size,
+          openIssueCount: activeIssueCount,
+          blockingIssueCount,
+          openConflictCount,
+          pendingClarificationCount,
+          unitsBelowTarget: unitsBelowTarget.length,
+          requirementStabilityLevel: requirement.stabilityLevel,
         }),
       }
     }),
@@ -478,7 +637,7 @@ export const requirementRouter = createTRPCRouter({
         })
 
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-        const requirementUrl = `${baseUrl}/explorations/${input.id}`
+        const requirementUrl = `${baseUrl}/requirements/${input.id}`
         const req = await prisma.requirement.findUnique({
           where: { id: input.id },
           select: { title: true },

@@ -73,7 +73,7 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
       ? '/models'
       : currentView === 'evolution'
         ? '/evolution'
-        : '/explorations'
+        : '/requirements'
     if (merged.query) params.set('q', merged.query)
     if (merged.status) params.set('status', merged.status)
     if (merged.stabilityLevel) params.set('stability', merged.stabilityLevel)
@@ -119,13 +119,13 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
     ? '未找到匹配的 ModelCard'
     : currentView === 'evolution'
       ? '未找到匹配的演化记录'
-      : '未找到匹配的探索'
+      : '未找到匹配的需求'
 
   const viewLabel = currentView === 'models'
     ? 'Model Asset'
     : currentView === 'evolution'
       ? 'Evolution'
-      : 'Exploration'
+      : 'Requirement'
 
   return (
     <div className="space-y-5">
@@ -151,7 +151,7 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
             <div className="space-y-2">
               <p className="text-lg font-semibold text-slate-900">{emptyLabel}</p>
               <p className="text-sm text-slate-500">
-                调整筛选条件，或者开启一条新的探索流。
+                调整筛选条件，或者创建一个新的 Requirement。
               </p>
             </div>
           </div>
@@ -160,7 +160,7 @@ export function ExplorationsListClient({ initialRequirements, initialView }: Pro
             {requirements.map((req) => (
               <Link
                 key={req.id}
-                href={`/explorations/${req.id}`}
+                href={`/requirements/${req.id}`}
                 className="app-panel group flex min-h-[250px] flex-col justify-between p-5 sm:p-6"
               >
                 <div className="space-y-4">

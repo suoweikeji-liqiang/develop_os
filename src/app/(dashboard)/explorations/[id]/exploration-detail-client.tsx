@@ -30,7 +30,7 @@ import { canManageRequirementWorkflow } from '@/lib/workflow/permissions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { STABILITY_OPTIONS } from '@/lib/requirement-evolution'
+import { STABILITY_LABELS, STABILITY_OPTIONS } from '@/lib/requirement-evolution'
 
 interface Props {
   requirementId: string
@@ -56,9 +56,39 @@ interface CitationItem {
   excerpt: string
 }
 
-interface GateHint {
-  level: 'warning' | 'critical'
+interface RequirementGuidanceHint {
+  level: 'info' | 'warning' | 'critical'
+  title: string
   message: string
+}
+
+interface WorksurfaceSummary {
+  counts: {
+    totalUnits: number
+    activeUnits: number
+    readyUnits: number
+    unitsBelowTarget: number
+    openIssues: number
+    blockingIssues: number
+    openConflicts: number
+    pendingClarifications: number
+  }
+  targetRequirementUnitStabilityLevel: string
+  issueBreakdown: Array<{
+    type: string
+    label: string
+    count: number
+    blockingCount: number
+  }>
+  guidance: RequirementGuidanceHint[]
+  impactSummary: {
+    affectedRequirementUnitCount: number
+    openIssueCount: number
+    blockingIssueCount: number
+    hasBlockingIssue: boolean
+    mayAffectStability: boolean
+    reasons: string[]
+  }
 }
 
 const MODELCARD_SECTIONS = [
@@ -121,6 +151,7 @@ export function ExplorationDetailClient({
   const [signoffInvalidationToken, setSignoffInvalidationToken] = useState(0)
   const [issueRefreshToken, setIssueRefreshToken] = useState(0)
   const [changeRefreshToken, setChangeRefreshToken] = useState(0)
+  const [summaryRefreshToken, setSummaryRefreshToken] = useState(0)
   const [structureLoading, setStructureLoading] = useState(false)
   const [structureError, setStructureError] = useState<string | null>(null)
   const [completeness, setCompleteness] = useState<{ score: number; missingFields: string[] } | null>(null)
@@ -146,13 +177,26 @@ export function ExplorationDetailClient({
     status: string
   }>>([])
   const [activeChangeUnitId, setActiveChangeUnitId] = useState('')
-  const [gateHints, setGateHints] = useState<GateHint[]>([])
+  const [worksurfaceSummary, setWorksurfaceSummary] = useState<WorksurfaceSummary | null>(null)
   const [specMarkdown, setSpecMarkdown] = useState('')
   const [specLoading, setSpecLoading] = useState(false)
   const previousModelRef = useRef<FiveLayerModel | null>(null)
   const citations = (initialCitations ?? []) as CitationItem[]
   const explorationStage = getExplorationStage(currentStatus)
   const canManageWorkflow = canManageRequirementWorkflow({ roles: userRoles, isAdmin })
+  const handleRequirementUnitChanged = useCallback(() => {
+    setChangeRefreshToken((prev) => prev + 1)
+    setSummaryRefreshToken((prev) => prev + 1)
+  }, [])
+  const handleIssueQueueChanged = useCallback(() => {
+    setIssueRefreshToken((prev) => prev + 1)
+    setChangeRefreshToken((prev) => prev + 1)
+    setSummaryRefreshToken((prev) => prev + 1)
+  }, [])
+  const handleConflictChanged = useCallback(() => {
+    setIssueRefreshToken((prev) => prev + 1)
+    setSummaryRefreshToken((prev) => prev + 1)
+  }, [])
 
   const persistModel = useCallback(async (
     nextModel: FiveLayerModel,
@@ -347,24 +391,24 @@ export function ExplorationDetailClient({
     }
   }, [activeChangeUnitId, requirementId])
 
-  const refreshGateHints = useCallback(async () => {
+  const refreshWorksurfaceSummary = useCallback(async () => {
     try {
       const input = encodeURIComponent(JSON.stringify({ requirementId }))
-      const res = await fetch(`/api/trpc/requirement.getGateHints?input=${input}`)
+      const res = await fetch(`/api/trpc/requirement.getWorksurfaceSummary?input=${input}`)
       if (!res.ok) return
       const data = await res.json() as {
         result?: {
           data?: {
-            json?: { hints?: GateHint[] }
-          } | { hints?: GateHint[] }
+            json?: WorksurfaceSummary
+          } | WorksurfaceSummary
         }
       }
       const payload = (data.result?.data && typeof data.result.data === 'object' && 'json' in data.result.data
         ? data.result.data.json
-        : data.result?.data ?? {}) as { hints?: GateHint[] }
-      setGateHints(Array.isArray(payload.hints) ? payload.hints : [])
+        : data.result?.data ?? null) as WorksurfaceSummary | null
+      setWorksurfaceSummary(payload)
     } catch {
-      setGateHints([])
+      setWorksurfaceSummary(null)
     }
   }, [requirementId])
 
@@ -372,14 +416,15 @@ export function ExplorationDetailClient({
     void refreshClarification()
     void refreshCompleteness()
     void refreshChangeOptions()
-    void refreshGateHints()
+    void refreshWorksurfaceSummary()
   }, [
     changeRefreshToken,
     issueRefreshToken,
+    summaryRefreshToken,
     refreshChangeOptions,
     refreshClarification,
     refreshCompleteness,
-    refreshGateHints,
+    refreshWorksurfaceSummary,
   ])
 
   async function handleStructure() {
@@ -403,6 +448,7 @@ export function ExplorationDetailClient({
       if (data.result?.data?.model) setModel(data.result.data.model)
       if (data.result?.data?.completeness) setCompleteness(data.result.data.completeness)
       await refreshClarification()
+      setSummaryRefreshToken((prev) => prev + 1)
     } catch (error) {
       setStructureError(error instanceof Error ? error.message : '结构化失败')
     } finally {
@@ -439,6 +485,7 @@ export function ExplorationDetailClient({
         setChangeRefreshToken((prev) => prev + 1)
       }
       await Promise.all([refreshClarification(), refreshCompleteness()])
+      setSummaryRefreshToken((prev) => prev + 1)
     } catch {
       // degrade silently
     }
@@ -493,7 +540,8 @@ export function ExplorationDetailClient({
         },
       }))
       setIssueRefreshToken((prev) => prev + 1)
-      void refreshGateHints()
+      setChangeRefreshToken((prev) => prev + 1)
+      setSummaryRefreshToken((prev) => prev + 1)
     } catch (error) {
       setClarificationIssueState((prev) => ({
         ...prev,
@@ -534,12 +582,42 @@ export function ExplorationDetailClient({
       setCurrentStabilityLevel(payload?.stabilityLevel ?? currentStabilityLevel)
       setCurrentStabilityScore(payload?.stabilityScore ?? null)
       setCurrentStabilityReason(payload?.stabilityReason ?? '')
+      setSummaryRefreshToken((prev) => prev + 1)
     } catch (error) {
       setStabilityError(error instanceof Error ? error.message : '更新需求稳定度失败')
     } finally {
       setStabilitySaving(false)
     }
   }
+
+  const worksurfaceSections = [
+    {
+      id: 'overview',
+      label: '总览区',
+      value: `状态 ${currentStatus}`,
+      description: 'Requirement 管顶层边界、workflow、版本与整体推进。',
+    },
+    {
+      id: 'requirement-units',
+      label: 'Requirement Units 区',
+      value: `${worksurfaceSummary?.counts.totalUnits ?? 0} 个 Units`,
+      description: '颗粒推进对象放在 Requirement Units，不回堆到 Requirement 顶层。',
+    },
+    {
+      id: 'issue-queue',
+      label: 'Issue Queue 区',
+      value: `${worksurfaceSummary?.counts.openIssues ?? 0} 个 Open Items`,
+      description: '所有待推进问题优先收敛到 Issue Queue。',
+    },
+    {
+      id: 'stability-summary',
+      label: 'Stability Summary 区',
+      value: currentStabilityLevel && currentStabilityLevel in STABILITY_LABELS
+        ? STABILITY_LABELS[currentStabilityLevel as keyof typeof STABILITY_LABELS]
+        : '未评估',
+      description: 'Stability 负责成熟度判断，不做强阻断。',
+    },
+  ] as const
 
   return (
     <div className="space-y-6">
@@ -548,7 +626,7 @@ export function ExplorationDetailClient({
         <div className="relative grid gap-6 xl:grid-cols-[minmax(0,1.15fr)_360px]">
           <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-2 text-xs">
-              <span className="app-chip-dark">Exploration</span>
+              <span className="app-chip-dark">Requirement</span>
               <span className={`rounded-full border px-3 py-1 font-medium ${getStageClasses(explorationStage)}`}>
                 {explorationStage}
               </span>
@@ -613,7 +691,7 @@ export function ExplorationDetailClient({
           <div className="rounded-[28px] border border-white/10 bg-white/7 p-5 backdrop-blur-sm">
             <div className="flex items-center gap-2 text-sm font-medium text-white/80">
               <BookOpenText className="size-4 text-cyan-200" />
-              Exploration Context
+              Requirement Context
             </div>
             <p className="mt-4 max-h-72 overflow-auto whitespace-pre-wrap text-sm leading-6 text-white/68">
               {rawInput}
@@ -623,10 +701,75 @@ export function ExplorationDetailClient({
       </section>
 
       <section className="app-panel p-4 sm:p-5">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <p className="app-kicker">Requirement Worksurface</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950">当前需求的主推进工作面</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+              Requirement 管全局，Requirement Units 管颗粒推进，Issue Queue 管问题推进，Stability 管成熟度判断。
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <StabilityBadge level={currentStabilityLevel} />
+            {currentStabilityScore !== null ? <span className="app-chip">稳定度分 {currentStabilityScore}</span> : null}
+            <span className="app-chip">版本 v{version}</span>
+          </div>
+        </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-4">
+          {worksurfaceSections.map((section) => (
+            <a
+              key={section.id}
+              href={`#${section.id}`}
+              className="rounded-[20px] border border-slate-200/80 bg-slate-50/80 p-4 transition hover:border-slate-300 hover:bg-white"
+            >
+              <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">{section.label}</p>
+              <p className="mt-3 text-lg font-semibold text-slate-950">{section.value}</p>
+              <p className="mt-2 text-sm leading-6 text-slate-500">{section.description}</p>
+            </a>
+          ))}
+        </div>
+        <div className="mt-4 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">Impact Summary</p>
+              <p className="mt-1 text-sm leading-6 text-slate-500">
+                第一版只做轻量规则摘要，用于回答“这次推进现在会影响到什么”。</p>
+            </div>
+            <div className="flex flex-wrap gap-2 text-xs">
+              <span className="app-chip">影响 Units {worksurfaceSummary?.impactSummary.affectedRequirementUnitCount ?? 0}</span>
+              <span className="app-chip">Open Issues {worksurfaceSummary?.impactSummary.openIssueCount ?? 0}</span>
+              <span className={`app-chip ${(worksurfaceSummary?.impactSummary.hasBlockingIssue ?? false) ? 'text-red-700' : ''}`}>
+                Blocking {worksurfaceSummary?.impactSummary.blockingIssueCount ?? 0}
+              </span>
+              <span className={`app-chip ${(worksurfaceSummary?.impactSummary.mayAffectStability ?? false) ? 'text-amber-700' : ''}`}>
+                {worksurfaceSummary?.impactSummary.mayAffectStability ? '可能影响稳定度判断' : '当前未发现明显稳定度波动'}
+              </span>
+            </div>
+          </div>
+          {worksurfaceSummary?.impactSummary.reasons?.length ? (
+            <ul className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+              {worksurfaceSummary.impactSummary.reasons.map((reason) => (
+                <li key={reason} className="rounded-full border border-slate-200 bg-white px-3 py-1">
+                  {reason}
+                </li>
+              ))}
+            </ul>
+          ) : (
+            <p className="mt-3 text-sm text-slate-500">
+              当前还没有明显的阻断或低成熟度信号。
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section id="overview" className="app-panel p-4 sm:p-5">
         <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
           <div>
-            <p className="app-kicker">Workflow status</p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-950">推进当前探索阶段</h2>
+            <p className="app-kicker">Requirement Overview</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950">总览区</h2>
+            <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
+              这里保留 Requirement 的顶层说明、整体状态、版本链入口和全局工作流，不承载颗粒问题逐条处理。
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             {isAdmin && (
@@ -651,31 +794,37 @@ export function ExplorationDetailClient({
             onStatusChanged={setCurrentStatus}
           />
         </div>
-        {gateHints.length > 0 ? (
-          <div className="mt-4 space-y-2">
-            {gateHints.map((hint, index) => (
-              <div
-                key={`${hint.level}-${index}`}
-                className={`rounded-[18px] border px-4 py-3 text-sm ${
-                  hint.level === 'critical'
-                    ? 'border-red-200 bg-red-50 text-red-700'
-                    : 'border-amber-200 bg-amber-50 text-amber-700'
-                }`}
-              >
-                {hint.message}
-              </div>
-            ))}
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Requirement</p>
+            <p className="mt-2 text-sm font-semibold text-slate-950">顶层边界对象</p>
+            <p className="mt-2 text-xs leading-5 text-slate-500">负责定义当前需求的整体目标、边界与推进状态。</p>
           </div>
-        ) : null}
+          <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Units</p>
+            <p className="mt-2 text-sm font-semibold text-slate-950">{worksurfaceSummary?.counts.totalUnits ?? 0} 个单元</p>
+            <p className="mt-2 text-xs leading-5 text-slate-500">颗粒推进动作往下落到 Requirement Units。</p>
+          </div>
+          <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Issues</p>
+            <p className="mt-2 text-sm font-semibold text-slate-950">{worksurfaceSummary?.counts.openIssues ?? 0} 个开放问题</p>
+            <p className="mt-2 text-xs leading-5 text-slate-500">问题推进默认进入 Issue Queue，不再分散处理。</p>
+          </div>
+          <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Stability</p>
+            <p className="mt-2 text-sm font-semibold text-slate-950">{worksurfaceSummary?.counts.unitsBelowTarget ?? 0} 个单元待补齐</p>
+            <p className="mt-2 text-xs leading-5 text-slate-500">Stability 只给推荐，不直接强阻断当前流程。</p>
+          </div>
+        </div>
       </section>
 
-      <section className="app-panel p-4 sm:p-5">
+      <section id="stability-summary" className="app-panel p-4 sm:p-5">
         <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
           <div>
-            <p className="app-kicker">Requirement Evolution</p>
-            <h2 className="mt-2 text-2xl font-semibold text-slate-950">需求演化对象入口</h2>
+            <p className="app-kicker">Stability Summary</p>
+            <h2 className="mt-2 text-2xl font-semibold text-slate-950">Stability Summary 区</h2>
             <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-              保持现有需求澄清主链不变，在当前详情页逐步接入稳定度、Requirement Units、Issue Queue 和 Change Queue。
+              Stability 是推荐型判断器。它负责解释当前需求和 Requirement Units 的成熟度，而不是直接替代工作流或做强阻断。
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -683,6 +832,56 @@ export function ExplorationDetailClient({
             {currentStabilityScore !== null ? <span className="app-chip">稳定度分 {currentStabilityScore}</span> : null}
           </div>
         </div>
+        <div className="mt-4 grid gap-3 md:grid-cols-4">
+          <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Overall Stability</p>
+            <div className="mt-2 flex flex-wrap items-center gap-2">
+              <StabilityBadge level={currentStabilityLevel} />
+              {currentStabilityScore !== null ? <span className="app-chip">分数 {currentStabilityScore}</span> : null}
+            </div>
+          </div>
+          <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Unit Target</p>
+            <p className="mt-2 text-sm font-semibold text-slate-950">
+              {worksurfaceSummary?.targetRequirementUnitStabilityLevel && worksurfaceSummary.targetRequirementUnitStabilityLevel in STABILITY_LABELS
+                ? STABILITY_LABELS[worksurfaceSummary.targetRequirementUnitStabilityLevel as keyof typeof STABILITY_LABELS]
+                : 'S3 Almost Ready'}
+            </p>
+            <p className="mt-2 text-xs leading-5 text-slate-500">非归档 Requirement Unit 低于目标线时，会被建议优先补齐。</p>
+          </div>
+          <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Units Below Target</p>
+            <p className="mt-2 text-sm font-semibold text-slate-950">{worksurfaceSummary?.counts.unitsBelowTarget ?? 0}</p>
+            <p className="mt-2 text-xs leading-5 text-slate-500">建议优先补齐关键 Requirement Units 的稳定度。</p>
+          </div>
+          <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-3">
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Blocking Issues</p>
+            <p className="mt-2 text-sm font-semibold text-slate-950">{worksurfaceSummary?.counts.blockingIssues ?? 0}</p>
+            <p className="mt-2 text-xs leading-5 text-slate-500">有阻断问题时，系统只做软提示，建议先回到 Issue Queue 处理。</p>
+          </div>
+        </div>
+        {worksurfaceSummary?.guidance?.length ? (
+          <div className="mt-4 space-y-2">
+            {worksurfaceSummary.guidance.map((hint) => (
+              <div
+                key={`${hint.level}-${hint.title}`}
+                className={`rounded-[18px] border px-4 py-3 text-sm ${
+                  hint.level === 'critical'
+                    ? 'border-red-200 bg-red-50 text-red-700'
+                    : hint.level === 'warning'
+                      ? 'border-amber-200 bg-amber-50 text-amber-700'
+                      : 'border-sky-200 bg-sky-50 text-sky-700'
+                }`}
+              >
+                <p className="font-semibold">{hint.title}</p>
+                <p className="mt-1">{hint.message}</p>
+              </div>
+            ))}
+            <p className="px-1 text-xs text-slate-500">
+              以上提示当前只作为推进建议，不会直接阻断状态流转。
+            </p>
+          </div>
+        ) : null}
         <div className="mt-4 grid gap-3 lg:grid-cols-[220px_120px_minmax(0,1fr)_120px]">
           <select
             value={currentStabilityLevel ?? 'S0_IDEA'}
@@ -718,7 +917,7 @@ export function ExplorationDetailClient({
           <p className="mt-3 text-sm text-red-600">{stabilityError}</p>
         ) : null}
         <div className="mt-3 text-sm text-slate-600">
-          {currentStabilityReason || '当前已支持手动维护 Requirement 稳定度；规则化判断仍在后续阶段。'}
+          {currentStabilityReason || '当前稳定度已接入推荐型提示；本轮仍为软提示，不做强阻断。'}
         </div>
         <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
           <select
@@ -751,39 +950,150 @@ export function ExplorationDetailClient({
         <section className="space-y-4">
           <div className="app-panel p-4 sm:p-5">
             <h2 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">
-              Exploration Workspace
+              Supporting Workspace
             </h2>
             <p className="mt-2 text-sm leading-6 text-slate-500">
-              在这里用对话挑战假设、消化上下文、推动结构化抽象持续迭代。
+              主推进顺序先看总览区、Requirement Units、Issue Queue 和 Stability Summary；下面这些是辅助推进工具。
             </p>
           </div>
-          {model ? (
-            <ChatPanel
-              requirementId={requirementId}
-              currentModel={model}
-              initialMessages={initialMessages}
-              autoOpen={initialMessages.length > 0}
-              onPatchProposed={handlePatchProposed}
-              hasPendingDiff={pendingPatches !== null}
-            />
-          ) : (
-            <div className="app-panel border-dashed p-5 text-sm text-slate-500">
-              ModelCard is being generated. Dialogue is enabled after the first abstraction pass.
+
+          <section id="requirement-units" className="space-y-4">
+            <div className="app-panel p-4 sm:p-5">
+              <p className="app-kicker">Requirement Units</p>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950">Requirement Units 区</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                Requirement Unit 负责颗粒推进。请在这里拆分可跟踪单元、维护单元状态与单元稳定度，而不是把日常推进全堆回 Requirement 顶层。
+              </p>
             </div>
-          )}
-          <ConflictPanel requirementId={requirementId} hasModel={Boolean(model)} />
-          <RequirementUnitsPanel requirementId={requirementId} hasModel={Boolean(model)} />
-          <IssueUnitsPanel
-            requirementId={requirementId}
-            refreshToken={issueRefreshToken}
-            onDataChanged={() => setIssueRefreshToken((prev) => prev + 1)}
-          />
+            <RequirementUnitsPanel
+              requirementId={requirementId}
+              hasModel={Boolean(model)}
+              onDataChanged={handleRequirementUnitChanged}
+            />
+          </section>
+
+          <section id="issue-queue" className="space-y-4">
+            <div className="app-panel p-4 sm:p-5">
+              <p className="app-kicker">Issue Queue</p>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950">Issue Queue 区</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                所有待推进问题优先收敛到这里。Clarification 与 Conflict Scan 仍保留原始入口，但默认问题推进应先回到统一 Issue Queue。
+              </p>
+              {worksurfaceSummary?.issueBreakdown?.length ? (
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+                  {worksurfaceSummary.issueBreakdown.map((item) => (
+                    <span key={item.type} className={`app-chip ${item.blockingCount > 0 ? 'text-red-700' : ''}`}>
+                      {item.label} {item.count}
+                    </span>
+                  ))}
+                </div>
+              ) : null}
+            </div>
+            <IssueUnitsPanel
+              requirementId={requirementId}
+              refreshToken={issueRefreshToken}
+              onDataChanged={handleIssueQueueChanged}
+            />
+            <details className="app-panel p-4 sm:p-5">
+              <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">
+                Legacy Conflict / Clarification Entrances
+              </summary>
+              <div className="mt-4 space-y-4">
+                <ConflictPanel
+                  requirementId={requirementId}
+                  hasModel={Boolean(model)}
+                  onDataChanged={handleConflictChanged}
+                />
+                <section className="app-panel p-4 sm:p-5 space-y-4">
+                  <div>
+                    <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">Clarification Queue</h3>
+                    <p className="mt-2 text-sm leading-6 text-slate-500">
+                      澄清问题保留为原始问答面；需要持续推进的问题建议转入上方 Issue Queue。
+                    </p>
+                  </div>
+                  <details open>
+                    <summary className="cursor-pointer text-sm font-semibold text-slate-700">查看澄清问题</summary>
+                    <div className="mt-3 space-y-4">
+                      <Button variant="outline" onClick={refreshClarification}>刷新澄清问题</Button>
+                      {(clarificationSession?.questions ?? []).map((question) => (
+                        <div key={question.id} className="rounded-md border p-3 space-y-2">
+                          <p className="text-xs text-slate-500">[{question.category}] {question.status}</p>
+                          <p className="text-sm text-slate-800">{question.questionText}</p>
+                          <Textarea
+                            placeholder="输入回答..."
+                            value={answerDrafts[question.id] ?? ''}
+                            onChange={(event) => setAnswerDrafts((prev) => ({ ...prev, [question.id]: event.target.value }))}
+                          />
+                          <div className="flex gap-2">
+                            <Button size="sm" onClick={() => handleAnswerQuestion(question.id)}>提交</Button>
+                            {question.status !== 'RESOLVED' && (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void handleCreateClarificationIssue(question.id)}
+                                disabled={clarificationIssueState[question.id]?.loading}
+                              >
+                                {clarificationIssueState[question.id]?.loading ? '转换中...' : '转入 Issue Queue'}
+                              </Button>
+                            )}
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={async () => {
+                                await fetch('/api/trpc/clarification.updateQuestionStatus', {
+                                  method: 'POST',
+                                  headers: { 'Content-Type': 'application/json' },
+                                  body: JSON.stringify({ questionId: question.id, status: 'SKIPPED' }),
+                                })
+                                await refreshClarification()
+                                setSummaryRefreshToken((prev) => prev + 1)
+                              }}
+                            >
+                              跳过
+                            </Button>
+                          </div>
+                          {clarificationIssueState[question.id]?.message ? (
+                            <p className="text-xs text-slate-500">{clarificationIssueState[question.id]?.message}</p>
+                          ) : null}
+                        </div>
+                      ))}
+                    </div>
+                  </details>
+                </section>
+              </div>
+            </details>
+          </section>
+
+          <section className="space-y-4">
+            <div className="app-panel p-4 sm:p-5">
+              <p className="app-kicker">Secondary Tools</p>
+              <h2 className="mt-2 text-2xl font-semibold text-slate-950">辅助推进工具</h2>
+              <p className="mt-2 text-sm leading-6 text-slate-500">
+                这些能力继续保留，但本轮不把它们定义成主工作面。主线仍然是 Requirement / Units / Issue Queue / Stability。
+              </p>
+            </div>
+            {model ? (
+              <ChatPanel
+                requirementId={requirementId}
+                currentModel={model}
+                initialMessages={initialMessages}
+                autoOpen={initialMessages.length > 0}
+                onPatchProposed={handlePatchProposed}
+                hasPendingDiff={pendingPatches !== null}
+              />
+            ) : (
+              <div className="app-panel border-dashed p-5 text-sm text-slate-500">
+                ModelCard is being generated. Dialogue is enabled after the first abstraction pass.
+              </div>
+            )}
+          </section>
+
           <ChangeUnitsPanel
             requirementId={requirementId}
             refreshToken={changeRefreshToken}
             onDataChanged={() => {
               setChangeRefreshToken((prev) => prev + 1)
-              void refreshGateHints()
+              setSummaryRefreshToken((prev) => prev + 1)
             }}
           />
           <section className="app-panel p-4 sm:p-5 space-y-4">
@@ -798,56 +1108,6 @@ export function ExplorationDetailClient({
                 {completeness?.missingFields?.length ? (
                   <p className="text-xs text-slate-500">缺失字段：{completeness.missingFields.join(', ')}</p>
                 ) : null}
-              </div>
-            </details>
-          </section>
-
-          <section className="app-panel p-4 sm:p-5 space-y-4">
-            <details>
-              <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">澄清区块</summary>
-              <div className="mt-3 space-y-4">
-                <Button variant="outline" onClick={refreshClarification}>刷新问题队列</Button>
-                {(clarificationSession?.questions ?? []).map((question) => (
-                  <div key={question.id} className="rounded-md border p-3 space-y-2">
-                    <p className="text-xs text-slate-500">[{question.category}] {question.status}</p>
-                    <p className="text-sm text-slate-800">{question.questionText}</p>
-                    <Textarea
-                      placeholder="输入回答..."
-                      value={answerDrafts[question.id] ?? ''}
-                      onChange={(event) => setAnswerDrafts((prev) => ({ ...prev, [question.id]: event.target.value }))}
-                    />
-                    <div className="flex gap-2">
-                      <Button size="sm" onClick={() => handleAnswerQuestion(question.id)}>提交</Button>
-                      {question.status !== 'RESOLVED' && (
-                        <Button
-                          size="sm"
-                          variant="outline"
-                          onClick={() => void handleCreateClarificationIssue(question.id)}
-                          disabled={clarificationIssueState[question.id]?.loading}
-                        >
-                          {clarificationIssueState[question.id]?.loading ? '转换中...' : '转为 Issue'}
-                        </Button>
-                      )}
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        onClick={async () => {
-                          await fetch('/api/trpc/clarification.updateQuestionStatus', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({ questionId: question.id, status: 'SKIPPED' }),
-                          })
-                          await refreshClarification()
-                        }}
-                      >
-                        跳过
-                      </Button>
-                    </div>
-                    {clarificationIssueState[question.id]?.message ? (
-                      <p className="text-xs text-slate-500">{clarificationIssueState[question.id]?.message}</p>
-                    ) : null}
-                  </div>
-                ))}
               </div>
             </details>
           </section>

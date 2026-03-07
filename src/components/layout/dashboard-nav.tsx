@@ -6,15 +6,15 @@ import { Activity, Atom, BookMarked, Compass, Plus, ShieldCheck } from 'lucide-r
 import { cn } from '@/lib/utils'
 
 const NAV_ITEMS = [
-  { href: '/explorations', label: 'Explorations', detail: 'Signal flows', icon: Compass },
+  { href: '/requirements', label: 'Requirements', detail: 'Worksurface', icon: Compass },
   { href: '/models', label: 'Models', detail: 'Structured assets', icon: Atom },
   { href: '/evolution', label: 'Evolution', detail: 'Version drift', icon: Activity },
   { href: '/knowledge', label: 'Knowledge', detail: 'Context memory', icon: BookMarked },
 ] as const
 
 function isActivePath(pathname: string, href: string): boolean {
-  if (href === '/explorations') {
-    return pathname === '/' || pathname.startsWith('/explorations')
+  if (href === '/requirements') {
+    return pathname === '/' || pathname.startsWith('/requirements') || pathname.startsWith('/explorations')
   }
 
   return pathname === href || pathname.startsWith(`${href}/`)
@@ -67,11 +67,11 @@ export function DashboardNav({ isAdmin }: { isAdmin: boolean }) {
       </nav>
 
       <Link
-        href="/explorations/new"
+        href="/requirements/new"
         className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-cyan-300/50 bg-[linear-gradient(135deg,rgba(32,99,246,0.98),rgba(15,195,255,0.92))] px-4 py-3 text-sm font-medium text-white shadow-[0_18px_48px_rgba(31,109,255,0.28)] hover:-translate-y-0.5 sm:w-auto sm:min-w-[220px]"
       >
         <Plus className="size-4" />
-        Start Exploration
+        New Requirement
       </Link>
     </div>
   )

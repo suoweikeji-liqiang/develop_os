@@ -79,7 +79,7 @@ export const commentRouter = createTRPCRouter({
       // Fire-and-forget email + webhook for mentioned users
       void (async () => {
         const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? 'http://localhost:3000'
-        const requirementUrl = `${baseUrl}/explorations/${input.requirementId}`
+        const requirementUrl = `${baseUrl}/requirements/${input.requirementId}`
         const req = await prisma.requirement.findUnique({
           where: { id: input.requirementId },
           select: { title: true },
