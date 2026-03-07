@@ -22,6 +22,7 @@ import {
 } from '@/lib/issue-queue'
 import {
   buildRequirementImpactSummary,
+  buildRequirementStabilityGovernance,
   buildRequirementWorksurfaceGuidance,
   isRequirementStabilityAtLeast,
   summarizeUnitsBelowLayerTarget,
@@ -397,6 +398,7 @@ export const requirementRouter = createTRPCRouter({
         where: { id: input.requirementId },
         select: {
           id: true,
+          status: true,
           stabilityLevel: true,
         },
       })
@@ -410,6 +412,8 @@ export const requirementRouter = createTRPCRouter({
           where: { requirementId: input.requirementId },
           select: {
             id: true,
+            unitKey: true,
+            title: true,
             layer: true,
             status: true,
             stabilityLevel: true,
@@ -532,6 +536,15 @@ export const requirementRouter = createTRPCRouter({
           pendingClarificationCount,
           highRiskChangeCount,
           resignoffChangeCount,
+        }),
+        stabilityGovernance: buildRequirementStabilityGovernance({
+          requirementStatus: requirement.status,
+          requirementStabilityLevel: requirement.stabilityLevel,
+          units: activeUnits,
+          unitsBelowTargetSummary,
+          blockingIssueCount,
+          openConflictCount,
+          pendingClarificationCount,
         }),
         impactSummary: buildRequirementImpactSummary({
           affectedRequirementUnitCount: impactedRequirementUnitIds.size,

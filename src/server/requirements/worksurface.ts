@@ -1,8 +1,15 @@
-import { STABILITY_LABELS, type RequirementStabilityLevel } from '@/lib/requirement-evolution'
+import {
+  STABILITY_LABELS,
+  type RequirementStabilityLevel,
+  type RequirementUnitStatus,
+} from '@/lib/requirement-evolution'
 import {
   DEFAULT_REQUIREMENT_UNIT_TARGET_STABILITY_LEVEL,
+  getRequirementUnitProgressHint,
   getRequirementUnitLayerProfile,
 } from '@/lib/requirement-unit-layer'
+import { STATUS_LABELS } from '@/lib/workflow/status-labels'
+import type { RequirementStatus } from '@/lib/workflow/status-machine'
 
 // Legacy default fallback for callers that still expect a single unit target line.
 // Actual Requirement Unit maturity evaluation is now layer-aware.
@@ -57,6 +64,38 @@ interface RequirementImpactSummarySeed {
   requirementStabilityLevel: RequirementStabilityLevel
 }
 
+interface RequirementStabilityGovernanceUnitSeed {
+  id: string
+  unitKey: string
+  title: string
+  layer: string
+  status: RequirementUnitStatus
+  stabilityLevel: string | null | undefined
+}
+
+interface RequirementStabilityGovernanceSeed {
+  requirementStatus: RequirementStatus
+  requirementStabilityLevel: RequirementStabilityLevel
+  units: RequirementStabilityGovernanceUnitSeed[]
+  unitsBelowTargetSummary: Array<{
+    layerLabel: string
+    count: number
+    targetStabilityLevel: RequirementStabilityLevel
+  }>
+  blockingIssueCount: number
+  openConflictCount: number
+  pendingClarificationCount: number
+}
+
+const REQUIREMENT_UNIT_STATUS_ORDER: Record<RequirementUnitStatus, number> = {
+  READY_FOR_DEV: 0,
+  READY_FOR_DESIGN: 1,
+  AGREED: 2,
+  REFINING: 3,
+  DRAFT: 4,
+  ARCHIVED: 5,
+}
+
 export function isRequirementStabilityAtLeast(level: string | null | undefined, target: RequirementStabilityLevel): boolean {
   if (!level || !(level in STABILITY_ORDER)) return false
   return STABILITY_ORDER[level as RequirementStabilityLevel] >= STABILITY_ORDER[target]
@@ -76,6 +115,145 @@ function formatUnitsBelowTargetSummary(
     .slice(0, 3)
     .map((item) => `${item.layerLabel} ${item.count} 个（目标 ${STABILITY_LABELS[item.targetStabilityLevel]}）`)
     .join('；')
+}
+
+function getRequirementNextStage(status: RequirementStatus): RequirementStatus | null {
+  if (status === 'DRAFT') return 'IN_REVIEW'
+  if (status === 'IN_REVIEW') return 'CONSENSUS'
+  if (status === 'CONSENSUS') return 'IMPLEMENTING'
+  if (status === 'IMPLEMENTING') return 'DONE'
+  return null
+}
+
+function getRequirementUnitStabilityOrder(level: string | null | undefined): number {
+  if (!level || !(level in STABILITY_ORDER)) return -1
+  return STABILITY_ORDER[level as RequirementStabilityLevel]
+}
+
+function getRequirementUnitGapScore(unit: RequirementStabilityGovernanceUnitSeed): number {
+  const profile = getRequirementUnitLayerProfile(unit.layer)
+  return STABILITY_ORDER[profile.targetStabilityLevel] - getRequirementUnitStabilityOrder(unit.stabilityLevel)
+}
+
+export function buildRequirementStageAdvanceGuidance(seed: RequirementStabilityGovernanceSeed): RequirementGuidanceHint {
+  const nextStage = getRequirementNextStage(seed.requirementStatus)
+
+  if (!nextStage) {
+    return {
+      level: 'info',
+      title: '当前已处于最终阶段',
+      message: 'Requirement 已到达当前工作流终点，后续重点转为维护稳定度与沉淀结论。',
+    }
+  }
+
+  const blockers: string[] = []
+  if (seed.blockingIssueCount > 0) blockers.push(`${seed.blockingIssueCount} 个阻断问题`)
+  if (seed.openConflictCount > 0) blockers.push(`${seed.openConflictCount} 个待处理 Conflict projection`)
+  if (seed.pendingClarificationCount > 0) blockers.push(`${seed.pendingClarificationCount} 个未收敛 Clarification`)
+  const unitsBelowTargetSummary = formatUnitsBelowTargetSummary(seed.unitsBelowTargetSummary)
+  if (seed.unitsBelowTargetSummary.length > 0) {
+    blockers.push(`分层目标未达标（${unitsBelowTargetSummary}）`)
+  }
+  if (isLowRequirementStability(seed.requirementStabilityLevel)) {
+    blockers.push(`总体稳定度仍为 ${STABILITY_LABELS[seed.requirementStabilityLevel]}`)
+  }
+
+  if (blockers.length > 0) {
+    return {
+      level: seed.blockingIssueCount > 0 ? 'critical' : 'warning',
+      title: `准备进入 ${STATUS_LABELS[nextStage]} 前建议先补齐关键信号`,
+      message: `Requirement 当前处于 ${STATUS_LABELS[seed.requirementStatus]}。在准备进入 ${STATUS_LABELS[nextStage]} 前，建议先处理 ${blockers.join('、')}。本轮仍只做软提示，不直接阻断状态流转。`,
+    }
+  }
+
+  return {
+    level: 'info',
+    title: `可以开始准备进入 ${STATUS_LABELS[nextStage]}`,
+    message: `当前总体稳定度、分层目标与问题面没有明显阻塞信号。若需要进入 ${STATUS_LABELS[nextStage]}，建议优先推进已达标 Units 并保持对新增问题信号的观察。`,
+  }
+}
+
+export function buildRequirementStabilityGovernance(seed: RequirementStabilityGovernanceSeed) {
+  const activeUnits = seed.units.filter((unit) => unit.status !== 'ARCHIVED')
+  const readyUnits = activeUnits
+    .filter((unit) => isRequirementStabilityAtLeast(
+      unit.stabilityLevel,
+      getRequirementUnitLayerProfile(unit.layer).targetStabilityLevel,
+    ))
+    .sort((a, b) => {
+      const statusDiff = REQUIREMENT_UNIT_STATUS_ORDER[a.status] - REQUIREMENT_UNIT_STATUS_ORDER[b.status]
+      if (statusDiff !== 0) return statusDiff
+      return getRequirementUnitStabilityOrder(b.stabilityLevel) - getRequirementUnitStabilityOrder(a.stabilityLevel)
+    })
+    .slice(0, 3)
+    .map((unit) => {
+      const profile = getRequirementUnitLayerProfile(unit.layer)
+      const progressHint = getRequirementUnitProgressHint({
+        layer: unit.layer,
+        stabilityLevel: unit.stabilityLevel,
+        status: unit.status,
+      })
+
+      return {
+        id: unit.id,
+        unitKey: unit.unitKey,
+        title: unit.title,
+        layerLabel: profile.label,
+        currentStabilityLabel: unit.stabilityLevel && unit.stabilityLevel in STABILITY_LABELS
+          ? STABILITY_LABELS[unit.stabilityLevel as RequirementStabilityLevel]
+          : '未评估',
+        targetStabilityLabel: STABILITY_LABELS[profile.targetStabilityLevel],
+        recommendation: progressHint.message,
+      }
+    })
+
+  const focusUnits = activeUnits
+    .filter((unit) => !isRequirementStabilityAtLeast(
+      unit.stabilityLevel,
+      getRequirementUnitLayerProfile(unit.layer).targetStabilityLevel,
+    ))
+    .sort((a, b) => {
+      const gapDiff = getRequirementUnitGapScore(b) - getRequirementUnitGapScore(a)
+      if (gapDiff !== 0) return gapDiff
+      return REQUIREMENT_UNIT_STATUS_ORDER[a.status] - REQUIREMENT_UNIT_STATUS_ORDER[b.status]
+    })
+    .slice(0, 3)
+    .map((unit) => {
+      const profile = getRequirementUnitLayerProfile(unit.layer)
+      const progressHint = getRequirementUnitProgressHint({
+        layer: unit.layer,
+        stabilityLevel: unit.stabilityLevel,
+        status: unit.status,
+      })
+
+      return {
+        id: unit.id,
+        unitKey: unit.unitKey,
+        title: unit.title,
+        layerLabel: profile.label,
+        currentStabilityLabel: unit.stabilityLevel && unit.stabilityLevel in STABILITY_LABELS
+          ? STABILITY_LABELS[unit.stabilityLevel as RequirementStabilityLevel]
+          : '未评估',
+        targetStabilityLabel: STABILITY_LABELS[profile.targetStabilityLevel],
+        recommendation: progressHint.message,
+      }
+    })
+
+  const riskLayers = seed.unitsBelowTargetSummary
+    .slice(0, 3)
+    .map((item) => ({
+      layerLabel: item.layerLabel,
+      count: item.count,
+      targetStabilityLabel: STABILITY_LABELS[item.targetStabilityLevel],
+      recommendation: `${item.layerLabel} 层仍有 ${item.count} 个 Unit 未达到 ${STABILITY_LABELS[item.targetStabilityLevel]}，当前是主要风险来源。`,
+    }))
+
+  return {
+    readyUnits,
+    focusUnits,
+    riskLayers,
+    stageAdvanceHint: buildRequirementStageAdvanceGuidance(seed),
+  }
 }
 
 export function buildRequirementWorksurfaceGuidance(seed: RequirementWorksurfaceGuidanceSeed): RequirementGuidanceHint[] {

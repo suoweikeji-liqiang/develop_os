@@ -11,6 +11,7 @@ import {
   DEFAULT_REQUIREMENT_UNIT_LAYER,
   getRequirementUnitLayerGuidanceMessage,
   getRequirementUnitLayerProfile,
+  getRequirementUnitProgressHint,
   getRequirementUnitTargetStabilityLabel,
   isRequirementUnitAtTarget,
   REQUIREMENT_UNIT_LAYER_OPTIONS,
@@ -405,6 +406,11 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
           {items.map((item) => {
             const layerProfile = getRequirementUnitLayerProfile(item.layer)
             const meetsTarget = isRequirementUnitAtTarget(item.layer, item.stabilityLevel)
+            const progressHint = getRequirementUnitProgressHint({
+              layer: item.layer,
+              stabilityLevel: item.stabilityLevel,
+              status: item.status,
+            })
 
             return (
               <li key={item.id} className="rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
@@ -448,6 +454,15 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
                   分层说明：{layerProfile.description} 推荐目标 {STABILITY_LABELS[layerProfile.targetStabilityLevel]}。
                   {getRequirementUnitLayerGuidanceMessage(item.layer, item.stabilityLevel)}
                 </p>
+
+                <div className={`mt-3 rounded-[16px] border px-3 py-3 text-sm ${
+                  progressHint.kind === 'advance'
+                    ? 'border-emerald-200 bg-emerald-50/80 text-emerald-800'
+                    : 'border-amber-200 bg-amber-50/80 text-amber-800'
+                }`}>
+                  <p className="font-semibold">{progressHint.label}</p>
+                  <p className="mt-1 leading-6">{progressHint.message}</p>
+                </div>
 
                 {item.stabilityReason ? (
                   <p className="mt-3 text-xs leading-5 text-slate-500">

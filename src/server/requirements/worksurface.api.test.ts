@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { buildRequirementImpactSummary, summarizeUnitsBelowLayerTarget } from './worksurface'
+import {
+  buildRequirementImpactSummary,
+  buildRequirementStabilityGovernance,
+  summarizeUnitsBelowLayerTarget,
+} from './worksurface'
 
 describe('requirement worksurface impact summary', () => {
   it('explains why the current requirement state affects downstream work', () => {
@@ -50,5 +54,45 @@ describe('requirement worksurface impact summary', () => {
     expect(summary.mayAffectStability).toBe(false)
     expect(summary.headline).toContain('影响面相对可控')
     expect(summary.signals).toHaveLength(0)
+  })
+
+  it('surfaces governance suggestions for ready units, lagging units and stage advance', () => {
+    const unitsBelowTargetSummary = summarizeUnitsBelowLayerTarget([
+      { layer: 'exception', stabilityLevel: 'S2_MAIN_FLOW_CLEAR' },
+      { layer: 'scenario', stabilityLevel: 'S2_MAIN_FLOW_CLEAR' },
+    ])
+
+    const governance = buildRequirementStabilityGovernance({
+      requirementStatus: 'CONSENSUS',
+      requirementStabilityLevel: 'S2_MAIN_FLOW_CLEAR',
+      units: [
+        {
+          id: 'unit-ready',
+          unitKey: 'RU-01',
+          title: '注册主流程',
+          layer: 'scenario',
+          status: 'READY_FOR_DESIGN',
+          stabilityLevel: 'S3_ALMOST_READY',
+        },
+        {
+          id: 'unit-risk',
+          unitKey: 'RU-02',
+          title: '异常兜底',
+          layer: 'exception',
+          status: 'REFINING',
+          stabilityLevel: 'S2_MAIN_FLOW_CLEAR',
+        },
+      ],
+      unitsBelowTargetSummary,
+      blockingIssueCount: 1,
+      openConflictCount: 1,
+      pendingClarificationCount: 2,
+    })
+
+    expect(governance.readyUnits[0]?.unitKey).toBe('RU-01')
+    expect(governance.focusUnits[0]?.unitKey).toBe('RU-02')
+    expect(governance.riskLayers[0]?.layerLabel).toBe('Exception')
+    expect(governance.stageAdvanceHint.title).toContain('实现中')
+    expect(governance.stageAdvanceHint.message).toContain('阻断问题')
   })
 })

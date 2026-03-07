@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import { STABILITY_LABELS, type RequirementStabilityLevel } from './requirement-evolution'
+import {
+  REQUIREMENT_UNIT_STATUS_LABELS,
+  STABILITY_LABELS,
+  type RequirementStabilityLevel,
+} from './requirement-evolution'
 
 export const RequirementUnitLayerEnum = z.enum([
   'goal',
@@ -172,4 +176,52 @@ export function getRequirementUnitLayerGuidanceMessage(layer: string | null | un
   }
 
   return `${profile.label} 层当前推荐目标是 ${STABILITY_LABELS[profile.targetStabilityLevel]}。${profile.targetReason}`
+}
+
+export interface RequirementUnitProgressHint {
+  kind: 'advance' | 'stabilize'
+  label: string
+  message: string
+}
+
+export function getRequirementUnitProgressHint(input: {
+  layer: string | null | undefined
+  stabilityLevel: string | null | undefined
+  status: string | null | undefined
+}): RequirementUnitProgressHint {
+  const profile = getRequirementUnitLayerProfile(input.layer)
+  const targetLabel = STABILITY_LABELS[profile.targetStabilityLevel]
+  const currentLabel = input.stabilityLevel && input.stabilityLevel in STABILITY_LABELS
+    ? STABILITY_LABELS[input.stabilityLevel as RequirementStabilityLevel]
+    : '未评估'
+
+  if (!isRequirementUnitAtTarget(input.layer, input.stabilityLevel)) {
+    return {
+      kind: 'stabilize',
+      label: '建议先补齐稳定度',
+      message: `${profile.label} 层当前为 ${currentLabel}，推荐目标是 ${targetLabel}。${profile.targetReason}`,
+    }
+  }
+
+  if (input.status === 'READY_FOR_DEV') {
+    return {
+      kind: 'advance',
+      label: '可优先推进开发准备',
+      message: `${profile.label} 层已达到 ${targetLabel}，且当前单元状态为 ${REQUIREMENT_UNIT_STATUS_LABELS.READY_FOR_DEV}，可优先推进开发准备或实现排期。`,
+    }
+  }
+
+  if (input.status === 'READY_FOR_DESIGN' || input.status === 'AGREED') {
+    return {
+      kind: 'advance',
+      label: '可优先推进设计收口',
+      message: `${profile.label} 层已达到 ${targetLabel}，当前单元状态为 ${input.status === 'READY_FOR_DESIGN' ? REQUIREMENT_UNIT_STATUS_LABELS.READY_FOR_DESIGN : REQUIREMENT_UNIT_STATUS_LABELS.AGREED}，建议优先推进设计收口或进一步评审。`,
+    }
+  }
+
+  return {
+    kind: 'advance',
+    label: '稳定度已达标，建议继续推进',
+    message: `${profile.label} 层已达到 ${targetLabel}，但当前单元状态仍为 ${input.status && input.status in REQUIREMENT_UNIT_STATUS_LABELS ? REQUIREMENT_UNIT_STATUS_LABELS[input.status as keyof typeof REQUIREMENT_UNIT_STATUS_LABELS] : '待推进'}，建议继续补齐单元状态与产出。`,
+  }
 }

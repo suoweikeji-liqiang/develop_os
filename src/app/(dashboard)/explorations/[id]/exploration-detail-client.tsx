@@ -88,6 +88,33 @@ interface WorksurfaceSummary {
     blockingCount: number
   }>
   guidance: RequirementGuidanceHint[]
+  stabilityGovernance: {
+    readyUnits: Array<{
+      id: string
+      unitKey: string
+      title: string
+      layerLabel: string
+      currentStabilityLabel: string
+      targetStabilityLabel: string
+      recommendation: string
+    }>
+    focusUnits: Array<{
+      id: string
+      unitKey: string
+      title: string
+      layerLabel: string
+      currentStabilityLabel: string
+      targetStabilityLabel: string
+      recommendation: string
+    }>
+    riskLayers: Array<{
+      layerLabel: string
+      count: number
+      targetStabilityLabel: string
+      recommendation: string
+    }>
+    stageAdvanceHint: RequirementGuidanceHint
+  }
   impactSummary: {
     affectedRequirementUnitCount: number
     openIssueCount: number
@@ -974,6 +1001,76 @@ export function ExplorationDetailClient({
             <p className="px-1 text-xs text-slate-500">
               以上提示当前只作为推进建议，不会直接阻断状态流转。
             </p>
+          </div>
+        ) : null}
+        {worksurfaceSummary?.stabilityGovernance ? (
+          <div className="mt-4 space-y-4">
+            <div className={`rounded-[18px] border px-4 py-3 text-sm ${
+              worksurfaceSummary.stabilityGovernance.stageAdvanceHint.level === 'critical'
+                ? 'border-red-200 bg-red-50 text-red-700'
+                : worksurfaceSummary.stabilityGovernance.stageAdvanceHint.level === 'warning'
+                  ? 'border-amber-200 bg-amber-50 text-amber-700'
+                  : 'border-sky-200 bg-sky-50 text-sky-700'
+            }`}>
+              <p className="font-semibold">{worksurfaceSummary.stabilityGovernance.stageAdvanceHint.title}</p>
+              <p className="mt-1 leading-6">{worksurfaceSummary.stabilityGovernance.stageAdvanceHint.message}</p>
+            </div>
+            <div className="grid gap-3 xl:grid-cols-3">
+              <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
+                <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Ready To Advance</p>
+                <div className="mt-3 space-y-3">
+                  {worksurfaceSummary.stabilityGovernance.readyUnits.length > 0 ? (
+                    worksurfaceSummary.stabilityGovernance.readyUnits.map((unit) => (
+                      <div key={unit.id} className="rounded-[16px] border border-white/70 bg-white/90 px-3 py-3">
+                        <p className="text-sm font-semibold text-slate-900">{unit.unitKey} · {unit.title}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {unit.layerLabel} · 当前 {unit.currentStabilityLabel} · 目标 {unit.targetStabilityLabel}
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{unit.recommendation}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500">当前还没有已达分层目标、可优先推进的 Requirement Unit。</p>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
+                <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Focus First</p>
+                <div className="mt-3 space-y-3">
+                  {worksurfaceSummary.stabilityGovernance.focusUnits.length > 0 ? (
+                    worksurfaceSummary.stabilityGovernance.focusUnits.map((unit) => (
+                      <div key={unit.id} className="rounded-[16px] border border-white/70 bg-white/90 px-3 py-3">
+                        <p className="text-sm font-semibold text-slate-900">{unit.unitKey} · {unit.title}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          {unit.layerLabel} · 当前 {unit.currentStabilityLabel} · 目标 {unit.targetStabilityLabel}
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{unit.recommendation}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500">当前没有明显落后于分层目标的 Requirement Unit。</p>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
+                <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Primary Risk Layers</p>
+                <div className="mt-3 space-y-3">
+                  {worksurfaceSummary.stabilityGovernance.riskLayers.length > 0 ? (
+                    worksurfaceSummary.stabilityGovernance.riskLayers.map((layer) => (
+                      <div key={`${layer.layerLabel}-${layer.targetStabilityLabel}`} className="rounded-[16px] border border-white/70 bg-white/90 px-3 py-3">
+                        <p className="text-sm font-semibold text-slate-900">{layer.layerLabel}</p>
+                        <p className="mt-1 text-xs text-slate-500">
+                          未达标 {layer.count} 个 · 推荐目标 {layer.targetStabilityLabel}
+                        </p>
+                        <p className="mt-2 text-sm leading-6 text-slate-600">{layer.recommendation}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-500">当前没有明显的 layer 级稳定度风险。</p>
+                  )}
+                </div>
+              </div>
+            </div>
           </div>
         ) : null}
         <div className="mt-4 grid gap-3 lg:grid-cols-[220px_120px_minmax(0,1fr)_120px]">

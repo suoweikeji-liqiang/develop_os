@@ -148,10 +148,17 @@
 - `RequirementUnit.layer` 已统一收口到 `src/lib/requirement-unit-layer.ts`
 - layer-aware `target stability` 和 guidance copy 已进入 helper、worksurface 和 Unit 列表
 - `unitsBelowTarget` 已改为按各自 layer 的推荐目标计算
+- Stability Summary 已补“推荐型治理”信息：
+  - 可优先推进的 Units
+  - 应优先补齐的 Units
+  - 当前主要风险 Layer
+  - 准备进入下一阶段前的软提示
+- Requirement Unit 列表已补逐条推进建议，不再只显示稳定度标签
 
 ### 当前残留
 - 仍是静态映射，不按 Requirement status 或领域上下文动态调整
 - 自定义 layer 仍按默认 `S3` fallback 处理
+- 下一阶段提示仍是规则摘要，不是状态门禁
 
 ### 下一轮可继续推进
 - 根据 Requirement status 调整不同 layer 的目标线

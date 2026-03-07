@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import {
   getRequirementUnitLayerGuidanceMessage,
   getRequirementUnitLayerProfile,
+  getRequirementUnitProgressHint,
   getRequirementUnitLayerTargetGroups,
   getRequirementUnitTargetStabilityLevel,
   isRequirementUnitAtTarget,
@@ -32,5 +33,19 @@ describe('requirement unit layer rules', () => {
       'S3_ALMOST_READY',
       'S4_READY_FOR_DEVELOPMENT',
     ])
+  })
+
+  it('turns layer-aware stability into actionable unit progress hints', () => {
+    expect(getRequirementUnitProgressHint({
+      layer: 'scenario',
+      stabilityLevel: 'S3_ALMOST_READY',
+      status: 'READY_FOR_DESIGN',
+    }).label).toContain('推进设计')
+
+    expect(getRequirementUnitProgressHint({
+      layer: 'exception',
+      stabilityLevel: 'S3_ALMOST_READY',
+      status: 'REFINING',
+    }).kind).toBe('stabilize')
   })
 })
