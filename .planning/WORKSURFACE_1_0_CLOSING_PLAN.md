@@ -110,3 +110,28 @@
 - `model-tabs / role-view-tabs / chat-panel / assumption-card` 仍可在后续继续迁移或抽共享
 - “结论沉淀到哪个 Unit 字段”可作为下一阶段轻量深化点
 - stage-aware priority 后续可继续细化到阶段特定 bucket，但仍保持规则驱动
+
+## 已完成
+- Requirement 主入口、列表页、新建页、详情页主实现已迁回 `requirements/*`
+- Requirement 详情页四个主区已经稳定
+- Clarification / Conflict / Issue Queue / Requirement Unit / Stability 已形成可解释闭环
+- conclusion sink 已细到内容块类型级提示
+- Issue Queue priority 已具备 stage-aware 解释
+- Worksurface 1.0 里程碑文档与 walkthrough 已补齐
+
+## 当前残留
+- 仍有少量辅助共享壳位于 `explorations/[id]/*`
+- 结论落点仍未细到具体正文片段
+- stage-aware priority 仍是规则驱动，不是正式阶段机
+
+## Worksurface 1.0 之外
+- 正式 Change Unit
+- 完整 Impact Graph
+- Prototype Mapping 大接入
+- 强门禁
+- 自动写回 Requirement Unit 正文
+
+## 下一轮建议
+- 继续清理剩余共享壳，让 Requirement 主路径再纯一层
+- 继续细化结论落点提示，使其更接近可写入内容片段
+- 继续收紧 stage-aware top actions，让不同推进阶段的建议更直接

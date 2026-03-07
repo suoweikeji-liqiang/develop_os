@@ -9,6 +9,8 @@ import {
   Radar,
   Undo2,
 } from 'lucide-react'
+// These remaining imports stay under `explorations/[id]/*` only as shared compatibility shells.
+// Requirement remains the product primary surface and the migration target for future cleanup.
 import { ModelTabs } from '../../explorations/[id]/model-tabs'
 import { RoleViewTabs } from '../../explorations/[id]/role-view-tabs'
 import { SignoffPanel } from './signoff-panel'

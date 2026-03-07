@@ -105,3 +105,26 @@
 - 未来可继续细到“建议写入 Unit 的哪个字段或区块标题”
 - 未来可把 sink detail 与 change evidence 或 version notes 轻量关联
 - 未来可评估 Conflict projection 是否也复用同一套 sink detail 规则
+
+## 已完成
+- `conclusionSignal` 已从 Unit 级落点推进到内容块类型级提示
+- Clarification、Issue Queue、Requirement Unit、Impact Summary 已共享同一套 sink detail 语义
+- 系统现在可以明确提示：
+  - 结论落到哪个 Unit
+  - 更像落到哪类内容块
+  - 是否仍需人工补写正文
+
+## 当前残留
+- 仍然只能提示“哪类内容块”，还不能提示“正文里的哪个具体字段或段落”
+- 当前 sink detail 仍主要覆盖 Clarification 来源问题，Conflict 侧尚未完整复用
+- 结论落点与 Requirement Unit 正文之间仍是人工沉淀关系
+
+## Worksurface 1.0 之外
+- 不自动写回 Unit 正文
+- 不把 sink detail 扩成重型内容块 schema
+- 不做跨多个 Unit 的自动传播或推理
+
+## 下一轮建议
+- 继续把结论提示细到“建议补到哪个内容片段”
+- 评估是否让 Conflict projection 与 Clarification 共享同一套落点提示
+- 让 version history / change note 能轻量引用这些结论落点

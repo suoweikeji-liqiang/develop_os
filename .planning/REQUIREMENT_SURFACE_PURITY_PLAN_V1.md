@@ -7,10 +7,7 @@
   - 仍直接从 `../../explorations/[id]/*` 引入以下子组件：
     - `model-tabs.tsx`
     - `role-view-tabs.tsx`
-    - `signoff-panel.tsx`
-    - `consensus-status.tsx`
     - `chat-panel.tsx`
-    - `test-case-panel.tsx`
   - 同时仍从 `../../explorations/[id]/assumption-card` 引入 `PendingAssumption` 类型
 - 当前 `/requirements`、`/requirements/new`、`/requirements/[id]` 的 page 级主实现已经迁回 `requirements/*`，但详情页中少量辅助子组件与类型仍挂在 `explorations/[id]/*`
 
@@ -27,10 +24,7 @@
 以下组件本轮先不迁，只保留现状或 wrapper：
 - `model-tabs.tsx`
 - `role-view-tabs.tsx`
-- `signoff-panel.tsx`
-- `consensus-status.tsx`
 - `chat-panel.tsx`
-- `test-case-panel.tsx`
 - `/explorations`
 - `/explorations/new`
 - `/explorations/[id]`
@@ -96,6 +90,7 @@
 ## 已完成
 - `/requirements`、`/requirements/new`、`/requirements/[id]` 的主实现已迁回 `requirements/*`
 - `comments-panel.tsx`、`status-control.tsx`、`version-history.tsx`、`change-units-panel.tsx` 已迁回 `requirements/[id]/*`
+- `signoff-panel.tsx`、`consensus-status.tsx`、`test-case-panel.tsx` 已迁回 `requirements/[id]/*`
 - 旧 `explorations/[id]/*` 对应文件已退为 wrapper，并补了兼容说明
 
 ## 当前残留
@@ -105,7 +100,12 @@
 - `PendingAssumption` 类型仍从 `explorations/[id]/assumption-card` 引入
 - `/explorations*` 路由仍保留兼容壳
 
+## Worksurface 1.0 之外
+- 不在本轮继续清理 `model-tabs.tsx` / `role-view-tabs.tsx` / `chat-panel.tsx`
+- 不把 `PendingAssumption` 进一步抽成共享领域模型
+- 不移除 `/explorations*` 兼容路由
+
 ## 下一轮建议
-- 优先处理 `signoff-panel.tsx`、`consensus-status.tsx`、`test-case-panel.tsx` 这类仍直接影响 Requirement 主流程的共享面板
+- 优先处理 `model-tabs.tsx`、`role-view-tabs.tsx`、`chat-panel.tsx` 这类仍直接挂在详情主路径中的共享面板
 - 再评估 `PendingAssumption` 类型是否可以抽到更中性的共享位置
 - 继续保持 `/explorations*` 仅作兼容入口，不再承载新的主实现

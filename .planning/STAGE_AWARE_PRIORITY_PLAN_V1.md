@@ -98,3 +98,27 @@
 - 后续可继续细化不同 Requirement 状态下的 stage-aware bucket
 - 后续可把阶段语义与 next stage guidance 做更自然的对齐
 - 后续可评估是否让 Unit 层也带轻量 stage-aware 建议，但仍不引入复杂策略配置
+
+## 已完成
+- 轻量 stage context 已接入 Issue Queue、Stability Summary、Impact Summary
+- 系统已能区分：
+  - 边界澄清阶段
+  - 需求收敛阶段
+  - 开发准备阶段
+  - 收尾校验阶段
+- Issue Queue 已能用 `Stage Priority / Stage Blocker / Stage Fast Win` 回答“当前阶段先处理哪个最值”
+
+## 当前残留
+- 当前阶段判断仍是规则推断，不是显式阶段机
+- 部分 stage bucket 仍偏通用，尚未细到更窄的 Requirement 状态差异
+- stage-aware 排序还没有下沉到所有 Unit 级局部建议
+
+## Worksurface 1.0 之外
+- 不做正式阶段引擎
+- 不做动态可配置优先级平台
+- 不做强门禁或自动阶段切换
+
+## 下一轮建议
+- 继续细化不同 stage 下的 top actions，让“先处理哪个最值”更稳定
+- 评估是否把 stage-aware 信号进一步投到 Unit 卡片级推荐
+- 让 stage-aware 优先级与版本演化提示产生更自然的关联
