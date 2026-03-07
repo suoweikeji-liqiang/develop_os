@@ -8,7 +8,7 @@ import {
   getRequirementUnitProgressHint,
   getRequirementUnitLayerProfile,
 } from '@/lib/requirement-unit-layer'
-import { getIssueTypeLabel } from '@/lib/issue-queue'
+import { buildIssuePriorityContext, buildIssuePriorityMeta, getIssueTypeLabel } from '@/lib/issue-queue'
 import { STATUS_LABELS } from '@/lib/workflow/status-labels'
 import type { RequirementStatus } from '@/lib/workflow/status-machine'
 
@@ -122,7 +122,11 @@ interface RequirementStabilityGovernanceSeed {
 
 interface RequirementIssuePressureSeed {
   activeIssues: Array<{
+    id: string
+    title: string
     type: string
+    severity: string
+    status: string
     blockDev: boolean
     primaryRequirementUnit: {
       unitKey: string
@@ -305,6 +309,12 @@ export function buildRequirementStabilityGovernance(seed: RequirementStabilityGo
 export function buildRequirementIssuePressure(seed: RequirementIssuePressureSeed) {
   const typeCounter = new Map<string, { count: number; blockingCount: number }>()
   const layerCounter = new Map<string, { layerLabel: string; count: number }>()
+  const priorityContext = buildIssuePriorityContext({
+    activeItems: seed.activeIssues.map((issue) => ({
+      type: issue.type,
+      primaryRequirementUnit: issue.primaryRequirementUnit,
+    })),
+  })
 
   for (const issue of seed.activeIssues) {
     const typeStats = typeCounter.get(issue.type) ?? { count: 0, blockingCount: 0 }
@@ -361,15 +371,43 @@ export function buildRequirementIssuePressure(seed: RequirementIssuePressureSeed
     .sort((a, b) => b.count - a.count)
     .slice(0, 3)
 
-  const nextQueueAction = typeHotspots[0]
-    ? typeHotspots[0].blockingCount > 0
-      ? `先回到 Issue Queue 处理 ${typeHotspots[0].typeLabel} 类阻断问题，它们当前最影响阶段推进。`
-      : `先回到 Issue Queue 收敛 ${typeHotspots[0].typeLabel} 类开放问题，减少对当前阶段判断的持续干扰。`
-    : '当前没有明显的 Issue Queue 压力热点。'
+  const priorityHighlights = seed.activeIssues
+    .map((issue) => {
+      const priority = buildIssuePriorityMeta({
+        type: issue.type,
+        issueStatus: issue.status,
+        severity: issue.severity,
+        blockDev: issue.blockDev,
+        primaryRequirementUnit: issue.primaryRequirementUnit,
+        context: priorityContext,
+      })
+
+      return {
+        id: issue.id,
+        title: issue.title,
+        typeLabel: getIssueTypeLabel(issue.type),
+        unitKey: issue.primaryRequirementUnit?.unitKey ?? null,
+        badges: priority.badges.map((badge) => badge.label),
+        summary: priority.summary,
+        score: priority.score,
+      }
+    })
+    .filter((item) => item.badges.length > 0)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 3)
+
+  const nextQueueAction = priorityHighlights[0]
+    ? `先处理 ${priorityHighlights[0].title}（${priorityHighlights[0].badges.join(' / ')}），它当前最直接影响推进判断。`
+    : typeHotspots[0]
+      ? typeHotspots[0].blockingCount > 0
+        ? `先回到 Issue Queue 处理 ${typeHotspots[0].typeLabel} 类阻断问题，它们当前最影响阶段推进。`
+        : `先回到 Issue Queue 收敛 ${typeHotspots[0].typeLabel} 类开放问题，减少对当前阶段判断的持续干扰。`
+      : '当前没有明显的 Issue Queue 压力热点。'
 
   return {
     typeHotspots,
     layerHotspots,
+    priorityHighlights,
     nextQueueAction,
   }
 }

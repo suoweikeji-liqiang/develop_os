@@ -430,7 +430,9 @@ export const requirementRouter = createTRPCRouter({
           select: {
             id: true,
             type: true,
+            title: true,
             severity: true,
+            status: true,
             blockDev: true,
             primaryRequirementUnitId: true,
             primaryRequirementUnit: {

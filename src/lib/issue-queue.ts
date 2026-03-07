@@ -514,6 +514,144 @@ export interface IssueQueueStabilityImpactMeta {
   summary: string
 }
 
+export interface IssuePriorityBadge {
+  key: 'phase_blocker' | 'highest_leverage' | 'fast_stabilization_win'
+  label: string
+}
+
+export interface IssuePriorityMeta {
+  score: number
+  badges: IssuePriorityBadge[]
+  summary: string
+  reasons: string[]
+}
+
+export interface IssuePriorityContext {
+  typeCounts: Map<string, number>
+  unitCounts: Map<string, number>
+}
+
+export function buildIssuePriorityContext(input: {
+  activeItems: Array<{
+    type: string
+    primaryRequirementUnit?: {
+      unitKey: string
+    } | null
+  }>
+}): IssuePriorityContext {
+  const typeCounts = new Map<string, number>()
+  const unitCounts = new Map<string, number>()
+
+  for (const item of input.activeItems) {
+    typeCounts.set(item.type, (typeCounts.get(item.type) ?? 0) + 1)
+    if (item.primaryRequirementUnit?.unitKey) {
+      unitCounts.set(
+        item.primaryRequirementUnit.unitKey,
+        (unitCounts.get(item.primaryRequirementUnit.unitKey) ?? 0) + 1,
+      )
+    }
+  }
+
+  return {
+    typeCounts,
+    unitCounts,
+  }
+}
+
+export function buildIssuePriorityMeta(input: {
+  type: string
+  issueStatus: string
+  severity: string
+  blockDev: boolean
+  primaryRequirementUnit?: {
+    unitKey: string
+    title: string
+    layer?: string | null
+    stabilityLevel?: string | null
+  } | null
+  context?: IssuePriorityContext | null
+}): IssuePriorityMeta {
+  if (!isActiveIssueStatus(input.issueStatus)) {
+    return {
+      score: 0,
+      badges: [],
+      summary: '当前已关闭，优先级压力已下降。',
+      reasons: [],
+    }
+  }
+
+  const unit = input.primaryRequirementUnit ?? null
+  const layerProfile = unit?.layer ? getRequirementUnitLayerProfile(unit.layer) : null
+  const typeCount = input.context?.typeCounts.get(input.type) ?? 0
+  const unitCount = unit?.unitKey ? (input.context?.unitCounts.get(unit.unitKey) ?? 0) : 0
+  const severityRank = ISSUE_SEVERITY_RANK[input.severity as IssueUnitSeverity] ?? 999
+  const severityScore = input.severity === 'CRITICAL'
+    ? 40
+    : input.severity === 'HIGH'
+      ? 25
+      : input.severity === 'MEDIUM'
+        ? 12
+        : 4
+  const layerNeedsHighConfidence = layerProfile?.targetStabilityLevel === 'S4_READY_FOR_DEVELOPMENT'
+  const fastWin = !input.blockDev
+    && unit !== null
+    && (input.severity === 'LOW' || input.severity === 'MEDIUM')
+    && ['ambiguity', 'missing', 'pending_confirmation'].includes(input.type)
+  const highestLeverage = input.blockDev
+    || (layerNeedsHighConfidence && severityRank <= ISSUE_SEVERITY_RANK.MEDIUM)
+    || typeCount >= 2
+    || unitCount >= 2
+  const reasons: string[] = []
+
+  if (input.blockDev) reasons.push('直接阻断当前阶段推进')
+  if (layerNeedsHighConfidence && layerProfile) reasons.push(`压在 ${layerProfile.label} 层`)
+  if (typeCount >= 2) reasons.push(`${getIssueTypeLabel(input.type)} 是当前热点类型`)
+  if (unitCount >= 2 && unit) reasons.push(`${unit.unitKey} 当前还有多个开放问题`)
+  if (fastWin) reasons.push('处理成本相对低，能较快改善稳定度判断')
+
+  const badges: IssuePriorityBadge[] = []
+  if (input.blockDev) {
+    badges.push({ key: 'phase_blocker', label: 'Phase Blocker' })
+  }
+  if (highestLeverage) {
+    badges.push({ key: 'highest_leverage', label: 'Highest Leverage' })
+  }
+  if (fastWin) {
+    badges.push({ key: 'fast_stabilization_win', label: 'Fast Stabilization Win' })
+  }
+
+  const score = (
+    (input.blockDev ? 100 : 0)
+    + severityScore
+    + (layerNeedsHighConfidence ? 18 : 0)
+    + (typeCount >= 2 ? 10 : 0)
+    + (unitCount >= 2 ? 8 : 0)
+    + (unit ? 5 : 0)
+    + (fastWin ? 12 : 0)
+  )
+
+  const summary = input.blockDev
+    ? unit && layerProfile
+      ? `当前是 Phase Blocker，并直接压在 ${unit.unitKey} · ${unit.title}（${layerProfile.label} 层）上。优先处理它，最可能改善当前阶段推进。`
+      : '当前是 Phase Blocker，会直接阻断 Requirement 阶段推进。'
+    : highestLeverage
+      ? unit && layerProfile
+        ? `当前是 Highest Leverage 问题之一，主要压在 ${unit.unitKey} · ${unit.title}（${layerProfile.label} 层）上。优先处理它，最可能改善当前稳定度判断。`
+        : `当前是 Highest Leverage 问题之一，优先处理它最可能缓解 ${getIssueTypeLabel(input.type)} 对推进面的持续干扰。`
+      : fastWin
+        ? `当前属于 Fast Stabilization Win。优先处理它，通常能较快降低 ${unit?.unitKey ?? '当前 Requirement'} 的不确定性。`
+        : unit && layerProfile
+          ? `当前主要压在 ${unit.unitKey} · ${unit.title}（${layerProfile.label} 层）上，仍会继续牵动当前推进判断。`
+          : '当前仍是活跃推进问题，但优先级低于前面的阻断项和高杠杆项。'
+
+  return {
+    score,
+    badges,
+    summary,
+    reasons,
+  }
+}
+
 export function buildIssueQueueLifecycleMeta(input: IssueQueueLifecycleInput): IssueQueueLifecycleMeta {
   const active = isActiveIssueStatus(input.issueStatus)
   const clarificationCategoryLabel = getClarificationCategoryLabel(input.sourceCategory)
@@ -637,12 +775,16 @@ export function buildIssueQueueStabilityImpactMeta(input: {
 }
 
 export function compareIssueQueueItems<T extends {
+  priorityScore?: number
   blockDev: boolean
   status: string
   severity: string
   type: string
   updatedAt: string | Date
 }>(a: T, b: T): number {
+  const priorityDiff = (b.priorityScore ?? -1) - (a.priorityScore ?? -1)
+  if (priorityDiff !== 0) return priorityDiff
+
   if (a.blockDev !== b.blockDev) return a.blockDev ? -1 : 1
 
   const aActive = isActiveIssueStatus(a.status)

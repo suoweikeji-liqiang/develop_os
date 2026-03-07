@@ -183,7 +183,11 @@ describe('requirement worksurface impact summary', () => {
     const issuePressure = buildRequirementIssuePressure({
       activeIssues: [
         {
+          id: 'issue-1',
+          title: '注册主流程风险未收敛',
           type: 'risk',
+          severity: 'HIGH',
+          status: 'OPEN',
           blockDev: true,
           primaryRequirementUnit: {
             unitKey: 'RU-01',
@@ -192,7 +196,11 @@ describe('requirement worksurface impact summary', () => {
           },
         },
         {
+          id: 'issue-2',
+          title: '异常分支还待确认',
           type: 'pending_confirmation',
+          severity: 'MEDIUM',
+          status: 'OPEN',
           blockDev: false,
           primaryRequirementUnit: {
             unitKey: 'RU-02',
@@ -201,7 +209,11 @@ describe('requirement worksurface impact summary', () => {
           },
         },
         {
+          id: 'issue-3',
+          title: '验证码发送风险',
           type: 'risk',
+          severity: 'LOW',
+          status: 'TRIAGED',
           blockDev: false,
           primaryRequirementUnit: {
             unitKey: 'RU-03',
@@ -216,6 +228,7 @@ describe('requirement worksurface impact summary', () => {
     expect(issuePressure.typeHotspots[0]?.typeLabel).toBe('Risk')
     expect(issuePressure.typeHotspots[0]?.blockingCount).toBe(1)
     expect(issuePressure.layerHotspots[0]?.layerLabel).toBe('Scenario')
-    expect(issuePressure.nextQueueAction).toContain('Risk')
+    expect(issuePressure.priorityHighlights[0]?.badges).toContain('Phase Blocker')
+    expect(issuePressure.nextQueueAction).toContain('注册主流程风险未收敛')
   })
 })

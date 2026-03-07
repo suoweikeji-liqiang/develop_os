@@ -102,6 +102,14 @@ interface WorksurfaceSummary {
       count: number
       recommendation: string
     }>
+    priorityHighlights: Array<{
+      id: string
+      title: string
+      typeLabel: string
+      unitKey: string | null
+      badges: string[]
+      summary: string
+    }>
     nextQueueAction: string
   }
   guidance: RequirementGuidanceHint[]
@@ -1274,6 +1282,37 @@ export function RequirementDetailClient({
                   </a>
                 </div>
                 <p className="mt-3 text-sm leading-6 text-slate-700">{worksurfaceSummary.issuePressure.nextQueueAction}</p>
+                {worksurfaceSummary.issuePressure.priorityHighlights.length > 0 ? (
+                  <div className="mt-4 rounded-[16px] border border-slate-200/80 bg-slate-50/80 px-3 py-3">
+                    <p className="text-[0.68rem] uppercase tracking-[0.18em] text-slate-500">Priority Signals</p>
+                    <div className="mt-3 space-y-3">
+                      {worksurfaceSummary.issuePressure.priorityHighlights.map((item) => (
+                        <div key={item.id} className="rounded-[14px] border border-white/80 bg-white/90 px-3 py-3">
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            {item.badges.map((badge) => (
+                              <span
+                                key={`${item.id}-${badge}`}
+                                className={`rounded-full px-2.5 py-1 font-medium ${
+                                  badge === 'Phase Blocker'
+                                    ? 'bg-red-100 text-red-700'
+                                    : badge === 'Highest Leverage'
+                                      ? 'bg-amber-100 text-amber-800'
+                                      : 'bg-emerald-100 text-emerald-700'
+                                }`}
+                              >
+                                {badge}
+                              </span>
+                            ))}
+                            <span className="app-chip">{item.typeLabel}</span>
+                            {item.unitKey ? <span className="app-chip">关联 {item.unitKey}</span> : null}
+                          </div>
+                          <p className="mt-2 text-sm font-semibold text-slate-900">{item.title}</p>
+                          <p className="mt-2 text-sm leading-6 text-slate-700">{item.summary}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
                 <div className="mt-4 grid gap-3 xl:grid-cols-2">
                   <div className="rounded-[16px] border border-slate-200/80 bg-slate-50/80 px-3 py-3">
                     <p className="text-[0.68rem] uppercase tracking-[0.18em] text-slate-500">Hot Issue Types</p>

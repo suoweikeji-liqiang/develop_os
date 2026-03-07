@@ -52,6 +52,15 @@ interface IssueUnitItem {
     followupSummary: string
     requiresSourceFollowup: boolean
   }
+  priority: {
+    score: number
+    badges: Array<{
+      key: 'phase_blocker' | 'highest_leverage' | 'fast_stabilization_win'
+      label: string
+    }>
+    summary: string
+    reasons: string[]
+  }
   suggestedResolution: string | null
   ownerId: string | null
   updatedAt: string
@@ -89,6 +98,12 @@ const SEVERITY_FILTER_OPTIONS = [
 const CONFLICT_STATUS_OPTIONS = ISSUE_UNIT_STATUS_OPTIONS.filter((option) => (
   option.value === 'OPEN' || option.value === 'RESOLVED' || option.value === 'REJECTED'
 ))
+
+function getPriorityBadgeClasses(key: 'phase_blocker' | 'highest_leverage' | 'fast_stabilization_win'): string {
+  if (key === 'phase_blocker') return 'bg-red-100 text-red-700'
+  if (key === 'highest_leverage') return 'bg-amber-100 text-amber-800'
+  return 'bg-emerald-100 text-emerald-700'
+}
 
 export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged }: Props) {
   const [items, setItems] = useState<IssueUnitItem[]>([])
@@ -605,6 +620,14 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                     阻断开发
                   </span>
                 ) : null}
+                {item.priority.badges.map((badge) => (
+                  <span
+                    key={`${item.id}-${badge.key}`}
+                    className={`rounded-full px-2.5 py-1 text-xs font-medium ${getPriorityBadgeClasses(badge.key)}`}
+                  >
+                    {badge.label}
+                  </span>
+                ))}
                 {clarificationQueueStatus?.callbackNeeded ? (
                   <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
                     待 Clarification 回源确认
@@ -707,6 +730,27 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                   </div>
                 </div>
               ) : null}
+              <div className={`mt-3 rounded-[16px] border px-3 py-3 text-sm ${
+                item.priority.badges.some((badge) => badge.key === 'phase_blocker')
+                  ? 'border-red-200 bg-red-50/80 text-red-700'
+                  : item.priority.badges.some((badge) => badge.key === 'highest_leverage')
+                    ? 'border-amber-200 bg-amber-50/80 text-amber-800'
+                    : item.priority.badges.some((badge) => badge.key === 'fast_stabilization_win')
+                      ? 'border-emerald-200 bg-emerald-50/80 text-emerald-700'
+                      : 'border-slate-200/80 bg-slate-50/80 text-slate-700'
+              }`}>
+                <p className="font-semibold">优先处理价值</p>
+                <p className="mt-1 leading-6">{item.priority.summary}</p>
+                {item.priority.reasons.length ? (
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    {item.priority.reasons.map((reason) => (
+                      <span key={`${item.id}-${reason}`} className="app-chip">
+                        {reason}
+                      </span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
               <div className={`mt-3 rounded-[16px] border px-3 py-3 text-sm ${
                 stabilityImpact.level === 'critical'
                   ? 'border-red-200 bg-red-50/80 text-red-700'

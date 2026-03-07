@@ -6,11 +6,14 @@ import { IssueUnitSeverityEnum, IssueUnitStatusEnum } from '@/lib/requirement-ev
 import {
   buildClarificationConclusionMeta,
   buildClarificationQueueStatusMeta,
+  buildIssuePriorityContext,
+  buildIssuePriorityMeta,
   buildIssueQueueLifecycleMeta,
   compareIssueQueueItems,
   getClarificationCategoryLabel,
   getIssueQueueSourceLabel,
   getIssueQueueSourceStatusLabel,
+  isActiveIssueStatus,
   IssueUnitTypeEnum,
   mapConflictStatusToIssueStatus,
   normalizeIssueType,
@@ -207,7 +210,33 @@ export const issueUnitRouter = createTRPCRouter({
         }),
       ]
 
-      return queue.sort(compareIssueQueueItems)
+      const priorityContext = buildIssuePriorityContext({
+        activeItems: queue
+          .filter((item) => isActiveIssueStatus(item.status))
+          .map((item) => ({
+            type: item.type,
+            primaryRequirementUnit: item.primaryRequirementUnit,
+          })),
+      })
+
+      return queue
+        .map((item) => {
+          const priority = buildIssuePriorityMeta({
+            type: item.type,
+            issueStatus: item.status,
+            severity: item.severity,
+            blockDev: item.blockDev,
+            primaryRequirementUnit: item.primaryRequirementUnit,
+            context: priorityContext,
+          })
+
+          return {
+            ...item,
+            priority,
+            priorityScore: priority.score,
+          }
+        })
+        .sort(compareIssueQueueItems)
     }),
 
   create: protectedProcedure

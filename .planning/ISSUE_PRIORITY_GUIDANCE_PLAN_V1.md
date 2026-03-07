@@ -67,6 +67,19 @@
   - 回源确认量
   - 未收敛问题密度
 
+### 当前状态更新
+- `ISSUE 3` 已为 Issue Queue 活跃问题补上统一优先级信号：
+  - `Phase Blocker`
+  - `Highest Leverage`
+  - `Fast Stabilization Win`
+- 当前排序开始综合参考：
+  - `blockDev`
+  - `severity`
+  - 是否压在高要求 layer
+  - 同类问题是否为热点
+  - 同一 Unit 是否已有多条开放问题
+- Stability Summary 已开始直接引用这些信号，不再只停留在 `Hot Issue Types / Hot Layers`
+
 ## 非目标
 - 不做复杂优先级算法平台
 - 不做强阻断器

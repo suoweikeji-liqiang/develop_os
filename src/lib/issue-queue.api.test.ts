@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildClarificationConclusionMeta,
+  buildIssuePriorityContext,
+  buildIssuePriorityMeta,
   buildConflictProjectionStatusMeta,
   buildClarificationQueueStatusMeta,
   doesClarificationIssueNeedSourceConfirmation,
@@ -84,5 +86,69 @@ describe('clarification issue queue callback rules', () => {
     expect(conclusion?.effectLabel).toBe('仍需人工补内容')
     expect(conclusion?.sinkLabel).toBe('尚未形成明确落点')
     expect(conclusion?.nextStep).toContain('补齐')
+  })
+
+  it('marks blockers and hot-layer issues as highest leverage', () => {
+    const context = buildIssuePriorityContext({
+      activeItems: [
+        {
+          type: 'risk',
+          primaryRequirementUnit: { unitKey: 'RU-01' },
+        },
+        {
+          type: 'risk',
+          primaryRequirementUnit: { unitKey: 'RU-02' },
+        },
+      ],
+    })
+
+    const priority = buildIssuePriorityMeta({
+      type: 'risk',
+      issueStatus: 'OPEN',
+      severity: 'HIGH',
+      blockDev: true,
+      primaryRequirementUnit: {
+        unitKey: 'RU-01',
+        title: '支付权限校验',
+        layer: 'permission',
+      },
+      context,
+    })
+
+    expect(priority.badges.map((badge) => badge.label)).toEqual(expect.arrayContaining([
+      'Phase Blocker',
+      'Highest Leverage',
+    ]))
+    expect(priority.summary).toContain('Phase Blocker')
+    expect(priority.reasons).toEqual(expect.arrayContaining([
+      '直接阻断当前阶段推进',
+      '压在 Permission 层',
+      'Risk 是当前热点类型',
+    ]))
+  })
+
+  it('marks low-cost clarification-style issues as fast stabilization wins', () => {
+    const priority = buildIssuePriorityMeta({
+      type: 'pending_confirmation',
+      issueStatus: 'TRIAGED',
+      severity: 'LOW',
+      blockDev: false,
+      primaryRequirementUnit: {
+        unitKey: 'RU-03',
+        title: '优惠券展示',
+        layer: 'scenario',
+      },
+      context: buildIssuePriorityContext({
+        activeItems: [
+          {
+            type: 'pending_confirmation',
+            primaryRequirementUnit: { unitKey: 'RU-03' },
+          },
+        ],
+      }),
+    })
+
+    expect(priority.badges.map((badge) => badge.label)).toContain('Fast Stabilization Win')
+    expect(priority.summary).toContain('Fast Stabilization Win')
   })
 })
