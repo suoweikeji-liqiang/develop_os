@@ -523,5 +523,28 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
     })
     expect(searchedWithOpenChange.find((item) => item.id === requirement.id)?.openChangeCount).toBe(1)
     expect(searchedWithOpenChange.find((item) => item.id === requirement.id)?.highRiskChangeCount).toBe(1)
-  })
+
+    const gateHints = await ownerCaller.requirement.getGateHints({
+      requirementId: requirement.id,
+    })
+    expect(gateHints.blockingIssueCount).toBeGreaterThan(0)
+    expect(gateHints.highRiskChangeCount).toBeGreaterThan(0)
+    expect(gateHints.hints.length).toBeGreaterThan(0)
+
+    await ownerCaller.clarification.answer({
+      questionId: question.id,
+      answerText: '短信服务失败时允许语音验证码兜底，并需要补充超时告警。',
+      changeUnitId: pendingChange.id,
+    })
+
+    const refreshedQueue = await ownerCaller.changeUnit.listByRequirement({ requirementId: requirement.id })
+    const tracedChange = refreshedQueue.find((item) => item.id === pendingChange.id)
+    expect(tracedChange?.linkedRequirementVersionCount).toBeGreaterThan(0)
+    expect(tracedChange?.linkedModelChangeLogCount).toBeGreaterThan(0)
+    expect(tracedChange?.latestAppliedTrace).toBeTruthy()
+
+    const versionList = await ownerCaller.version.list({ requirementId: requirement.id })
+    expect(versionList.versions.some((item) => item.changeUnit?.id === pendingChange.id)).toBe(true)
+    expect(versionList.currentTrace?.changeUnit?.id).toBe(pendingChange.id)
+  }, 20000)
 })

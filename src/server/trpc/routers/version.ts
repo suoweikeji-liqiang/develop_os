@@ -7,17 +7,57 @@ export const versionRouter = createTRPCRouter({
   list: protectedProcedure
     .input(z.object({ requirementId: z.string() }))
     .query(async ({ input }) => {
-      return prisma.requirementVersion.findMany({
-        where: { requirementId: input.requirementId },
-        select: {
-          id: true,
-          version: true,
-          changeSource: true,
-          createdBy: true,
-          createdAt: true,
-        },
-        orderBy: { version: 'desc' },
-      })
+      const [versions, latestTrace] = await Promise.all([
+        prisma.requirementVersion.findMany({
+          where: { requirementId: input.requirementId },
+          select: {
+            id: true,
+            version: true,
+            changeSource: true,
+            createdBy: true,
+            createdAt: true,
+            changeUnit: {
+              select: {
+                id: true,
+                changeKey: true,
+                title: true,
+              },
+            },
+          },
+          orderBy: { version: 'desc' },
+        }),
+        prisma.modelChangeLog.findFirst({
+          where: {
+            requirementId: input.requirementId,
+            changeUnitId: { not: null },
+          },
+          select: {
+            id: true,
+            changeSource: true,
+            createdAt: true,
+            changeUnit: {
+              select: {
+                id: true,
+                changeKey: true,
+                title: true,
+              },
+            },
+          },
+          orderBy: { createdAt: 'desc' },
+        }),
+      ])
+
+      return {
+        versions,
+        currentTrace: latestTrace
+          ? {
+              kind: 'modelChangeLog' as const,
+              changeSource: latestTrace.changeSource,
+              createdAt: latestTrace.createdAt,
+              changeUnit: latestTrace.changeUnit,
+            }
+          : null,
+      }
     }),
 
   getTwo: protectedProcedure

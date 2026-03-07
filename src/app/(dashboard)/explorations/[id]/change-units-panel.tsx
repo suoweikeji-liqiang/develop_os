@@ -28,6 +28,14 @@ interface ChangeUnitItem {
   status: keyof typeof CHANGE_UNIT_STATUS_LABELS
   appliedAt: string | null
   updatedAt: string
+  linkedRequirementVersionCount: number
+  linkedModelChangeLogCount: number
+  latestAppliedTrace: {
+    kind: 'version' | 'modelChangeLog'
+    label: string
+    changeSource: string
+    createdAt: string
+  } | null
   requirementUnits: Array<{
     id: string
     unitKey: string
@@ -44,6 +52,8 @@ interface ChangeUnitItem {
 
 interface Props {
   requirementId: string
+  refreshToken?: number
+  onDataChanged?: () => void
 }
 
 interface EditDraft {
@@ -63,7 +73,7 @@ interface EditDraft {
   error: string | null
 }
 
-export function ChangeUnitsPanel({ requirementId }: Props) {
+export function ChangeUnitsPanel({ requirementId, refreshToken = 0, onDataChanged }: Props) {
   const [items, setItems] = useState<ChangeUnitItem[]>([])
   const [unitOptions, setUnitOptions] = useState<Array<{ id: string; unitKey: string; title: string }>>([])
   const [issueOptions, setIssueOptions] = useState<Array<{ id: string; title: string; severity: string; blockDev: boolean }>>([])
@@ -184,7 +194,7 @@ export function ChangeUnitsPanel({ requirementId }: Props) {
   useEffect(() => {
     void loadItems()
     void loadOptions()
-  }, [loadItems, loadOptions])
+  }, [loadItems, loadOptions, refreshToken])
 
   const summary = useMemo(() => ({
     total: items.length,
@@ -280,6 +290,7 @@ export function ChangeUnitsPanel({ requirementId }: Props) {
       setSelectedRequirementUnitIds([])
       setSelectedIssueUnitIds([])
       await loadItems()
+      onDataChanged?.()
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : '创建 Change Unit 失败')
     } finally {
@@ -309,6 +320,7 @@ export function ChangeUnitsPanel({ requirementId }: Props) {
       }
 
       await loadItems()
+      onDataChanged?.()
     } catch (err) {
       updateStatusDraft(id, {
         saving: false,
@@ -352,6 +364,7 @@ export function ChangeUnitsPanel({ requirementId }: Props) {
       }
 
       await loadItems()
+      onDataChanged?.()
     } catch (err) {
       updateEditDraft(id, {
         saving: false,
@@ -524,6 +537,8 @@ export function ChangeUnitsPanel({ requirementId }: Props) {
               <div className="mt-4 flex flex-wrap gap-2 text-xs text-slate-500">
                 <span className="app-chip">Units {item.requirementUnits.length}</span>
                 <span className="app-chip">Issues {item.issueUnits.length}</span>
+                <span className="app-chip">Versions {item.linkedRequirementVersionCount}</span>
+                <span className="app-chip">Model Logs {item.linkedModelChangeLogCount}</span>
                 {item.appliedAt ? <span className="app-chip">Applied {new Date(item.appliedAt).toLocaleDateString('zh-CN')}</span> : null}
                 <span className="app-chip">更新于 {new Date(item.updatedAt).toLocaleDateString('zh-CN')}</span>
               </div>
@@ -533,6 +548,11 @@ export function ChangeUnitsPanel({ requirementId }: Props) {
               {item.impactHints.length > 0 ? (
                 <p className="mt-2 text-sm text-slate-500">提示：{item.impactHints.join('，')}</p>
               ) : null}
+              <p className="mt-2 text-sm text-slate-500">
+                {item.latestAppliedTrace
+                  ? `落地痕迹：${item.latestAppliedTrace.kind === 'version' ? item.latestAppliedTrace.label : `模型日志 ${item.latestAppliedTrace.label}`} · ${new Date(item.latestAppliedTrace.createdAt).toLocaleDateString('zh-CN')}`
+                  : '落地痕迹：尚未发现关联的版本或模型变更'}
+              </p>
 
               {item.requirementUnits.length > 0 ? (
                 <div className="mt-3 flex flex-wrap gap-2">

@@ -55,6 +55,35 @@ const listSelect = {
   appliedAt: true,
   createdAt: true,
   updatedAt: true,
+  _count: {
+    select: {
+      requirementVersions: true,
+      modelChangeLogs: true,
+    },
+  },
+  requirementVersions: {
+    select: {
+      id: true,
+      version: true,
+      changeSource: true,
+      createdAt: true,
+    },
+    orderBy: {
+      version: 'desc',
+    },
+    take: 3,
+  },
+  modelChangeLogs: {
+    select: {
+      id: true,
+      changeSource: true,
+      createdAt: true,
+    },
+    orderBy: {
+      createdAt: 'desc',
+    },
+    take: 3,
+  },
   requirementUnits: {
     select: {
       requirementUnit: {
@@ -156,6 +185,23 @@ export const changeUnitRouter = createTRPCRouter({
 
       return items.map((item) => ({
         ...item,
+        linkedRequirementVersionCount: item._count.requirementVersions,
+        linkedModelChangeLogCount: item._count.modelChangeLogs,
+        latestAppliedTrace: item.requirementVersions[0]
+          ? {
+              kind: 'version' as const,
+              label: `v${item.requirementVersions[0].version}`,
+              changeSource: item.requirementVersions[0].changeSource,
+              createdAt: item.requirementVersions[0].createdAt,
+            }
+          : item.modelChangeLogs[0]
+            ? {
+                kind: 'modelChangeLog' as const,
+                label: item.modelChangeLogs[0].changeSource,
+                changeSource: item.modelChangeLogs[0].changeSource,
+                createdAt: item.modelChangeLogs[0].createdAt,
+              }
+            : null,
         requirementUnits: item.requirementUnits.map((link) => link.requirementUnit),
         issueUnits: item.issueUnits.map((link) => link.issueUnit),
         impactHints: buildChangeImpactHints(item),
@@ -227,6 +273,9 @@ export const changeUnitRouter = createTRPCRouter({
 
         return {
           ...created,
+          linkedRequirementVersionCount: created._count.requirementVersions,
+          linkedModelChangeLogCount: created._count.modelChangeLogs,
+          latestAppliedTrace: null,
           requirementUnits: created.requirementUnits.map((link) => link.requirementUnit),
           issueUnits: created.issueUnits.map((link) => link.issueUnit),
           impactHints: buildChangeImpactHints(created),
@@ -301,6 +350,23 @@ export const changeUnitRouter = createTRPCRouter({
 
         return {
           ...updated,
+          linkedRequirementVersionCount: updated._count.requirementVersions,
+          linkedModelChangeLogCount: updated._count.modelChangeLogs,
+          latestAppliedTrace: updated.requirementVersions[0]
+            ? {
+                kind: 'version' as const,
+                label: `v${updated.requirementVersions[0].version}`,
+                changeSource: updated.requirementVersions[0].changeSource,
+                createdAt: updated.requirementVersions[0].createdAt,
+              }
+            : updated.modelChangeLogs[0]
+              ? {
+                  kind: 'modelChangeLog' as const,
+                  label: updated.modelChangeLogs[0].changeSource,
+                  changeSource: updated.modelChangeLogs[0].changeSource,
+                  createdAt: updated.modelChangeLogs[0].createdAt,
+                }
+              : null,
           requirementUnits: updated.requirementUnits.map((link) => link.requirementUnit),
           issueUnits: updated.issueUnits.map((link) => link.issueUnit),
           impactHints: buildChangeImpactHints(updated),

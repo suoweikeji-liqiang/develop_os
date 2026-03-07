@@ -56,6 +56,11 @@ interface CitationItem {
   excerpt: string
 }
 
+interface GateHint {
+  level: 'warning' | 'critical'
+  message: string
+}
+
 const MODELCARD_SECTIONS = [
   'Core Abstraction',
   'Variables / Relationships',
@@ -115,6 +120,7 @@ export function ExplorationDetailClient({
   const [signoffRefreshToken, setSignoffRefreshToken] = useState(0)
   const [signoffInvalidationToken, setSignoffInvalidationToken] = useState(0)
   const [issueRefreshToken, setIssueRefreshToken] = useState(0)
+  const [changeRefreshToken, setChangeRefreshToken] = useState(0)
   const [structureLoading, setStructureLoading] = useState(false)
   const [structureError, setStructureError] = useState<string | null>(null)
   const [completeness, setCompleteness] = useState<{ score: number; missingFields: string[] } | null>(null)
@@ -133,6 +139,14 @@ export function ExplorationDetailClient({
     loading: boolean
     message: string | null
   }>>({})
+  const [changeOptions, setChangeOptions] = useState<Array<{
+    id: string
+    changeKey: string
+    title: string
+    status: string
+  }>>([])
+  const [activeChangeUnitId, setActiveChangeUnitId] = useState('')
+  const [gateHints, setGateHints] = useState<GateHint[]>([])
   const [specMarkdown, setSpecMarkdown] = useState('')
   const [specLoading, setSpecLoading] = useState(false)
   const previousModelRef = useRef<FiveLayerModel | null>(null)
@@ -148,12 +162,20 @@ export function ExplorationDetailClient({
       await fetch('/api/trpc/requirement.updateModel', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ id: requirementId, model: nextModel, changeSource }),
+        body: JSON.stringify({
+          id: requirementId,
+          model: nextModel,
+          changeSource,
+          changeUnitId: activeChangeUnitId || undefined,
+        }),
       })
+      if (activeChangeUnitId) {
+        setChangeRefreshToken((prev) => prev + 1)
+      }
     } catch {
       // Keep optimistic UI state even if persistence fails.
     }
-  }, [requirementId])
+  }, [activeChangeUnitId, requirementId])
 
   const invalidateSignoffs = useCallback(() => {
     if (currentStatus !== 'IN_REVIEW') return
@@ -293,10 +315,72 @@ export function ExplorationDetailClient({
     }
   }, [requirementId])
 
+  const refreshChangeOptions = useCallback(async () => {
+    try {
+      const input = encodeURIComponent(JSON.stringify({ requirementId }))
+      const res = await fetch(`/api/trpc/changeUnit.listByRequirement?input=${input}`)
+      if (!res.ok) return
+      const data = await res.json() as {
+        result?: {
+          data?: {
+            json?: Array<{ id: string; changeKey: string; title: string; status: string }>
+          } | Array<{ id: string; changeKey: string; title: string; status: string }>
+        }
+      }
+      const payload = (data.result?.data && typeof data.result.data === 'object' && 'json' in data.result.data
+        ? data.result.data.json
+        : data.result?.data ?? []) as Array<{ id: string; changeKey: string; title: string; status: string }>
+      const next = Array.isArray(payload)
+        ? payload.map((item) => ({
+            id: item.id,
+            changeKey: item.changeKey,
+            title: item.title,
+            status: item.status,
+          }))
+        : []
+      setChangeOptions(next)
+      if (activeChangeUnitId && !next.some((item) => item.id === activeChangeUnitId)) {
+        setActiveChangeUnitId('')
+      }
+    } catch {
+      setChangeOptions([])
+    }
+  }, [activeChangeUnitId, requirementId])
+
+  const refreshGateHints = useCallback(async () => {
+    try {
+      const input = encodeURIComponent(JSON.stringify({ requirementId }))
+      const res = await fetch(`/api/trpc/requirement.getGateHints?input=${input}`)
+      if (!res.ok) return
+      const data = await res.json() as {
+        result?: {
+          data?: {
+            json?: { hints?: GateHint[] }
+          } | { hints?: GateHint[] }
+        }
+      }
+      const payload = (data.result?.data && typeof data.result.data === 'object' && 'json' in data.result.data
+        ? data.result.data.json
+        : data.result?.data ?? {}) as { hints?: GateHint[] }
+      setGateHints(Array.isArray(payload.hints) ? payload.hints : [])
+    } catch {
+      setGateHints([])
+    }
+  }, [requirementId])
+
   useEffect(() => {
     void refreshClarification()
     void refreshCompleteness()
-  }, [refreshClarification, refreshCompleteness])
+    void refreshChangeOptions()
+    void refreshGateHints()
+  }, [
+    changeRefreshToken,
+    issueRefreshToken,
+    refreshChangeOptions,
+    refreshClarification,
+    refreshCompleteness,
+    refreshGateHints,
+  ])
 
   async function handleStructure() {
     setStructureLoading(true)
@@ -334,7 +418,11 @@ export function ExplorationDetailClient({
       const res = await fetch('/api/trpc/clarification.answer', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionId, answerText }),
+        body: JSON.stringify({
+          questionId,
+          answerText,
+          changeUnitId: activeChangeUnitId || undefined,
+        }),
       })
       if (!res.ok) throw new Error('回答失败')
       const data = await res.json() as {
@@ -347,6 +435,9 @@ export function ExplorationDetailClient({
       }
 
       setAnswerDrafts((prev) => ({ ...prev, [questionId]: '' }))
+      if (activeChangeUnitId) {
+        setChangeRefreshToken((prev) => prev + 1)
+      }
       await Promise.all([refreshClarification(), refreshCompleteness()])
     } catch {
       // degrade silently
@@ -402,6 +493,7 @@ export function ExplorationDetailClient({
         },
       }))
       setIssueRefreshToken((prev) => prev + 1)
+      void refreshGateHints()
     } catch (error) {
       setClarificationIssueState((prev) => ({
         ...prev,
@@ -559,6 +651,22 @@ export function ExplorationDetailClient({
             onStatusChanged={setCurrentStatus}
           />
         </div>
+        {gateHints.length > 0 ? (
+          <div className="mt-4 space-y-2">
+            {gateHints.map((hint, index) => (
+              <div
+                key={`${hint.level}-${index}`}
+                className={`rounded-[18px] border px-4 py-3 text-sm ${
+                  hint.level === 'critical'
+                    ? 'border-red-200 bg-red-50 text-red-700'
+                    : 'border-amber-200 bg-amber-50 text-amber-700'
+                }`}
+              >
+                {hint.message}
+              </div>
+            ))}
+          </div>
+        ) : null}
       </section>
 
       <section className="app-panel p-4 sm:p-5">
@@ -612,12 +720,30 @@ export function ExplorationDetailClient({
         <div className="mt-3 text-sm text-slate-600">
           {currentStabilityReason || '当前已支持手动维护 Requirement 稳定度；规则化判断仍在后续阶段。'}
         </div>
+        <div className="mt-4 grid gap-3 lg:grid-cols-[minmax(0,320px)_minmax(0,1fr)]">
+          <select
+            value={activeChangeUnitId}
+            onChange={(event) => setActiveChangeUnitId(event.target.value)}
+            className="h-12 rounded-[1.1rem] border border-slate-200 bg-white/72 px-4 text-sm text-slate-800 outline-none focus-visible:border-slate-400"
+          >
+            <option value="">当前模型修改不关联 Change</option>
+            {changeOptions.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.changeKey} · {item.title} · {item.status}
+              </option>
+            ))}
+          </select>
+          <div className="rounded-[1.1rem] border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600">
+            当前模型修改上下文。选择后，本页中的手动模型更新、对话修正和澄清回填会尽量关联到对应 Change。
+          </div>
+        </div>
       </section>
 
       {showVersionHistory && model && (
         <VersionHistory
           requirementId={requirementId}
           currentVersion={version}
+          refreshToken={changeRefreshToken}
         />
       )}
 
@@ -647,8 +773,19 @@ export function ExplorationDetailClient({
           )}
           <ConflictPanel requirementId={requirementId} hasModel={Boolean(model)} />
           <RequirementUnitsPanel requirementId={requirementId} hasModel={Boolean(model)} />
-          <IssueUnitsPanel requirementId={requirementId} refreshToken={issueRefreshToken} />
-          <ChangeUnitsPanel requirementId={requirementId} />
+          <IssueUnitsPanel
+            requirementId={requirementId}
+            refreshToken={issueRefreshToken}
+            onDataChanged={() => setIssueRefreshToken((prev) => prev + 1)}
+          />
+          <ChangeUnitsPanel
+            requirementId={requirementId}
+            refreshToken={changeRefreshToken}
+            onDataChanged={() => {
+              setChangeRefreshToken((prev) => prev + 1)
+              void refreshGateHints()
+            }}
+          />
           <section className="app-panel p-4 sm:p-5 space-y-4">
             <details open>
               <summary className="cursor-pointer text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">结构化区块</summary>

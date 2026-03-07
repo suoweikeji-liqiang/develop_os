@@ -11,6 +11,12 @@ import { scanRequirementConflicts } from '@/server/conflicts/service'
 import { RequirementStabilityLevelEnum } from '@/lib/requirement-evolution'
 import { attachRequirementOverviewStats } from '@/server/requirements/overview'
 import {
+  ACTIVE_CHANGE_STATUSES,
+  buildRequirementGateHints,
+  HIGH_RISK_CHANGE_LEVELS,
+  OPEN_ISSUE_STATUSES,
+} from '@/server/requirements/change-units'
+import {
   computeCompleteness,
   deriveSpecDraft,
   deriveStructuredBundle,
@@ -95,6 +101,7 @@ export const requirementRouter = createTRPCRouter({
       model: FiveLayerModelSchema,
       confidence: z.record(z.string(), z.number()).optional(),
       changeSource: z.enum(['manual', 'ai-structure', 'ai-converse', 'assumption']).default('manual'),
+      changeUnitId: z.string().optional(),
     }))
     .mutation(async ({ input, ctx }) => {
       // Capture status before the transaction to decide if sign-offs should be invalidated
@@ -102,6 +109,20 @@ export const requirementRouter = createTRPCRouter({
         where: { id: input.id },
         select: { status: true },
       })
+
+      if (input.changeUnitId) {
+        const change = await prisma.changeUnit.findFirst({
+          where: {
+            id: input.changeUnitId,
+            requirementId: input.id,
+          },
+          select: { id: true },
+        })
+
+        if (!change) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Change Unit 不属于当前 Requirement' })
+        }
+      }
 
       const requirement = await prisma.$transaction(async (tx) => {
         const current = await tx.requirement.findUniqueOrThrow({
@@ -117,6 +138,7 @@ export const requirementRouter = createTRPCRouter({
               model: current.model,
               confidence: current.confidence ?? undefined,
               changeSource: input.changeSource,
+              changeUnitId: input.changeUnitId ?? null,
               createdBy: ctx.session.userId,
             },
           })
@@ -315,6 +337,45 @@ export const requirementRouter = createTRPCRouter({
         select: { model: true },
       })
       return computeCompleteness(requirement.model as z.infer<typeof FiveLayerModelSchema> | null)
+    }),
+
+  getGateHints: protectedProcedure
+    .input(z.object({ requirementId: z.string() }))
+    .query(async ({ input }) => {
+      const [blockingIssueCount, highRiskChangeCount, resignoffChangeCount] = await Promise.all([
+        prisma.issueUnit.count({
+          where: {
+            requirementId: input.requirementId,
+            blockDev: true,
+            status: { in: [...OPEN_ISSUE_STATUSES] },
+          },
+        }),
+        prisma.changeUnit.count({
+          where: {
+            requirementId: input.requirementId,
+            status: { in: [...ACTIVE_CHANGE_STATUSES] },
+            riskLevel: { in: [...HIGH_RISK_CHANGE_LEVELS] },
+          },
+        }),
+        prisma.changeUnit.count({
+          where: {
+            requirementId: input.requirementId,
+            status: { in: [...ACTIVE_CHANGE_STATUSES] },
+            requiresResignoff: true,
+          },
+        }),
+      ])
+
+      return {
+        blockingIssueCount,
+        highRiskChangeCount,
+        resignoffChangeCount,
+        hints: buildRequirementGateHints({
+          blockingIssueCount,
+          highRiskChangeCount,
+          resignoffChangeCount,
+        }),
+      }
     }),
 
   updateStability: protectedProcedure
