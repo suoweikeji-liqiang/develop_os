@@ -4,6 +4,8 @@ import {
   getRequirementUnitLayerProfile,
 } from '@/lib/requirement-unit-layer'
 
+// Legacy default fallback for callers that still expect a single unit target line.
+// Actual Requirement Unit maturity evaluation is now layer-aware.
 export const TARGET_REQUIREMENT_UNIT_STABILITY_LEVEL: RequirementStabilityLevel = DEFAULT_REQUIREMENT_UNIT_TARGET_STABILITY_LEVEL
 export const LOW_REQUIREMENT_STABILITY_LEVELS = ['S0_IDEA', 'S1_ROUGHLY_DEFINED'] as const satisfies readonly RequirementStabilityLevel[]
 

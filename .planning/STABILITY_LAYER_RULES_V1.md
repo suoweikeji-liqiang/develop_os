@@ -141,3 +141,18 @@
 - 针对不同 layer 的更细 guidance
 - 将 layer target 与 Impact Summary / Issue 类型进一步结合
 - 根据 Requirement status 调整不同 layer 的目标线
+
+## 状态更新
+
+### 已完成
+- `RequirementUnit.layer` 已统一收口到 `src/lib/requirement-unit-layer.ts`
+- layer-aware `target stability` 和 guidance copy 已进入 helper、worksurface 和 Unit 列表
+- `unitsBelowTarget` 已改为按各自 layer 的推荐目标计算
+
+### 当前残留
+- 仍是静态映射，不按 Requirement status 或领域上下文动态调整
+- 自定义 layer 仍按默认 `S3` fallback 处理
+
+### 下一轮可继续推进
+- 根据 Requirement status 调整不同 layer 的目标线
+- 在 worksurface 中给出更明确的具体 Unit 优先级

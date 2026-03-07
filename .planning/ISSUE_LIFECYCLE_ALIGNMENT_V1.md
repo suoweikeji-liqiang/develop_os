@@ -135,3 +135,19 @@
 - 回答 Clarification 后的自动转入建议或自动投影
 - Clarification / Conflict / Issue 的更清晰来源回链
 - Issue 生命周期与 Stability / Impact Summary 的更强联动
+
+## 状态更新
+
+### 已完成
+- Clarification 准入规则已下到 helper / router / UI
+- Clarification 列表已能显示 `issueProjection`
+- Conflict projection 的状态同步与关闭语义已明确
+- Issue Queue 已能解释来源、阻断、关闭含义和回源确认
+
+### 当前残留
+- Clarification 关闭后仍不自动回写来源状态
+- Conflict 仍是 projection，而不是统一数据模型
+
+### 下一轮可继续推进
+- 回答 Clarification 后的自动转入建议
+- 更明确的来源回链和关闭后自动确认策略

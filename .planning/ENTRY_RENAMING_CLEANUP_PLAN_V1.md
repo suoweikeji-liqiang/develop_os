@@ -115,3 +115,18 @@
 - 后续若继续清理，可把 `explorations/*` 迁到 `requirements/*` 下的真实实现目录
 - 再下一步才考虑组件名 rename
 - 这一轮先优先清用户心智，不优先清物理目录
+
+## 状态更新
+
+### 已完成
+- 主流程可见文案已优先回到 `Requirement` 主语
+- `/explorations` 已被明确标记为 legacy alias
+- 主要兼容实现位置都已补边界说明注释
+
+### 当前残留
+- 组件名和目录名仍保留 `Exploration*`
+- `requirements/*` 仍有少量 wrapper 直接复用 `explorations/*` 实现
+
+### 下一轮可继续推进
+- 若继续清理，再考虑把真实实现目录迁到 `requirements/*`
+- 组件名 rename 放到目录迁移之后处理

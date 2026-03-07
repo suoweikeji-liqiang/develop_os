@@ -382,3 +382,22 @@
 - Clarification 到 Issue Queue 的更自然自动映射
 - Stability 与 signoff / workflow 的更明确协同
 - Prototype / Doc mismatch 的更完整接入
+
+## 状态更新
+
+### 已完成
+- Requirement 详情页四区主工作面已收紧
+- Issue Queue 已成为默认问题推进主入口
+- Stability 已进入 layer-aware 推荐型判断
+- Requirement 心智已进一步替代 exploration 主语
+- 轻量 impact summary 已具备 headline / signals / next step
+
+### 当前残留
+- `/explorations` 及 `Exploration*` 仍保留兼容实现位置
+- impact summary 仍是当前态规则摘要，不是正式 change diff
+- Stability 仍是推荐器，不是强阻断器
+
+### 下一轮可继续推进
+- Clarification 自动投影与回源确认
+- impact summary 与 Change Unit 的更明确衔接
+- exploration 兼容目录的进一步物理清理

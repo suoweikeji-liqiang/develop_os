@@ -74,6 +74,7 @@ interface WorksurfaceSummary {
     openConflicts: number
     pendingClarifications: number
   }
+  // Legacy default fallback kept for compatibility; actual Unit guidance is layer-aware.
   targetRequirementUnitStabilityLevel: string
   issueBreakdown: Array<{
     type: string
