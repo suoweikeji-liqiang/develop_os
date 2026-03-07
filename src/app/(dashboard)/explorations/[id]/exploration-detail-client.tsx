@@ -30,7 +30,7 @@ import { canManageRequirementWorkflow } from '@/lib/workflow/permissions'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
-import { STABILITY_LABELS, STABILITY_OPTIONS } from '@/lib/requirement-evolution'
+import { ISSUE_UNIT_STATUS_LABELS, STABILITY_LABELS, STABILITY_OPTIONS } from '@/lib/requirement-evolution'
 
 interface Props {
   requirementId: string
@@ -163,6 +163,16 @@ export function ExplorationDetailClient({
       status: string
       questionText: string
       answerText?: string | null
+      queueEligible: boolean
+      queueEligibilityReason: string
+      issueProjection: {
+        id: string
+        status: string
+        type: string
+        severity: string
+        blockDev: boolean
+        updatedAt: string
+      } | null
     }>
   } | null>(null)
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
@@ -330,6 +340,16 @@ export function ExplorationDetailClient({
               status: string
               questionText: string
               answerText?: string | null
+              queueEligible: boolean
+              queueEligibilityReason: string
+              issueProjection: {
+                id: string
+                status: string
+                type: string
+                severity: string
+                blockDev: boolean
+                updatedAt: string
+              } | null
             }>
           } | null
         }
@@ -536,9 +556,12 @@ export function ExplorationDetailClient({
         ...prev,
         [questionId]: {
           loading: false,
-          message: payload?.created ? '已转为 Issue Unit' : '该澄清问题已存在 Issue Unit',
+          message: payload?.created
+            ? '已转入 Issue Queue；Clarification 保留为来源问答记录。'
+            : '该澄清问题已在 Issue Queue 中跟踪。',
         },
       }))
+      await refreshClarification()
       setIssueRefreshToken((prev) => prev + 1)
       setChangeRefreshToken((prev) => prev + 1)
       setSummaryRefreshToken((prev) => prev + 1)
@@ -1008,7 +1031,7 @@ export function ExplorationDetailClient({
                   <div>
                     <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">Clarification Queue</h3>
                     <p className="mt-2 text-sm leading-6 text-slate-500">
-                      澄清问题保留为原始问答面；需要持续推进的问题建议转入上方 Issue Queue。
+                      澄清问题保留为原始问答面；风险项、已回答但未收敛项、或被跳过的项建议转入上方 Issue Queue 持续推进。
                     </p>
                   </div>
                   <details open>
@@ -1019,6 +1042,11 @@ export function ExplorationDetailClient({
                         <div key={question.id} className="rounded-md border p-3 space-y-2">
                           <p className="text-xs text-slate-500">[{question.category}] {question.status}</p>
                           <p className="text-sm text-slate-800">{question.questionText}</p>
+                          <p className="text-xs leading-5 text-slate-500">
+                            {question.issueProjection
+                              ? `已转入 Issue Queue，当前状态为 ${ISSUE_UNIT_STATUS_LABELS[question.issueProjection.status as keyof typeof ISSUE_UNIT_STATUS_LABELS] ?? question.issueProjection.status}。Clarification 继续保留为来源问答记录。`
+                              : question.queueEligibilityReason}
+                          </p>
                           <Textarea
                             placeholder="输入回答..."
                             value={answerDrafts[question.id] ?? ''}
@@ -1031,9 +1059,15 @@ export function ExplorationDetailClient({
                                 size="sm"
                                 variant="outline"
                                 onClick={() => void handleCreateClarificationIssue(question.id)}
-                                disabled={clarificationIssueState[question.id]?.loading}
+                                disabled={clarificationIssueState[question.id]?.loading || !question.queueEligible || Boolean(question.issueProjection)}
                               >
-                                {clarificationIssueState[question.id]?.loading ? '转换中...' : '转入 Issue Queue'}
+                                {clarificationIssueState[question.id]?.loading
+                                  ? '转换中...'
+                                  : question.issueProjection
+                                    ? '已在 Issue Queue'
+                                    : question.queueEligible
+                                      ? '转入 Issue Queue'
+                                      : '先回答后再转入'}
                               </Button>
                             )}
                             <Button

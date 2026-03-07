@@ -33,6 +33,17 @@ interface IssueUnitItem {
   sourceType: string | null
   sourceRef: string | null
   sourceLabel: string
+  sourceStatus: string | null
+  sourceStatusLabel: string | null
+  sourceCategory: string | null
+  sourceCategoryLabel: string | null
+  lifecycle: {
+    sourceSummary: string
+    blockingSummary: string
+    closeMeaning: string
+    followupSummary: string
+    requiresSourceFollowup: boolean
+  }
   suggestedResolution: string | null
   ownerId: string | null
   updatedAt: string
@@ -547,10 +558,17 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                 </span>
                 <span className="app-chip">{getIssueTypeLabel(item.type)}</span>
                 <span className="app-chip">{item.sourceLabel}</span>
+                {item.sourceCategoryLabel ? <span className="app-chip">{item.sourceCategoryLabel}</span> : null}
+                {item.sourceStatusLabel ? <span className="app-chip">来源状态 {item.sourceStatusLabel}</span> : null}
                 {item.queueKind === 'conflict' ? <span className="app-chip">投影项</span> : null}
                 {item.blockDev ? (
                   <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">
                     阻断开发
+                  </span>
+                ) : null}
+                {item.lifecycle.requiresSourceFollowup ? (
+                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+                    需回到来源确认
                   </span>
                 ) : null}
               </div>
@@ -583,6 +601,29 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                   建议处理：{item.suggestedResolution}
                 </p>
               ) : null}
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <div className="rounded-[18px] border border-slate-200/70 bg-white/80 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">来源</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">{item.lifecycle.sourceSummary}</p>
+                </div>
+                <div className="rounded-[18px] border border-slate-200/70 bg-white/80 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">当前影响</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">{item.lifecycle.blockingSummary}</p>
+                </div>
+                <div className="rounded-[18px] border border-slate-200/70 bg-white/80 p-3">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">关闭含义</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">{item.lifecycle.closeMeaning}</p>
+                </div>
+                <div className={`rounded-[18px] border p-3 ${
+                  item.lifecycle.requiresSourceFollowup
+                    ? 'border-amber-200 bg-amber-50/80'
+                    : 'border-slate-200/70 bg-white/80'
+                }`}>
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">回源确认</p>
+                  <p className="mt-2 text-sm leading-6 text-slate-700">{item.lifecycle.followupSummary}</p>
+                </div>
+              </div>
 
               {item.queueKind === 'issue' && editDrafts[item.id]?.open ? (
                 <div className="mt-4 grid gap-3 rounded-[18px] border border-slate-200/70 bg-white/70 p-3">
@@ -704,7 +745,7 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
               </div>
               {item.queueKind === 'conflict' ? (
                 <p className="mt-2 text-xs text-slate-500">
-                  该项来自 Conflict Scan。默认建议在 Issue Queue 处理状态；详细证据仍保留在下方 Conflict Panel。
+                  该项来自 Conflict Scan。默认建议在 Issue Queue 处理状态；关闭状态会同步回原 Conflict，对应证据仍保留在下方 Conflict Panel。
                 </p>
               ) : null}
               {statusDrafts[item.id]?.error ? (

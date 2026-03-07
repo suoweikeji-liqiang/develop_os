@@ -6,6 +6,10 @@ import { prisma } from '@/server/db/client'
 import { FiveLayerModelSchema } from '@/lib/schemas/requirement'
 import { applyPathPatch, deriveClarificationPatch } from '@/server/ai/clarification'
 import { IssueUnitSeverityEnum } from '@/lib/requirement-evolution'
+import {
+  getClarificationIssueQueueReason,
+  shouldClarificationEnterIssueQueue,
+} from '@/lib/issue-queue'
 
 function toInputJsonValue(value: unknown): Prisma.InputJsonValue | null {
   if (value === null) return null
@@ -30,15 +34,82 @@ export const clarificationRouter = createTRPCRouter({
     .query(async ({ input }) => {
       const session = await prisma.clarificationSession.findFirst({
         where: { requirementId: input.requirementId },
-        include: {
+        select: {
+          id: true,
+          requirementId: true,
           questions: {
             orderBy: { createdAt: 'asc' },
+            select: {
+              id: true,
+              category: true,
+              status: true,
+              questionText: true,
+              answerText: true,
+            },
           },
         },
         orderBy: { createdAt: 'desc' },
       })
 
-      return session
+      if (!session) {
+        return null
+      }
+
+      const issueProjections = session.questions.length > 0
+        ? await prisma.issueUnit.findMany({
+            where: {
+              requirementId: session.requirementId,
+              sourceType: 'clarification',
+              sourceRef: {
+                in: session.questions.map((question) => question.id),
+              },
+            },
+            select: {
+              id: true,
+              sourceRef: true,
+              status: true,
+              type: true,
+              severity: true,
+              blockDev: true,
+              updatedAt: true,
+            },
+          })
+        : []
+
+      const projectionByQuestionId = new Map(
+        issueProjections
+          .filter((item) => item.sourceRef)
+          .map((item) => [item.sourceRef as string, item]),
+      )
+
+      return {
+        id: session.id,
+        questions: session.questions.map((question) => {
+          const issueProjection = projectionByQuestionId.get(question.id) ?? null
+
+          return {
+            ...question,
+            queueEligible: shouldClarificationEnterIssueQueue({
+              category: question.category,
+              status: question.status,
+            }),
+            queueEligibilityReason: getClarificationIssueQueueReason({
+              category: question.category,
+              status: question.status,
+            }),
+            issueProjection: issueProjection
+              ? {
+                  id: issueProjection.id,
+                  status: issueProjection.status,
+                  type: issueProjection.type,
+                  severity: issueProjection.severity,
+                  blockDev: issueProjection.blockDev,
+                  updatedAt: issueProjection.updatedAt,
+                }
+              : null,
+          }
+        }),
+      }
     }),
 
   answer: protectedProcedure
@@ -219,6 +290,19 @@ export const clarificationRouter = createTRPCRouter({
         }
       }
 
+      if (!shouldClarificationEnterIssueQueue({
+        category: question.category,
+        status: question.status,
+      })) {
+        throw new TRPCError({
+          code: 'PRECONDITION_FAILED',
+          message: getClarificationIssueQueueReason({
+            category: question.category,
+            status: question.status,
+          }),
+        })
+      }
+
       const severity = input.severity ?? (question.category === 'RISK' ? 'HIGH' : 'MEDIUM')
       const blockDev = input.blockDev ?? false
       const type = question.category === 'RISK' ? 'risk' : 'pending_confirmation'
@@ -252,6 +336,7 @@ export const clarificationRouter = createTRPCRouter({
         created: true,
         issueId: issue.id,
         status: issue.status,
+        clarificationStatus: question.status,
       }
     }),
 })

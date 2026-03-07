@@ -4,8 +4,11 @@ import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { IssueUnitSeverityEnum, IssueUnitStatusEnum } from '@/lib/requirement-evolution'
 import {
+  buildIssueQueueLifecycleMeta,
   compareIssueQueueItems,
+  getClarificationCategoryLabel,
   getIssueQueueSourceLabel,
+  getIssueQueueSourceStatusLabel,
   IssueUnitTypeEnum,
   mapConflictStatusToIssueStatus,
   normalizeIssueType,
@@ -85,43 +88,103 @@ export const issueUnitRouter = createTRPCRouter({
         }),
       ])
 
+      const clarificationQuestions = await prisma.clarificationQuestion.findMany({
+        where: {
+          id: {
+            in: issueUnits
+              .filter((item) => item.sourceType === 'clarification' && item.sourceRef)
+              .map((item) => item.sourceRef as string),
+          },
+        },
+        select: {
+          id: true,
+          category: true,
+          status: true,
+        },
+      })
+
+      const clarificationById = new Map(
+        clarificationQuestions.map((item) => [item.id, item]),
+      )
+
       const queue = [
-        ...issueUnits.map((item) => ({
-          id: item.id,
-          entityId: item.id,
-          queueKind: 'issue' as const,
-          type: item.type,
-          severity: item.severity,
-          title: item.title,
-          description: item.description,
-          status: item.status,
-          blockDev: item.blockDev,
-          sourceType: item.sourceType,
-          sourceRef: item.sourceRef,
-          sourceLabel: getIssueQueueSourceLabel(item.sourceType, 'issue'),
-          suggestedResolution: item.suggestedResolution,
-          ownerId: item.ownerId,
-          updatedAt: item.updatedAt,
-          primaryRequirementUnit: item.primaryRequirementUnit,
-        })),
-        ...conflicts.map((item) => ({
-          id: `conflict:${item.id}`,
-          entityId: item.id,
-          queueKind: 'conflict' as const,
-          type: 'conflict',
-          severity: item.severity === 'HIGH' ? 'HIGH' as const : item.severity,
-          title: item.title,
-          description: item.summary,
-          status: mapConflictStatusToIssueStatus(item.status),
-          blockDev: false,
-          sourceType: 'conflict-scan',
-          sourceRef: item.id,
-          sourceLabel: getIssueQueueSourceLabel('conflict-scan', 'conflict'),
-          suggestedResolution: item.recommendedAction,
-          ownerId: null,
-          updatedAt: item.updatedAt,
-          primaryRequirementUnit: null,
-        })),
+        ...issueUnits.map((item) => {
+          const clarification = item.sourceType === 'clarification' && item.sourceRef
+            ? clarificationById.get(item.sourceRef)
+            : null
+
+          return {
+            id: item.id,
+            entityId: item.id,
+            queueKind: 'issue' as const,
+            type: item.type,
+            severity: item.severity,
+            title: item.title,
+            description: item.description,
+            status: item.status,
+            blockDev: item.blockDev,
+            sourceType: item.sourceType,
+            sourceRef: item.sourceRef,
+            sourceLabel: getIssueQueueSourceLabel(item.sourceType, 'issue'),
+            sourceStatus: clarification?.status ?? null,
+            sourceStatusLabel: getIssueQueueSourceStatusLabel({
+              queueKind: 'issue',
+              sourceType: item.sourceType,
+              status: clarification?.status,
+            }),
+            sourceCategory: clarification?.category ?? null,
+            sourceCategoryLabel: getClarificationCategoryLabel(clarification?.category),
+            lifecycle: buildIssueQueueLifecycleMeta({
+              queueKind: 'issue',
+              sourceType: item.sourceType,
+              issueStatus: item.status,
+              blockDev: item.blockDev,
+              sourceStatus: clarification?.status ?? null,
+              sourceCategory: clarification?.category ?? null,
+            }),
+            suggestedResolution: item.suggestedResolution,
+            ownerId: item.ownerId,
+            updatedAt: item.updatedAt,
+            primaryRequirementUnit: item.primaryRequirementUnit,
+          }
+        }),
+        ...conflicts.map((item) => {
+          const status = mapConflictStatusToIssueStatus(item.status)
+
+          return {
+            id: `conflict:${item.id}`,
+            entityId: item.id,
+            queueKind: 'conflict' as const,
+            type: 'conflict',
+            severity: item.severity === 'HIGH' ? 'HIGH' as const : item.severity,
+            title: item.title,
+            description: item.summary,
+            status,
+            blockDev: false,
+            sourceType: 'conflict-scan',
+            sourceRef: item.id,
+            sourceLabel: getIssueQueueSourceLabel('conflict-scan', 'conflict'),
+            sourceStatus: item.status,
+            sourceStatusLabel: getIssueQueueSourceStatusLabel({
+              queueKind: 'conflict',
+              sourceType: 'conflict-scan',
+              status: item.status,
+            }),
+            sourceCategory: null,
+            sourceCategoryLabel: null,
+            lifecycle: buildIssueQueueLifecycleMeta({
+              queueKind: 'conflict',
+              sourceType: 'conflict-scan',
+              issueStatus: status,
+              blockDev: false,
+              sourceStatus: item.status,
+            }),
+            suggestedResolution: item.recommendedAction,
+            ownerId: null,
+            updatedAt: item.updatedAt,
+            primaryRequirementUnit: null,
+          }
+        }),
       ]
 
       return queue.sort(compareIssueQueueItems)

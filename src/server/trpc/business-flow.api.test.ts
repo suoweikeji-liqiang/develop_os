@@ -430,6 +430,13 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
     const session = await prisma.clarificationSession.create({
       data: { requirementId: requirement.id },
     })
+    const scopeQuestion = await prisma.clarificationQuestion.create({
+      data: {
+        sessionId: session.id,
+        category: 'SCOPE',
+        questionText: '注册是否必须绑定手机号，还是允许邮箱注册？',
+      },
+    })
     const question = await prisma.clarificationQuestion.create({
       data: {
         sessionId: session.id,
@@ -438,14 +445,56 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
       },
     })
 
+    await expect(
+      ownerCaller.clarification.createIssue({
+        questionId: scopeQuestion.id,
+      }),
+    ).rejects.toHaveProperty('code', 'PRECONDITION_FAILED')
+
+    await ownerCaller.clarification.updateQuestionStatus({
+      questionId: scopeQuestion.id,
+      status: 'SKIPPED',
+    })
+
     const createdIssue = await ownerCaller.clarification.createIssue({
       questionId: question.id,
       blockDev: true,
     })
     expect(createdIssue.created).toBe(true)
 
+    const skippedClarificationIssue = await ownerCaller.clarification.createIssue({
+      questionId: scopeQuestion.id,
+    })
+    expect(skippedClarificationIssue.created).toBe(true)
+
+    const clarificationList = await ownerCaller.clarification.list({
+      requirementId: requirement.id,
+    })
+    expect(clarificationList?.questions.find((item) => item.id === question.id)?.issueProjection?.id).toBe(createdIssue.issueId)
+    expect(clarificationList?.questions.find((item) => item.id === scopeQuestion.id)?.queueEligible).toBe(true)
+
+    await prisma.requirementConflict.create({
+      data: {
+        requirementId: requirement.id,
+        fingerprint: randomUUID(),
+        scope: 'INTERNAL',
+        severity: 'HIGH',
+        title: '注册主流程与异常兜底描述冲突',
+        summary: '主流程要求短信验证码必达，但异常流程允许直接跳过验证。',
+        rationale: '同一 Requirement 中对验证码失败后的处理给出了相互矛盾的要求。',
+        recommendedAction: '统一验证码失败后的兜底策略，再确认是否允许语音验证码。',
+        evidence: ['主流程要求短信验证码必达', '异常流程允许直接跳过验证'],
+      },
+    })
+
     const queue = await ownerCaller.issueUnit.listByRequirement({ requirementId: requirement.id })
     expect(queue.some((item) => item.queueKind === 'issue')).toBe(true)
+    expect(queue.some((item) => item.queueKind === 'conflict')).toBe(true)
+    expect(queue.find((item) => item.entityId === createdIssue.issueId)?.sourceLabel).toBe('Clarification')
+    expect(queue.find((item) => item.entityId === createdIssue.issueId)?.sourceStatusLabel).toBe('待回答')
+    expect(queue.find((item) => item.entityId === createdIssue.issueId)?.lifecycle.requiresSourceFollowup).toBe(true)
+    expect(queue.find((item) => item.entityId === skippedClarificationIssue.issueId)?.sourceStatusLabel).toBe('已跳过待跟进')
+    expect(queue.find((item) => item.queueKind === 'conflict')?.lifecycle.closeMeaning).toContain('同步原 Conflict')
 
     const createdChange = await ownerCaller.changeUnit.create({
       requirementId: requirement.id,
@@ -546,5 +595,5 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
     const versionList = await ownerCaller.version.list({ requirementId: requirement.id })
     expect(versionList.versions.some((item) => item.changeUnit?.id === pendingChange.id)).toBe(true)
     expect(versionList.currentTrace?.changeUnit?.id).toBe(pendingChange.id)
-  }, 20000)
+  }, 60000)
 })

@@ -93,6 +93,38 @@
   - `src/app/(dashboard)/explorations/[id]/conflict-panel.tsx`
   - `src/app/(dashboard)/explorations/[id]/exploration-detail-client.tsx`
 
+## 本轮落地规则（已实现）
+
+### Clarification -> Issue 的最小准入规则
+- Clarification 继续作为原始问答面保留
+- 只有以下情况默认允许转入 `Issue Queue`：
+  - `category = RISK`
+  - `status = ANSWERED`
+  - `status = SKIPPED`
+- `status = OPEN` 且非风险类问题，先留在 Clarification 中收敛，不直接转入 Issue Queue
+- 转入后：
+  - Clarification 不自动关闭
+  - UI 会显示“已转入 Issue Queue，Clarification 保留为来源问答记录”
+  - Clarification 列表会带上 `issueProjection` 状态，避免形成第二套主问题面
+
+### Conflict -> Issue Projection 的最小规则
+- Conflict 继续作为来源 / 证据面保留
+- Issue Queue 继续作为默认处理状态的主入口
+- 在 Issue Queue 中关闭 Conflict projection 时：
+  - `RESOLVED -> RequirementConflict.RESOLVED`
+  - `REJECTED / ARCHIVED -> RequirementConflict.DISMISSED`
+  - 其他活跃状态继续映射为 `RequirementConflict.OPEN`
+- Conflict Panel 按兼容入口保留，按钮文案明确为“同步”语义，不再强调其为主问题面
+
+### Issue Queue 生命周期说明
+- 每个问题项都补充四类说明：
+  - 来源说明
+  - 当前影响 / 是否阻断
+  - 关闭含义
+  - 是否需要回到来源对象继续确认
+- Clarification 来源项在关闭后不会自动回写 Clarification 状态，系统会提示用户回到来源对象完成最终确认
+- Conflict projection 会明确提示状态同步与证据查看位置
+
 ## 非目标
 - 不做全自动 issue lifecycle engine
 - 不删除 `ClarificationQuestion` / `RequirementConflict`
@@ -103,4 +135,3 @@
 - 回答 Clarification 后的自动转入建议或自动投影
 - Clarification / Conflict / Issue 的更清晰来源回链
 - Issue 生命周期与 Stability / Impact Summary 的更强联动
-

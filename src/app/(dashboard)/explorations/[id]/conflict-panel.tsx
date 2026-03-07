@@ -238,13 +238,13 @@ export function ConflictPanel({ requirementId, hasModel, onDataChanged }: Props)
                     onClick={() => void handleResolve(conflict.id)}
                     className="rounded bg-green-600 px-3 py-1 text-sm text-white hover:bg-green-700"
                   >
-                    标记已处理
+                    兼容入口：同步标记已处理
                   </button>
                   <button
                     onClick={() => void handleDismiss(conflict.id)}
                     className="rounded bg-gray-100 px-3 py-1 text-sm text-gray-700 hover:bg-gray-200"
                   >
-                    驳回
+                    兼容入口：同步驳回
                   </button>
                 </div>
               )}
