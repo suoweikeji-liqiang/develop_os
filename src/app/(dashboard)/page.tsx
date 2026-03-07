@@ -208,7 +208,7 @@ export default async function DashboardPage() {
                   </div>
                 </div>
                 <div className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-slate-900">
-                  Open lane
+                  打开工作面
                   <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </div>
               </Link>

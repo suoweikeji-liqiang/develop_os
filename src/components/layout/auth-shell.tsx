@@ -91,7 +91,7 @@ export function AuthShell({
                 Trusted Workflow Layer
               </div>
               <p className="text-sm leading-6 text-white/62">
-                从探索、建模、冲突扫描到共识签字，所有变更都围绕同一条需求演化链展开。
+                从 Requirement intake、建模、冲突扫描到共识签字，所有变更都围绕同一条需求演化链展开。
               </p>
               {supportLink && (
                 <div className="mt-4 text-sm text-white/72">

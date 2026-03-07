@@ -32,6 +32,8 @@ type Props = {
   initialView: 'explorations' | 'models' | 'evolution'
 }
 
+// Compatibility location: this client renders the Requirement list/cards while
+// `/explorations` remains a legacy alias route.
 export function ExplorationsListClient({ initialRequirements, initialView }: Props) {
   const router = useRouter()
   const searchParams = useSearchParams()

@@ -11,6 +11,8 @@ interface Props {
   listView: ListView
 }
 
+// Compatibility location: this file renders the primary Requirement list surfaces
+// while `/explorations` remains a legacy route alias.
 export async function ExplorationIndexPage({ listView }: Props) {
   await verifySession()
 
@@ -94,9 +96,9 @@ export async function ExplorationIndexPage({ listView }: Props) {
 
           <div className="grid gap-3 sm:grid-cols-3 xl:grid-cols-1">
             <div className="app-metric">
-              <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/50">Entries</p>
+              <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/50">Requirements</p>
               <p className="mt-3 text-3xl font-semibold text-white">{serialized.length}</p>
-              <p className="mt-2 text-sm text-white/58">当前视图中的总条目数</p>
+              <p className="mt-2 text-sm text-white/58">当前视图中的 Requirement 总数</p>
             </div>
             <div className="app-metric">
               <p className="text-[0.68rem] uppercase tracking-[0.24em] text-white/50">Evolved</p>
@@ -119,7 +121,7 @@ export async function ExplorationIndexPage({ listView }: Props) {
 
       <section className="flex flex-wrap items-center justify-between gap-4">
         <div className="space-y-1">
-          <p className="app-kicker">Launch lane</p>
+          <p className="app-kicker">Primary Actions</p>
           <h2 className="text-2xl font-semibold text-slate-950">
             在当前需求工作面继续推进
           </h2>
@@ -135,7 +137,7 @@ export async function ExplorationIndexPage({ listView }: Props) {
 
       <div className="space-y-2">
         <h3 className="text-sm font-medium uppercase tracking-[0.22em] text-slate-500">
-          Active list
+          Requirement List
         </h3>
       </div>
 

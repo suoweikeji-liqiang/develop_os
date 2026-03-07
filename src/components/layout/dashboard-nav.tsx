@@ -14,6 +14,7 @@ const NAV_ITEMS = [
 
 function isActivePath(pathname: string, href: string): boolean {
   if (href === '/requirements') {
+    // Keep `/explorations` highlighted under Requirements while the legacy alias remains available.
     return pathname === '/' || pathname.startsWith('/requirements') || pathname.startsWith('/explorations')
   }
 

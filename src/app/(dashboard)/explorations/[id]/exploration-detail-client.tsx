@@ -111,6 +111,12 @@ function getExplorationStage(status: string): 'open' | 'refining' | 'stabilized'
   return 'refining'
 }
 
+function getStageLabel(stage: 'open' | 'refining' | 'stabilized'): string {
+  if (stage === 'open') return '采样中'
+  if (stage === 'stabilized') return '已稳定'
+  return '收敛中'
+}
+
 function getStageClasses(stage: 'open' | 'refining' | 'stabilized'): string {
   if (stage === 'open') return 'border-amber-300 bg-amber-50 text-amber-700'
   if (stage === 'stabilized') return 'border-emerald-300 bg-emerald-50 text-emerald-700'
@@ -118,11 +124,13 @@ function getStageClasses(stage: 'open' | 'refining' | 'stabilized'): string {
 }
 
 function getStageCopy(stage: 'open' | 'refining' | 'stabilized'): string {
-  if (stage === 'open') return '需求仍在采样与抽象阶段，适合多做澄清与发散探索。'
+  if (stage === 'open') return '需求仍在采样与边界收敛阶段，适合补澄清、补来源上下文和确认顶层边界。'
   if (stage === 'stabilized') return '需求已接近稳定，可重点关注收尾、签字与沉淀。'
   return '需求已经进入修正与收敛阶段，适合持续对话和冲突扫描。'
 }
 
+// Compatibility location: this client component is the Requirement worksurface
+// implementation even though it still lives under `explorations/[id]`.
 export function ExplorationDetailClient({
   requirementId,
   title,
@@ -654,7 +662,7 @@ export function ExplorationDetailClient({
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="app-chip-dark">Requirement</span>
               <span className={`rounded-full border px-3 py-1 font-medium ${getStageClasses(explorationStage)}`}>
-                {explorationStage}
+                {getStageLabel(explorationStage)}
               </span>
               <span className="app-chip-dark">Status {currentStatus}</span>
               <StabilityBadge level={currentStabilityLevel} />

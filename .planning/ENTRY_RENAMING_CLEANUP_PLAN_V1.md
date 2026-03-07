@@ -71,6 +71,40 @@
   - `src/app/(dashboard)/explorations/new/page.tsx`
   - 其他仍对外承载 Requirement 主流程的 `explorations/*`
 
+## 本轮落地结果（已实现）
+
+### 已收口的主文案
+- Requirement 列表页：
+  - `Launch lane -> Primary Actions`
+  - `Active list -> Requirement List`
+  - `Entries -> Requirements`
+- Dashboard 卡片动作：
+  - `Open lane -> 打开工作面`
+- Requirement 详情页阶段文案：
+  - `open / refining / stabilized` 改为面向 Requirement 的中文阶段标签
+  - `发散探索` 语义改为 `采样与边界收敛`
+- 新建 Requirement 表单侧栏：
+  - `Prompt hints -> Requirement hints`
+- 认证页 / 管理页残留的“探索流”文案已改成 Requirement 主语
+
+### 已补的兼容说明注释
+- `src/app/(dashboard)/explorations/exploration-index-page.tsx`
+- `src/app/(dashboard)/explorations/explorations-list-client.tsx`
+- `src/app/(dashboard)/explorations/new/page.tsx`
+- `src/app/(dashboard)/explorations/new/exploration-form.tsx`
+- `src/app/(dashboard)/explorations/[id]/page.tsx`
+- `src/app/(dashboard)/explorations/[id]/exploration-detail-client.tsx`
+- `src/app/(dashboard)/explorations/page.tsx`
+- `src/components/layout/dashboard-nav.tsx`
+
+### 当前保留但已弱化的历史包袱
+- `/explorations`
+- `/explorations/new`
+- `/explorations/[id]`
+- `ExplorationIndexPage / ExplorationDetailClient / ExplorationForm` 这些实现名
+
+这些保留项目前只承担兼容职责，不再代表产品主语。
+
 ## 非目标
 - 不做全仓库 rename
 - 不做大规模目录迁移
@@ -81,4 +115,3 @@
 - 后续若继续清理，可把 `explorations/*` 迁到 `requirements/*` 下的真实实现目录
 - 再下一步才考虑组件名 rename
 - 这一轮先优先清用户心智，不优先清物理目录
-

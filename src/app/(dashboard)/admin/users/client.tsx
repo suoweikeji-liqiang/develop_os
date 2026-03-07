@@ -122,7 +122,7 @@ export function AdminUsersClient({ users: initialUsers }: { users: UserWithRoles
               管理协作成员与角色视图
             </h1>
             <p className="max-w-2xl text-base leading-7 text-white/70">
-              为不同成员分配角色、发送邀请，并保持探索流、签字链与评审权限在同一套控制台里可追踪。
+              为不同成员分配角色、发送邀请，并保持 Requirement 工作面、签字链与评审权限在同一套控制台里可追踪。
             </p>
           </div>
 

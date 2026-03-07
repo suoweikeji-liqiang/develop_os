@@ -9,6 +9,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useDraftAutosave, clearDraft } from '@/lib/hooks/use-draft-autosave'
 
+// Compatibility location: this form is the main Requirement intake form even though
+// it still lives under the legacy `explorations/` directory.
 export function ExplorationForm() {
   const router = useRouter()
   const [title, setTitle] = useState('')
@@ -121,7 +123,7 @@ export function ExplorationForm() {
           </div>
 
           <aside className="rounded-[24px] border border-slate-200/80 bg-slate-950 px-4 py-5 text-white">
-            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-white/45">Prompt hints</p>
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-white/45">Requirement hints</p>
             <ul className="mt-4 space-y-4 text-sm leading-6 text-white/68">
               <li>说明业务目标、触发场景和约束条件。</li>
               <li>如果有边界条件、风险点，尽量在原始上下文里一次讲清楚。</li>

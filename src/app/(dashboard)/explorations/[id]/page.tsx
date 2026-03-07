@@ -8,6 +8,8 @@ import type { UIMessage } from 'ai'
 
 export const dynamic = 'force-dynamic'
 
+// Compatibility location: this page renders the Requirement worksurface for
+// `/requirements/[id]` while `/explorations/[id]` remains as a legacy alias.
 export default async function ExplorationDetailPage({
   params,
 }: {

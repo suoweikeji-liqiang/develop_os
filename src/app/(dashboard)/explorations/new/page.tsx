@@ -4,6 +4,8 @@ import { ExplorationForm } from './exploration-form'
 
 export const dynamic = 'force-dynamic'
 
+// Compatibility location: this page powers `/requirements/new` while `/explorations/new`
+// remains as a legacy alias.
 export default async function NewExplorationPage() {
   await verifySession()
 
