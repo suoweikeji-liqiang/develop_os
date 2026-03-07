@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
+  ISSUE_UNIT_STATUS_LABELS,
   REQUIREMENT_UNIT_STATUS_LABELS,
   REQUIREMENT_UNIT_STATUS_OPTIONS,
   STABILITY_LABELS,
@@ -39,6 +40,25 @@ interface RequirementUnitItem {
     issueUnits: number
     childUnits: number
   }
+  clarificationSummary: {
+    total: number
+    activeIssueCount: number
+    closedIssueCount: number
+    callbackNeededCount: number
+  }
+  linkedClarifications: Array<{
+    issueId: string
+    questionId: string
+    questionText: string
+    category: string
+    categoryLabel: string | null
+    clarificationStatus: string
+    clarificationStatusLabel: string | null
+    issueStatus: string
+    callbackNeeded: boolean
+    blockDev: boolean
+    updatedAt: string
+  }>
 }
 
 interface Props {
@@ -439,6 +459,12 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
                 <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
                   <span className="app-chip">关联问题 {item._count.issueUnits}</span>
                   <span className="app-chip">子单元 {item._count.childUnits}</span>
+                  {item.clarificationSummary.total > 0 ? (
+                    <span className="app-chip">来源澄清 {item.clarificationSummary.total}</span>
+                  ) : null}
+                  {item.clarificationSummary.callbackNeededCount > 0 ? (
+                    <span className="app-chip text-amber-700">待回源 {item.clarificationSummary.callbackNeededCount}</span>
+                  ) : null}
                   {item.stabilityScore !== null ? <span className="app-chip">稳定度分 {item.stabilityScore}</span> : null}
                   {item.ownerId ? <span className="app-chip">Owner {item.ownerId}</span> : null}
                   <Button
@@ -463,6 +489,54 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
                   <p className="font-semibold">{progressHint.label}</p>
                   <p className="mt-1 leading-6">{progressHint.message}</p>
                 </div>
+
+                {item.linkedClarifications.length > 0 ? (
+                  <div className="mt-3 rounded-[16px] border border-slate-200/80 bg-white/80 px-3 py-3 text-sm text-slate-700">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-semibold text-slate-900">Clarification 回链</p>
+                      <span className="app-chip">活跃 {item.clarificationSummary.activeIssueCount}</span>
+                      <span className="app-chip">已关闭 {item.clarificationSummary.closedIssueCount}</span>
+                    </div>
+                    <p className="mt-2 leading-6 text-slate-600">
+                      这些 Clarification 来源问题已经直接回链到当前 Requirement Unit。Issue Queue 中的问题关闭后，请回到这里确认该 Unit 的状态与稳定度是否可以继续推进。
+                    </p>
+                    <div className="mt-3 space-y-2">
+                      {item.linkedClarifications.map((clarification) => (
+                        <div key={clarification.issueId} className="rounded-[14px] border border-slate-200/80 bg-slate-50/80 px-3 py-3">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            {clarification.categoryLabel ? <span className="app-chip">{clarification.categoryLabel}</span> : null}
+                            <span className="app-chip">
+                              Clarification {clarification.clarificationStatusLabel ?? clarification.clarificationStatus}
+                            </span>
+                            <span className="app-chip">
+                              Issue {ISSUE_UNIT_STATUS_LABELS[clarification.issueStatus as keyof typeof ISSUE_UNIT_STATUS_LABELS] ?? clarification.issueStatus}
+                            </span>
+                            {clarification.blockDev ? <span className="app-chip text-red-700">阻断推进</span> : null}
+                            {clarification.callbackNeeded ? <span className="app-chip text-amber-700">待回源确认</span> : null}
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-slate-700">{clarification.questionText}</p>
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                            <a
+                              href="#issue-queue"
+                              className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600 hover:bg-slate-50"
+                            >
+                              回到 Issue Queue
+                            </a>
+                            {clarification.callbackNeeded ? (
+                              <span className="text-amber-700">
+                                当前应先确认澄清是否已收敛，再决定是否上调该 Unit。
+                              </span>
+                            ) : (
+                              <span className="text-slate-500">
+                                结论会优先沉淀到当前 Unit，而不是回到 Requirement 顶层。
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 {item.stabilityReason ? (
                   <p className="mt-3 text-xs leading-5 text-slate-500">

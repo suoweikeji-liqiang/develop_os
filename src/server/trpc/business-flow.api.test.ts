@@ -459,8 +459,10 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
     const createdIssue = await ownerCaller.clarification.createIssue({
       questionId: question.id,
       blockDev: true,
+      primaryRequirementUnitId: createdUnit.id,
     })
     expect(createdIssue.created).toBe(true)
+    expect(createdIssue.linkedRequirementUnitId).toBe(createdUnit.id)
 
     const skippedClarificationIssue = await ownerCaller.clarification.createIssue({
       questionId: scopeQuestion.id,
@@ -471,8 +473,17 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
       requirementId: requirement.id,
     })
     expect(clarificationList?.questions.find((item) => item.id === question.id)?.issueProjection?.id).toBe(createdIssue.issueId)
+    expect(clarificationList?.questions.find((item) => item.id === question.id)?.issueProjection?.primaryRequirementUnit?.id).toBe(createdUnit.id)
     expect(clarificationList?.questions.find((item) => item.id === scopeQuestion.id)?.queueEligible).toBe(true)
     expect(clarificationList?.questions.find((item) => item.id === question.id)?.queueStatus.label).toBe('Issue Queue 跟踪中')
+
+    const unitsWithClarificationLinks = await ownerCaller.requirementUnit.listByRequirement({
+      requirementId: requirement.id,
+    })
+    const clarificationLinkedUnit = unitsWithClarificationLinks.find((item) => item.id === createdUnit.id)
+    expect(clarificationLinkedUnit?.clarificationSummary.total).toBe(1)
+    expect(clarificationLinkedUnit?.linkedClarifications[0]?.questionId).toBe(question.id)
+    expect(clarificationLinkedUnit?.linkedClarifications[0]?.callbackNeeded).toBe(false)
 
     await ownerCaller.issueUnit.updateStatus({
       issueUnitId: skippedClarificationIssue.issueId,

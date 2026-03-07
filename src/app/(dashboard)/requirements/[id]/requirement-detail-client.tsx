@@ -160,7 +160,21 @@ interface ClarificationQuestionItem {
     severity: string
     blockDev: boolean
     updatedAt: string
+    primaryRequirementUnit: {
+      id: string
+      unitKey: string
+      title: string
+      layer: string
+      status: string
+      stabilityLevel: string
+    } | null
   } | null
+}
+
+interface RequirementUnitOption {
+  id: string
+  unitKey: string
+  title: string
 }
 
 const MODELCARD_SECTIONS = [
@@ -248,6 +262,8 @@ export function RequirementDetailClient({
     loading: boolean
     message: string | null
   }>>({})
+  const [clarificationUnitDrafts, setClarificationUnitDrafts] = useState<Record<string, string>>({})
+  const [requirementUnitOptions, setRequirementUnitOptions] = useState<RequirementUnitOption[]>([])
   const [changeOptions, setChangeOptions] = useState<Array<{
     id: string
     changeKey: string
@@ -406,9 +422,46 @@ export function RequirementDetailClient({
           } | null
         }
       }
-      setClarificationSession(data.result?.data ?? null)
+      const nextSession = data.result?.data ?? null
+      setClarificationSession(nextSession)
+      setClarificationUnitDrafts((prev) => {
+        const next = { ...prev }
+        for (const question of nextSession?.questions ?? []) {
+          if (question.issueProjection?.primaryRequirementUnit?.id) {
+            next[question.id] = question.issueProjection.primaryRequirementUnit.id
+          } else if (!(question.id in next)) {
+            next[question.id] = ''
+          }
+        }
+        return next
+      })
     } catch {
       // degrade silently
+    }
+  }, [requirementId])
+
+  const refreshRequirementUnitOptions = useCallback(async () => {
+    try {
+      const input = encodeURIComponent(JSON.stringify({ requirementId }))
+      const res = await fetch(`/api/trpc/requirementUnit.listByRequirement?input=${input}`)
+      if (!res.ok) return
+      const data = await res.json() as {
+        result?: {
+          data?: {
+            json?: RequirementUnitOption[]
+          } | RequirementUnitOption[]
+        }
+      }
+      const payload = (data.result?.data && typeof data.result.data === 'object' && 'json' in data.result.data
+        ? data.result.data.json
+        : data.result?.data ?? []) as RequirementUnitOption[]
+      setRequirementUnitOptions(Array.isArray(payload) ? payload.map((item) => ({
+        id: item.id,
+        unitKey: item.unitKey,
+        title: item.title,
+      })) : [])
+    } catch {
+      setRequirementUnitOptions([])
     }
   }, [requirementId])
 
@@ -488,6 +541,7 @@ export function RequirementDetailClient({
     void refreshClarification()
     void refreshCompleteness()
     void refreshChangeOptions()
+    void refreshRequirementUnitOptions()
     void refreshWorksurfaceSummary()
   }, [
     changeRefreshToken,
@@ -496,6 +550,7 @@ export function RequirementDetailClient({
     refreshChangeOptions,
     refreshClarification,
     refreshCompleteness,
+    refreshRequirementUnitOptions,
     refreshWorksurfaceSummary,
   ])
 
@@ -606,10 +661,11 @@ export function RequirementDetailClient({
     }))
 
     try {
+      const primaryRequirementUnitId = clarificationUnitDrafts[questionId] || undefined
       const res = await fetch('/api/trpc/clarification.createIssue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ questionId }),
+        body: JSON.stringify({ questionId, primaryRequirementUnitId }),
       })
       const data = await res.json().catch(() => null)
 
@@ -618,13 +674,25 @@ export function RequirementDetailClient({
       }
 
       const payload = data?.result?.data?.json ?? data?.result?.data
+      const linkedRequirementUnit = requirementUnitOptions.find((item) => item.id === payload?.linkedRequirementUnitId)
+      const linkedRequirementUnitLabel = linkedRequirementUnit
+        ? `${linkedRequirementUnit.unitKey} · ${linkedRequirementUnit.title}`
+        : null
       setClarificationIssueState((prev) => ({
         ...prev,
         [questionId]: {
           loading: false,
           message: payload?.created
-            ? '已转入 Issue Queue；Clarification 保留为来源问答记录。'
-            : '该澄清问题已在 Issue Queue 中跟踪。',
+            ? linkedRequirementUnitLabel
+              ? `已转入 Issue Queue，并回链到 ${linkedRequirementUnitLabel}；Clarification 保留为来源问答记录。`
+              : '已转入 Issue Queue；Clarification 保留为来源问答记录。'
+            : payload?.linkedUnitUpdated
+              ? linkedRequirementUnitLabel
+                ? `该澄清问题已在 Issue Queue 中跟踪，已补充关联 ${linkedRequirementUnitLabel}。`
+                : '该澄清问题已在 Issue Queue 中跟踪，并已补充关联 Requirement Unit。'
+              : linkedRequirementUnitLabel
+                ? `该澄清问题已在 Issue Queue 中跟踪，并已关联 ${linkedRequirementUnitLabel}。`
+                : '该澄清问题已在 Issue Queue 中跟踪。',
         },
       }))
       await refreshClarification()
@@ -1232,7 +1300,7 @@ export function RequirementDetailClient({
                   hasModel={Boolean(model)}
                   onDataChanged={handleConflictChanged}
                 />
-                <section className="app-panel p-4 sm:p-5 space-y-4">
+                <section id="clarification-queue" className="app-panel p-4 sm:p-5 space-y-4">
                   <div>
                     <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">Clarification Queue</h3>
                     <p className="mt-2 text-sm leading-6 text-slate-500">
@@ -1250,101 +1318,186 @@ export function RequirementDetailClient({
                     <summary className="cursor-pointer text-sm font-semibold text-slate-700">查看澄清问题</summary>
                     <div className="mt-3 space-y-4">
                       <Button variant="outline" onClick={refreshClarification}>刷新澄清问题</Button>
-                      {clarificationQuestions.map((question) => (
-                        <div key={question.id} className="rounded-[18px] border border-slate-200/80 bg-slate-50/70 p-4 space-y-3">
-                          <div className="flex flex-wrap items-center gap-2 text-xs">
-                            <span className="app-chip">{getClarificationCategoryLabel(question.category) ?? question.category}</span>
-                            <span className="app-chip">来源状态 {getClarificationStatusLabel(question.status) ?? question.status}</span>
-                            <span className={`rounded-full px-2.5 py-1 font-medium ${
-                              question.queueStatus.callbackNeeded
-                                ? 'bg-amber-100 text-amber-800'
-                                : question.issueProjection
-                                  ? 'bg-sky-100 text-sky-800'
-                                  : question.queueEligible
-                                    ? 'bg-emerald-100 text-emerald-700'
-                                    : 'bg-white text-slate-600'
-                            }`}>
-                              {question.queueStatus.label}
-                            </span>
-                            {question.issueProjection ? (
-                              <>
-                                <span className="app-chip">
-                                  Issue {ISSUE_UNIT_STATUS_LABELS[question.issueProjection.status as keyof typeof ISSUE_UNIT_STATUS_LABELS] ?? question.issueProjection.status}
-                                </span>
-                                <span className="app-chip">{getIssueTypeLabel(question.issueProjection.type)}</span>
-                                {question.issueProjection.blockDev ? (
-                                  <span className="rounded-full bg-red-100 px-2.5 py-1 font-medium text-red-700">
-                                    阻断推进
+                      {clarificationQuestions.map((question) => {
+                        const linkedRequirementUnit = question.issueProjection?.primaryRequirementUnit ?? null
+                        const selectedRequirementUnitId = clarificationUnitDrafts[question.id] ?? ''
+                        const selectedRequirementUnit = requirementUnitOptions.find((item) => item.id === selectedRequirementUnitId) ?? null
+                        const shouldShowUnitPicker = question.queueEligible || Boolean(question.issueProjection && !linkedRequirementUnit)
+
+                        return (
+                          <div key={question.id} className="rounded-[18px] border border-slate-200/80 bg-slate-50/70 p-4 space-y-3">
+                            <div className="flex flex-wrap items-center gap-2 text-xs">
+                              <span className="app-chip">{getClarificationCategoryLabel(question.category) ?? question.category}</span>
+                              <span className="app-chip">来源状态 {getClarificationStatusLabel(question.status) ?? question.status}</span>
+                              <span className={`rounded-full px-2.5 py-1 font-medium ${
+                                question.queueStatus.callbackNeeded
+                                  ? 'bg-amber-100 text-amber-800'
+                                  : question.issueProjection
+                                    ? 'bg-sky-100 text-sky-800'
+                                    : question.queueEligible
+                                      ? 'bg-emerald-100 text-emerald-700'
+                                      : 'bg-white text-slate-600'
+                              }`}>
+                                {question.queueStatus.label}
+                              </span>
+                              {question.issueProjection ? (
+                                <>
+                                  <span className="app-chip">
+                                    Issue {ISSUE_UNIT_STATUS_LABELS[question.issueProjection.status as keyof typeof ISSUE_UNIT_STATUS_LABELS] ?? question.issueProjection.status}
                                   </span>
-                                ) : null}
-                              </>
-                            ) : null}
-                          </div>
-                          <p className="text-sm text-slate-800">{question.questionText}</p>
-                          <p className="text-sm leading-6 text-slate-600">
-                            {question.queueStatus.summary}
-                          </p>
-                          {question.queueStatus.callbackNeeded ? (
-                            <div className="rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
-                              <p className="font-medium">需要回源确认</p>
-                              <p className="mt-1 leading-6">
-                                {question.queueStatus.callbackSummary}
-                              </p>
+                                  <span className="app-chip">{getIssueTypeLabel(question.issueProjection.type)}</span>
+                                  {question.issueProjection.blockDev ? (
+                                    <span className="rounded-full bg-red-100 px-2.5 py-1 font-medium text-red-700">
+                                      阻断推进
+                                    </span>
+                                  ) : null}
+                                  {linkedRequirementUnit ? (
+                                    <span className="app-chip">
+                                      影响单元 {linkedRequirementUnit.unitKey}
+                                    </span>
+                                  ) : null}
+                                </>
+                              ) : null}
                             </div>
-                          ) : null}
-                          <Textarea
-                            placeholder="输入回答..."
-                            value={answerDrafts[question.id] ?? ''}
-                            onChange={(event) => setAnswerDrafts((prev) => ({ ...prev, [question.id]: event.target.value }))}
-                          />
-                          <div className="flex flex-wrap gap-2">
-                            <Button size="sm" onClick={() => handleAnswerQuestion(question.id)}>提交</Button>
-                            {question.issueProjection ? (
-                              <a
-                                href="#issue-queue"
-                                className="inline-flex h-9 items-center justify-center rounded-[1rem] border border-slate-200 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50"
-                              >
-                                回到 Issue Queue
-                              </a>
+                            <p className="text-sm text-slate-800">{question.questionText}</p>
+                            <p className="text-sm leading-6 text-slate-600">
+                              {question.queueStatus.summary}
+                            </p>
+                            {linkedRequirementUnit ? (
+                              <div className={`rounded-[16px] border px-3 py-3 text-sm ${
+                                question.queueStatus.callbackNeeded
+                                  ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                  : 'border-sky-200 bg-sky-50 text-sky-800'
+                              }`}>
+                                <p className="font-medium">回链 Requirement Unit</p>
+                                <p className="mt-1 leading-6">
+                                  该澄清问题当前主要影响 {linkedRequirementUnit.unitKey} · {linkedRequirementUnit.title}。
+                                  {question.queueStatus.callbackNeeded
+                                    ? ' 对应 Issue 已结束当前推进，下一步请回到 Clarification 与该 Unit 一起确认结论是否已真正沉淀。'
+                                    : ' 问题推进默认仍在 Issue Queue 中进行，后续结论应优先回填到该 Unit。'}
+                                </p>
+                                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                                  <a
+                                    href="#requirement-units"
+                                    className="inline-flex items-center justify-center rounded-full border border-current/20 bg-white/70 px-2.5 py-1 hover:bg-white"
+                                  >
+                                    查看 {linkedRequirementUnit.unitKey}
+                                  </a>
+                                  <a
+                                    href="#issue-queue"
+                                    className="inline-flex items-center justify-center rounded-full border border-current/20 bg-white/70 px-2.5 py-1 hover:bg-white"
+                                  >
+                                    回到 Issue Queue
+                                  </a>
+                                </div>
+                              </div>
                             ) : null}
-                            {question.status !== 'RESOLVED' && !question.issueProjection ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => void handleCreateClarificationIssue(question.id)}
-                                disabled={clarificationIssueState[question.id]?.loading || !question.queueEligible}
-                              >
-                                {clarificationIssueState[question.id]?.loading
-                                  ? '转换中...'
-                                  : question.queueEligible
-                                    ? '转入 Issue Queue'
-                                    : '先回答后再转入'}
-                              </Button>
+                            {question.issueProjection && !linkedRequirementUnit ? (
+                              <div className="rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                                <p className="font-medium">建议补齐 Unit 回链</p>
+                                <p className="mt-1 leading-6">
+                                  该澄清问题已经进入 Issue Queue，但还没有绑定主要受影响的 Requirement Unit。补上这条关系后，问题关闭时会更容易看懂影响哪个推进单元。
+                                </p>
+                              </div>
                             ) : null}
-                            {question.queueStatus.callbackNeeded && question.status !== 'RESOLVED' ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => void handleUpdateClarificationQuestionStatus(question.id, 'RESOLVED')}
-                              >
-                                标记澄清已收敛
-                              </Button>
+                            {question.queueStatus.callbackNeeded ? (
+                              <div className="rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                                <p className="font-medium">需要回源确认</p>
+                                <p className="mt-1 leading-6">
+                                  {question.queueStatus.callbackSummary}
+                                </p>
+                              </div>
                             ) : null}
-                            {question.status !== 'RESOLVED' && !question.issueProjection ? (
-                              <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => void handleUpdateClarificationQuestionStatus(question.id, 'SKIPPED')}
-                              >
-                                跳过
-                              </Button>
+                            {shouldShowUnitPicker && requirementUnitOptions.length > 0 ? (
+                              <div className="rounded-[16px] border border-slate-200/80 bg-white/80 p-3 space-y-2">
+                                <div>
+                                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500">受影响 Requirement Unit</p>
+                                  <p className="mt-1 text-sm leading-6 text-slate-600">
+                                    Clarification 仍是来源问答面。若已知道主要影响哪个 Requirement Unit，可在转入或补充绑定时直接把问题回链到该推进单元。
+                                  </p>
+                                </div>
+                                <select
+                                  value={selectedRequirementUnitId}
+                                  onChange={(event) => setClarificationUnitDrafts((prev) => ({
+                                    ...prev,
+                                    [question.id]: event.target.value,
+                                  }))}
+                                  className="h-11 w-full rounded-[1rem] border border-slate-200 bg-white px-4 text-sm text-slate-800 outline-none focus-visible:border-slate-400"
+                                >
+                                  <option value="">暂不绑定 Requirement Unit</option>
+                                  {requirementUnitOptions.map((item) => (
+                                    <option key={item.id} value={item.id}>
+                                      {item.unitKey} · {item.title}
+                                    </option>
+                                  ))}
+                                </select>
+                                {selectedRequirementUnit ? (
+                                  <p className="text-xs text-slate-500">
+                                    当前会优先回链到 {selectedRequirementUnit.unitKey} · {selectedRequirementUnit.title}。
+                                  </p>
+                                ) : null}
+                              </div>
+                            ) : null}
+                            <Textarea
+                              placeholder="输入回答..."
+                              value={answerDrafts[question.id] ?? ''}
+                              onChange={(event) => setAnswerDrafts((prev) => ({ ...prev, [question.id]: event.target.value }))}
+                            />
+                            <div className="flex flex-wrap gap-2">
+                              <Button size="sm" onClick={() => handleAnswerQuestion(question.id)}>提交</Button>
+                              {question.issueProjection ? (
+                                <a
+                                  href="#issue-queue"
+                                  className="inline-flex h-9 items-center justify-center rounded-[1rem] border border-slate-200 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50"
+                                >
+                                  回到 Issue Queue
+                                </a>
+                              ) : null}
+                              {(question.status !== 'RESOLVED' && !question.issueProjection) || (question.issueProjection && !linkedRequirementUnit) ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => void handleCreateClarificationIssue(question.id)}
+                                  disabled={
+                                    clarificationIssueState[question.id]?.loading
+                                    || (!question.issueProjection && !question.queueEligible)
+                                    || (Boolean(question.issueProjection) && !linkedRequirementUnit && !selectedRequirementUnitId)
+                                  }
+                                >
+                                  {clarificationIssueState[question.id]?.loading
+                                    ? '处理中...'
+                                    : question.issueProjection
+                                      ? '补充绑定 Unit'
+                                      : question.queueEligible
+                                        ? '转入 Issue Queue'
+                                        : '先回答后再转入'}
+                                </Button>
+                              ) : null}
+                              {question.queueStatus.callbackNeeded && question.status !== 'RESOLVED' ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => void handleUpdateClarificationQuestionStatus(question.id, 'RESOLVED')}
+                                >
+                                  标记澄清已收敛
+                                </Button>
+                              ) : null}
+                              {question.status !== 'RESOLVED' && !question.issueProjection ? (
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() => void handleUpdateClarificationQuestionStatus(question.id, 'SKIPPED')}
+                                >
+                                  跳过
+                                </Button>
+                              ) : null}
+                            </div>
+                            {clarificationIssueState[question.id]?.message ? (
+                              <p className="text-xs text-slate-500">{clarificationIssueState[question.id]?.message}</p>
                             ) : null}
                           </div>
-                          {clarificationIssueState[question.id]?.message ? (
-                            <p className="text-xs text-slate-500">{clarificationIssueState[question.id]?.message}</p>
-                          ) : null}
-                        </div>
-                      ))}
+                        )
+                      })}
                       {clarificationQuestions.length === 0 ? (
                         <p className="text-sm text-slate-500">当前还没有 Clarification 问题。</p>
                       ) : null}

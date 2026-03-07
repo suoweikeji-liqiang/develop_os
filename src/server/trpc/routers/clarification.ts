@@ -73,6 +73,16 @@ export const clarificationRouter = createTRPCRouter({
               severity: true,
               blockDev: true,
               updatedAt: true,
+              primaryRequirementUnit: {
+                select: {
+                  id: true,
+                  unitKey: true,
+                  title: true,
+                  layer: true,
+                  status: true,
+                  stabilityLevel: true,
+                },
+              },
             },
           })
         : []
@@ -112,6 +122,7 @@ export const clarificationRouter = createTRPCRouter({
                   severity: issueProjection.severity,
                   blockDev: issueProjection.blockDev,
                   updatedAt: issueProjection.updatedAt,
+                  primaryRequirementUnit: issueProjection.primaryRequirementUnit,
                 }
               : null,
           }
@@ -258,6 +269,7 @@ export const clarificationRouter = createTRPCRouter({
   createIssue: protectedProcedure
     .input(z.object({
       questionId: z.string(),
+      primaryRequirementUnitId: z.string().optional(),
       severity: IssueUnitSeverityEnum.optional(),
       blockDev: z.boolean().optional(),
     }))
@@ -277,6 +289,20 @@ export const clarificationRouter = createTRPCRouter({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Question not found' })
       }
 
+      if (input.primaryRequirementUnitId) {
+        const unit = await prisma.requirementUnit.findFirst({
+          where: {
+            id: input.primaryRequirementUnitId,
+            requirementId: question.session.requirementId,
+          },
+          select: { id: true },
+        })
+
+        if (!unit) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Primary requirement unit is invalid' })
+        }
+      }
+
       const existing = await prisma.issueUnit.findFirst({
         where: {
           requirementId: question.session.requirementId,
@@ -286,14 +312,32 @@ export const clarificationRouter = createTRPCRouter({
         select: {
           id: true,
           status: true,
+          primaryRequirementUnitId: true,
         },
       })
 
       if (existing) {
+        let linkedRequirementUnitId = existing.primaryRequirementUnitId ?? null
+        let linkedUnitUpdated = false
+
+        if (input.primaryRequirementUnitId && input.primaryRequirementUnitId !== existing.primaryRequirementUnitId) {
+          const updated = await prisma.issueUnit.update({
+            where: { id: existing.id },
+            data: { primaryRequirementUnitId: input.primaryRequirementUnitId },
+            select: {
+              primaryRequirementUnitId: true,
+            },
+          })
+          linkedRequirementUnitId = updated.primaryRequirementUnitId ?? null
+          linkedUnitUpdated = true
+        }
+
         return {
           created: false,
           issueId: existing.id,
           status: existing.status,
+          linkedRequirementUnitId,
+          linkedUnitUpdated,
         }
       }
 
@@ -318,6 +362,7 @@ export const clarificationRouter = createTRPCRouter({
       const issue = await prisma.issueUnit.create({
         data: {
           requirementId: question.session.requirementId,
+          primaryRequirementUnitId: input.primaryRequirementUnitId,
           type,
           severity,
           title: `${titlePrefix}: ${question.questionText.slice(0, 80)}`,
@@ -344,6 +389,8 @@ export const clarificationRouter = createTRPCRouter({
         issueId: issue.id,
         status: issue.status,
         clarificationStatus: question.status,
+        linkedRequirementUnitId: input.primaryRequirementUnitId ?? null,
+        linkedUnitUpdated: false,
       }
     }),
 })

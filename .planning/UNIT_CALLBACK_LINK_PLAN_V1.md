@@ -61,6 +61,13 @@
      - 稳定度未达标
      - 回源确认未完成
 
+### 当前状态更新
+- `ISSUE 1` 已落实最小 Clarification -> Requirement Unit 回链：
+  - `clarification.createIssue` 允许直接写入 `primaryRequirementUnitId`
+  - `clarification.list` 会回传 `issueProjection.primaryRequirementUnit`
+  - `requirementUnit.listByRequirement` 会回传 linked clarifications 与 callback 摘要
+  - Requirement 详情页 Clarification 区、Issue Queue 区、Requirement Units 区已经可以直接看到这条回链
+
 ### 哪些动作自动
 - Clarification -> Issue 的最小投影
 - Issue -> `primaryRequirementUnitId` 的现有绑定

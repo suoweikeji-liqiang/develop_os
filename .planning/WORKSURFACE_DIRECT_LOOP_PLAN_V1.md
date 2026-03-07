@@ -56,6 +56,12 @@
 4. Requirement 主路径 -> 历史 exploration 实现
    - 继续减少 `/requirements` 对 `explorations/*` 的实现依赖
 
+### 当前状态更新
+- `ISSUE 1` 已先把第一段链路缩短：
+  - Clarification 转入 Issue Queue 时可以直接绑定主要受影响的 Requirement Unit
+  - Clarification、Issue Queue、Requirement Unit 三处都能看到这条回链
+  - issue 关闭后是否还要回源确认，也开始能结合具体 Unit 解释
+
 ### 预期落点
 - Clarification 区、Issue Queue、Requirement Units 区、Impact Summary 区之间的回链更短
 - 用户在同一页内更容易顺着以下链路理解：

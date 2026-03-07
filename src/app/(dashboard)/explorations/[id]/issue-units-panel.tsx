@@ -14,6 +14,7 @@ import {
   getIssueTypeDescription,
   getIssueTypeLabel,
   ISSUE_UNIT_TYPE_OPTIONS,
+  isActiveIssueStatus,
   mapIssueStatusToConflictStatus,
   type IssueQueueKind,
   type IssueUnitType,
@@ -630,6 +631,46 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                 <p className="mt-3 text-xs leading-5 text-slate-500">
                   建议处理：{item.suggestedResolution}
                 </p>
+              ) : null}
+              {item.sourceType === 'clarification' ? (
+                <div className={`mt-3 rounded-[16px] border px-3 py-3 text-sm ${
+                  item.primaryRequirementUnit
+                    ? clarificationQueueStatus?.callbackNeeded
+                      ? 'border-amber-200 bg-amber-50/80 text-amber-800'
+                      : 'border-sky-200 bg-sky-50/80 text-sky-800'
+                    : 'border-slate-200/80 bg-slate-50/80 text-slate-700'
+                }`}>
+                  <p className="font-semibold">
+                    {item.primaryRequirementUnit ? 'Requirement Unit 回链' : '建议补齐 Unit 回链'}
+                  </p>
+                  <p className="mt-1 leading-6">
+                    {item.primaryRequirementUnit
+                      ? clarificationQueueStatus?.callbackNeeded
+                        ? `该 Clarification 来源问题已回链到 ${item.primaryRequirementUnit.unitKey} · ${item.primaryRequirementUnit.title}。Issue Queue 已结束当前问题推进，下一步请回到 Clarification 与该 Unit 一起确认结论是否已沉淀。`
+                        : isActiveIssueStatus(item.status)
+                          ? `该 Clarification 来源问题当前主要影响 ${item.primaryRequirementUnit.unitKey} · ${item.primaryRequirementUnit.title}。优先在 Issue Queue 处理问题，再把结论回填到这个 Unit。`
+                          : `该 Clarification 来源问题已关闭，下一步请检查 ${item.primaryRequirementUnit.unitKey} · ${item.primaryRequirementUnit.title} 是否因此改善了推进条件。`
+                      : '当前来源问题还没有绑定主要受影响的 Requirement Unit。建议补上这条关系，减少问题关闭后再人工查找影响单元。'}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    {item.primaryRequirementUnit ? (
+                      <a
+                        href="#requirement-units"
+                        className="inline-flex items-center justify-center rounded-full border border-current/20 bg-white/70 px-2.5 py-1 hover:bg-white"
+                      >
+                        查看 {item.primaryRequirementUnit.unitKey}
+                      </a>
+                    ) : null}
+                    {clarificationQueueStatus?.callbackNeeded ? (
+                      <a
+                        href="#clarification-queue"
+                        className="inline-flex items-center justify-center rounded-full border border-current/20 bg-white/70 px-2.5 py-1 hover:bg-white"
+                      >
+                        回到 Clarification
+                      </a>
+                    ) : null}
+                  </div>
+                </div>
               ) : null}
 
               <div className="mt-4 grid gap-3 md:grid-cols-2">

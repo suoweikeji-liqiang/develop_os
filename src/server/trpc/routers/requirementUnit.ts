@@ -3,6 +3,12 @@ import { TRPCError } from '@trpc/server'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { RequirementStabilityLevelEnum, RequirementUnitStatusEnum } from '@/lib/requirement-evolution'
+import {
+  buildClarificationQueueStatusMeta,
+  getClarificationCategoryLabel,
+  getClarificationStatusLabel,
+  isActiveIssueStatus,
+} from '@/lib/issue-queue'
 import { normalizeRequirementUnitLayer } from '@/lib/requirement-unit-layer'
 import { deriveRequirementUnitsFromModel } from '@/server/requirements/requirement-units'
 
@@ -24,7 +30,7 @@ export const requirementUnitRouter = createTRPCRouter({
   listByRequirement: protectedProcedure
     .input(z.object({ requirementId: z.string() }))
     .query(async ({ input }) => {
-      return prisma.requirementUnit.findMany({
+      const units = await prisma.requirementUnit.findMany({
         where: { requirementId: input.requirementId },
         orderBy: [
           { sortOrder: 'asc' },
@@ -50,7 +56,94 @@ export const requirementUnitRouter = createTRPCRouter({
               childUnits: true,
             },
           },
+          issueUnits: {
+            where: {
+              sourceType: 'clarification',
+            },
+            orderBy: {
+              updatedAt: 'desc',
+            },
+            select: {
+              id: true,
+              type: true,
+              status: true,
+              blockDev: true,
+              updatedAt: true,
+              sourceRef: true,
+            },
+          },
         },
+      })
+
+      const clarificationIds = units.flatMap((unit) => (
+        unit.issueUnits
+          .filter((item) => item.sourceRef)
+          .map((item) => item.sourceRef as string)
+      ))
+
+      const clarifications = clarificationIds.length > 0
+        ? await prisma.clarificationQuestion.findMany({
+            where: {
+              id: {
+                in: clarificationIds,
+              },
+            },
+            select: {
+              id: true,
+              category: true,
+              status: true,
+              questionText: true,
+            },
+          })
+        : []
+
+      const clarificationById = new Map(
+        clarifications.map((item) => [item.id, item]),
+      )
+
+      return units.map((unit) => {
+        const linkedClarifications = unit.issueUnits
+          .map((issue) => {
+            if (!issue.sourceRef) return null
+
+            const clarification = clarificationById.get(issue.sourceRef)
+            if (!clarification) return null
+
+            const queueStatus = buildClarificationQueueStatusMeta({
+              category: clarification.category,
+              clarificationStatus: clarification.status,
+              issueStatus: issue.status,
+            })
+
+            return {
+              issueId: issue.id,
+              questionId: clarification.id,
+              questionText: clarification.questionText,
+              category: clarification.category,
+              categoryLabel: getClarificationCategoryLabel(clarification.category),
+              clarificationStatus: clarification.status,
+              clarificationStatusLabel: getClarificationStatusLabel(clarification.status),
+              issueStatus: issue.status,
+              callbackNeeded: queueStatus.callbackNeeded,
+              blockDev: issue.blockDev,
+              updatedAt: issue.updatedAt,
+            }
+          })
+          .filter((item): item is NonNullable<typeof item> => item !== null)
+
+        const activeClarificationIssueCount = linkedClarifications.filter((item) => isActiveIssueStatus(item.issueStatus)).length
+        const callbackClarificationCount = linkedClarifications.filter((item) => item.callbackNeeded).length
+
+        return {
+          ...unit,
+          clarificationSummary: {
+            total: linkedClarifications.length,
+            activeIssueCount: activeClarificationIssueCount,
+            closedIssueCount: linkedClarifications.length - activeClarificationIssueCount,
+            callbackNeededCount: callbackClarificationCount,
+          },
+          linkedClarifications: linkedClarifications.slice(0, 3),
+        }
       })
     }),
 
