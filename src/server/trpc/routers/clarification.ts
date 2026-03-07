@@ -7,6 +7,7 @@ import { FiveLayerModelSchema } from '@/lib/schemas/requirement'
 import { applyPathPatch, deriveClarificationPatch } from '@/server/ai/clarification'
 import { IssueUnitSeverityEnum } from '@/lib/requirement-evolution'
 import {
+  buildClarificationConclusionMeta,
   buildClarificationQueueStatusMeta,
   getClarificationIssueQueueReason,
   shouldClarificationEnterIssueQueue,
@@ -102,6 +103,15 @@ export const clarificationRouter = createTRPCRouter({
             clarificationStatus: question.status,
             issueStatus: issueProjection?.status,
           })
+          const conclusionSignal = issueProjection
+            ? buildClarificationConclusionMeta({
+                issueType: issueProjection.type,
+                issueStatus: issueProjection.status,
+                clarificationCategory: question.category,
+                callbackNeeded: queueStatus.callbackNeeded,
+                primaryRequirementUnit: issueProjection.primaryRequirementUnit,
+              })
+            : null
 
           return {
             ...question,
@@ -114,6 +124,7 @@ export const clarificationRouter = createTRPCRouter({
               status: question.status,
             }),
             queueStatus,
+            conclusionSignal,
             issueProjection: issueProjection
               ? {
                   id: issueProjection.id,

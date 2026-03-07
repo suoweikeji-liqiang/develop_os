@@ -91,6 +91,54 @@ describe('requirement worksurface impact summary', () => {
     expect(summary.signals).toHaveLength(0)
   })
 
+  it('surfaces closed clarification conclusions that still need sink confirmation', () => {
+    const summary = buildRequirementImpactSummary({
+      affectedRequirementUnitCount: 1,
+      affectedRequirementUnits: [
+        {
+          id: 'ru-02',
+          unitKey: 'RU-02',
+          title: '异常兜底',
+          reasons: ['有已关闭澄清结论待回源确认'],
+        },
+      ],
+      advanceUnits: [],
+      focusUnits: [],
+      openIssueCount: 0,
+      blockingIssueCount: 0,
+      openConflictCount: 0,
+      pendingClarificationCount: 0,
+      clarificationCallbackCount: 1,
+      clarificationSinklessCount: 1,
+      clarificationConclusions: [
+        {
+          questionId: 'cq-1',
+          questionText: '异常路径是否需要人工兜底？',
+          label: '风险被确认',
+          effectLabel: '改善稳定度判断',
+          summary: '该 Clarification 来源问题已关闭，当前结论主要沉淀到 RU-02 · 异常兜底。',
+          nextStep: '下一步请先回到 Clarification 完成人工确认。',
+          unitKey: 'RU-02',
+          unitTitle: '异常兜底',
+        },
+      ],
+      unitsBelowTarget: 0,
+      unitsBelowTargetSummary: [],
+      requirementStabilityLevel: 'S3_ALMOST_READY',
+    })
+
+    expect(summary.reasons).toEqual(expect.arrayContaining([
+      '有 1 条已关闭问题仍待回源确认',
+      '有 1 条已关闭问题尚未形成明确内容落点',
+    ]))
+    expect(summary.signals.map((signal) => signal.title)).toEqual(expect.arrayContaining([
+      '部分已关闭问题还没有完成结论确认',
+      '部分已关闭问题仍缺少内容沉淀落点',
+    ]))
+    expect(summary.clarificationConclusions[0]?.label).toBe('风险被确认')
+    expect(summary.nextActions.some((action) => action.includes('Clarification'))).toBe(true)
+  })
+
   it('surfaces governance suggestions for ready units, lagging units and stage advance', () => {
     const unitsBelowTargetSummary = summarizeUnitsBelowLayerTarget([
       { layer: 'exception', stabilityLevel: 'S2_MAIN_FLOW_CLEAR' },

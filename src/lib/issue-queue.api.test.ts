@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildClarificationConclusionMeta,
   buildConflictProjectionStatusMeta,
   buildClarificationQueueStatusMeta,
   doesClarificationIssueNeedSourceConfirmation,
@@ -48,5 +49,40 @@ describe('clarification issue queue callback rules', () => {
     expect(buildConflictProjectionStatusMeta('OPEN').label).toBe('待在 Issue Queue 处理')
     expect(buildConflictProjectionStatusMeta('RESOLVED').summary).toContain('原 Conflict 已同步为已处理')
     expect(buildConflictProjectionStatusMeta('DISMISSED').summary).toContain('原 Conflict 已同步为已驳回')
+  })
+
+  it('builds a conclusion sink signal once a clarification-derived issue resolves into a unit', () => {
+    const conclusion = buildClarificationConclusionMeta({
+      issueType: 'risk',
+      issueStatus: 'RESOLVED',
+      clarificationCategory: 'RISK',
+      callbackNeeded: true,
+      primaryRequirementUnit: {
+        unitKey: 'RU-03',
+        title: '异常兜底',
+      },
+    })
+
+    expect(conclusion?.label).toBe('风险被确认')
+    expect(conclusion?.effectLabel).toBe('改善稳定度判断')
+    expect(conclusion?.sinkLabel).toBe('沉淀到 RU-03')
+    expect(conclusion?.summary).toContain('RU-03 · 异常兜底')
+    expect(conclusion?.summary).toContain('人工确认')
+    expect(conclusion?.requiresManualContentUpdate).toBe(true)
+  })
+
+  it('marks rejected or sinkless closures as closed without a content sink', () => {
+    const conclusion = buildClarificationConclusionMeta({
+      issueType: 'ambiguity',
+      issueStatus: 'REJECTED',
+      clarificationCategory: 'SCOPE',
+      callbackNeeded: false,
+      primaryRequirementUnit: null,
+    })
+
+    expect(conclusion?.label).toBe('仅关闭问题，尚未形成内容沉淀')
+    expect(conclusion?.effectLabel).toBe('仍需人工补内容')
+    expect(conclusion?.sinkLabel).toBe('尚未形成明确落点')
+    expect(conclusion?.nextStep).toContain('补齐')
   })
 })

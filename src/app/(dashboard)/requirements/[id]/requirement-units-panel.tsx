@@ -19,6 +19,7 @@ import {
   isRequirementUnitAtTarget,
   REQUIREMENT_UNIT_LAYER_OPTIONS,
 } from '@/lib/requirement-unit-layer'
+import type { ClarificationConclusionMeta } from '@/lib/issue-queue'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -57,7 +58,9 @@ interface RequirementUnitItem {
     clarificationStatus: string
     clarificationStatusLabel: string | null
     issueStatus: string
+    issueType: string
     callbackNeeded: boolean
+    conclusionSignal: ClarificationConclusionMeta | null
     blockDev: boolean
     updatedAt: string
   }>
@@ -587,6 +590,23 @@ export function RequirementUnitsPanel({ requirementId, hasModel, summaryHighligh
                             {clarification.callbackNeeded ? <span className="app-chip text-amber-700">待回源确认</span> : null}
                           </div>
                           <p className="mt-2 text-sm leading-6 text-slate-700">{clarification.questionText}</p>
+                          {clarification.conclusionSignal ? (
+                            <div className={`mt-2 rounded-[12px] border px-3 py-3 text-sm ${
+                              clarification.conclusionSignal.requiresManualContentUpdate
+                                ? 'border-amber-200 bg-amber-50/80 text-amber-800'
+                                : 'border-sky-200 bg-sky-50/80 text-sky-800'
+                            }`}>
+                              <div className="flex flex-wrap gap-2 text-xs">
+                                <span className="app-chip">{clarification.conclusionSignal.label}</span>
+                                <span className="app-chip">{clarification.conclusionSignal.effectLabel}</span>
+                                <span className={`app-chip ${clarification.conclusionSignal.requiresManualContentUpdate ? 'text-amber-700' : ''}`}>
+                                  {clarification.conclusionSignal.sinkLabel}
+                                </span>
+                              </div>
+                              <p className="mt-2 leading-6">{clarification.conclusionSignal.summary}</p>
+                              <p className="mt-2 text-xs leading-5">{clarification.conclusionSignal.nextStep}</p>
+                            </div>
+                          ) : null}
                           <div className="mt-2 flex flex-wrap gap-2 text-xs">
                             <a
                               href="#issue-queue"

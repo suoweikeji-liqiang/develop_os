@@ -240,6 +240,155 @@ export interface ClarificationQueueStatusMeta {
   callbackSummary: string | null
 }
 
+export type ClarificationConclusionKind =
+  | 'boundary_clarified'
+  | 'risk_confirmed'
+  | 'missing_filled'
+  | 'conflict_decided'
+  | 'closed_without_content_sink'
+
+export interface ClarificationConclusionMeta {
+  state: 'projected' | 'concluded'
+  kind: ClarificationConclusionKind
+  label: string
+  effectLabel: string
+  sinkLabel: string
+  summary: string
+  nextStep: string
+  requiresManualContentUpdate: boolean
+}
+
+const CLARIFICATION_CONCLUSION_LABELS: Record<ClarificationConclusionKind, string> = {
+  boundary_clarified: '边界被澄清',
+  risk_confirmed: '风险被确认',
+  missing_filled: '缺失项被补齐',
+  conflict_decided: '冲突被裁定',
+  closed_without_content_sink: '仅关闭问题，尚未形成内容沉淀',
+}
+
+const CLARIFICATION_CONCLUSION_EFFECT_LABELS: Record<ClarificationConclusionKind, string> = {
+  boundary_clarified: '降低不确定性',
+  risk_confirmed: '改善稳定度判断',
+  missing_filled: '减少待确认项',
+  conflict_decided: '改善稳定度判断',
+  closed_without_content_sink: '仍需人工补内容',
+}
+
+function getClarificationConclusionKind(input: {
+  issueType?: string | null
+  issueStatus?: string | null
+  clarificationCategory?: string | null
+  hasSink: boolean
+}): ClarificationConclusionKind {
+  if (input.issueStatus && !isActiveIssueStatus(input.issueStatus) && input.issueStatus !== 'RESOLVED') {
+    return 'closed_without_content_sink'
+  }
+
+  if (input.issueStatus && !isActiveIssueStatus(input.issueStatus) && !input.hasSink) {
+    return 'closed_without_content_sink'
+  }
+
+  if (input.issueType === 'conflict') return 'conflict_decided'
+  if (input.issueType === 'missing') return 'missing_filled'
+  if (input.issueType === 'risk' || input.clarificationCategory === 'RISK') return 'risk_confirmed'
+  return 'boundary_clarified'
+}
+
+function getClarificationConclusionEffectSummary(kind: ClarificationConclusionKind): string {
+  if (kind === 'risk_confirmed') {
+    return '这会让当前推进面的风险判断与稳定度解释更明确。'
+  }
+
+  if (kind === 'missing_filled') {
+    return '这会减少当前推进面的待确认项，便于继续补齐。'
+  }
+
+  if (kind === 'conflict_decided') {
+    return '这会明确当前推进面的裁定结果，减少反复修改。'
+  }
+
+  if (kind === 'closed_without_content_sink') {
+    return '当前只说明问题关闭，不代表内容已经回填。'
+  }
+
+  return '这会降低当前推进面的边界不确定性。'
+}
+
+export function buildClarificationConclusionMeta(input: {
+  issueType?: string | null
+  issueStatus?: string | null
+  clarificationCategory?: string | null
+  callbackNeeded: boolean
+  primaryRequirementUnit?: {
+    unitKey: string
+    title: string
+  } | null
+}): ClarificationConclusionMeta | null {
+  if (!input.issueStatus) return null
+
+  const hasSink = Boolean(input.primaryRequirementUnit)
+  const kind = getClarificationConclusionKind({
+    issueType: input.issueType,
+    issueStatus: input.issueStatus,
+    clarificationCategory: input.clarificationCategory,
+    hasSink,
+  })
+  const concluded = !isActiveIssueStatus(input.issueStatus)
+  const sinkTarget = input.primaryRequirementUnit
+    ? `${input.primaryRequirementUnit.unitKey} · ${input.primaryRequirementUnit.title}`
+    : null
+  const effectSummary = getClarificationConclusionEffectSummary(kind)
+
+  let summary: string
+  if (kind === 'closed_without_content_sink') {
+    summary = concluded
+      ? sinkTarget
+        ? `该 Clarification 来源问题已结束当前推进，但当前更接近“${CLARIFICATION_CONCLUSION_LABELS[kind]}”。虽然已回链到 ${sinkTarget}，仍需要人工补齐内容落点。`
+        : '该 Clarification 来源问题已关闭，但还没有明确沉淀到具体 Requirement Unit。当前更接近“仅关闭问题”，不代表内容已经沉淀。'
+      : sinkTarget
+        ? `当前问题若停止跟踪，会先回链到 ${sinkTarget}，但还不足以说明结论已经沉淀。`
+        : '当前问题即使结束，也还没有明确的 Requirement Unit 落点。'
+  } else if (sinkTarget) {
+    summary = concluded
+      ? `该 Clarification 来源问题已关闭，当前结论主要沉淀到 ${sinkTarget}。${effectSummary}`
+      : `当前问题若收敛，结论会优先沉淀到 ${sinkTarget}。${effectSummary}`
+  } else {
+    summary = concluded
+      ? `该 Clarification 来源问题已关闭，并形成“${CLARIFICATION_CONCLUSION_LABELS[kind]}”的结论信号，但还没有明确沉淀到具体 Requirement Unit。`
+      : `当前问题若收敛，会形成“${CLARIFICATION_CONCLUSION_LABELS[kind]}”的结论信号，但还没有明确回链到 Requirement Unit。`
+  }
+
+  if (input.callbackNeeded) {
+    summary = `${summary} Clarification 仍需人工确认是否已收敛。`
+  }
+
+  let nextStep = ''
+  if (input.callbackNeeded) {
+    nextStep = '下一步请先回到 Clarification 完成人工确认，再决定是否把该结论视为真正收敛。'
+  } else if (!sinkTarget || kind === 'closed_without_content_sink') {
+    nextStep = '下一步请补齐主要受影响的 Requirement Unit 或内容落点，避免只关问题不沉淀结论。'
+  } else if (kind === 'risk_confirmed') {
+    nextStep = `下一步可优先复核 ${input.primaryRequirementUnit?.unitKey} 的风险说明与稳定度判断是否可以更新。`
+  } else if (kind === 'missing_filled') {
+    nextStep = `下一步可优先检查 ${input.primaryRequirementUnit?.unitKey} 是否因此减少了待确认项。`
+  } else if (kind === 'conflict_decided') {
+    nextStep = `下一步可优先确认 ${input.primaryRequirementUnit?.unitKey} 是否已经采用新的裁定结果继续推进。`
+  } else {
+    nextStep = `下一步可优先检查 ${input.primaryRequirementUnit?.unitKey} 的边界定义是否因此更适合继续推进。`
+  }
+
+  return {
+    state: concluded ? 'concluded' : 'projected',
+    kind,
+    label: CLARIFICATION_CONCLUSION_LABELS[kind],
+    effectLabel: CLARIFICATION_CONCLUSION_EFFECT_LABELS[kind],
+    sinkLabel: sinkTarget ? `沉淀到 ${input.primaryRequirementUnit?.unitKey}` : '尚未形成明确落点',
+    summary,
+    nextStep,
+    requiresManualContentUpdate: !sinkTarget || kind === 'closed_without_content_sink' || input.callbackNeeded,
+  }
+}
+
 export function doesClarificationIssueNeedSourceConfirmation(input: {
   clarificationStatus: string | null | undefined
   issueStatus: string | null | undefined

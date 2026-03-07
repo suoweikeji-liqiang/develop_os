@@ -14,6 +14,7 @@ import {
   buildClarificationQueueStatusMeta,
   buildConflictProjectionStatusMeta,
   buildIssueQueueStabilityImpactMeta,
+  type ClarificationConclusionMeta,
   getIssueTypeDescription,
   getIssueTypeLabel,
   ISSUE_UNIT_TYPE_OPTIONS,
@@ -41,6 +42,7 @@ interface IssueUnitItem {
   sourceLabel: string
   sourceStatus: string | null
   sourceStatusLabel: string | null
+  conclusionSignal: ClarificationConclusionMeta | null
   sourceCategory: string | null
   sourceCategoryLabel: string | null
   lifecycle: {
@@ -645,24 +647,46 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
               ) : null}
               {item.sourceType === 'clarification' ? (
                 <div className={`mt-3 rounded-[16px] border px-3 py-3 text-sm ${
-                  item.primaryRequirementUnit
-                    ? clarificationQueueStatus?.callbackNeeded
-                      ? 'border-amber-200 bg-amber-50/80 text-amber-800'
-                      : 'border-sky-200 bg-sky-50/80 text-sky-800'
-                    : 'border-slate-200/80 bg-slate-50/80 text-slate-700'
+                  item.conclusionSignal?.requiresManualContentUpdate
+                    ? 'border-amber-200 bg-amber-50/80 text-amber-800'
+                    : item.primaryRequirementUnit
+                      ? clarificationQueueStatus?.callbackNeeded
+                        ? 'border-amber-200 bg-amber-50/80 text-amber-800'
+                        : 'border-sky-200 bg-sky-50/80 text-sky-800'
+                      : 'border-slate-200/80 bg-slate-50/80 text-slate-700'
                 }`}>
                   <p className="font-semibold">
-                    {item.primaryRequirementUnit ? 'Requirement Unit 回链' : '建议补齐 Unit 回链'}
+                    {item.conclusionSignal
+                      ? item.primaryRequirementUnit
+                        ? '结论沉淀到 Requirement Unit'
+                        : '结论沉淀提示'
+                      : item.primaryRequirementUnit
+                        ? 'Requirement Unit 回链'
+                        : '建议补齐 Unit 回链'}
                   </p>
-                  <p className="mt-1 leading-6">
-                    {item.primaryRequirementUnit
-                      ? clarificationQueueStatus?.callbackNeeded
-                        ? `该 Clarification 来源问题已回链到 ${item.primaryRequirementUnit.unitKey} · ${item.primaryRequirementUnit.title}。Issue Queue 已结束当前问题推进，下一步请回到 Clarification 与该 Unit 一起确认结论是否已沉淀。`
-                        : isActiveIssueStatus(item.status)
-                          ? `该 Clarification 来源问题当前主要影响 ${item.primaryRequirementUnit.unitKey} · ${item.primaryRequirementUnit.title}。优先在 Issue Queue 处理问题，再把结论回填到这个 Unit。`
-                          : `该 Clarification 来源问题已关闭，下一步请检查 ${item.primaryRequirementUnit.unitKey} · ${item.primaryRequirementUnit.title} 是否因此改善了推进条件。`
-                      : '当前来源问题还没有绑定主要受影响的 Requirement Unit。建议补上这条关系，减少问题关闭后再人工查找影响单元。'}
-                  </p>
+                  {item.conclusionSignal ? (
+                    <>
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        <span className="app-chip">{item.conclusionSignal.label}</span>
+                        <span className="app-chip">{item.conclusionSignal.effectLabel}</span>
+                        <span className={`app-chip ${item.conclusionSignal.requiresManualContentUpdate ? 'text-amber-700' : ''}`}>
+                          {item.conclusionSignal.sinkLabel}
+                        </span>
+                      </div>
+                      <p className="mt-2 leading-6">{item.conclusionSignal.summary}</p>
+                      <p className="mt-2 text-xs leading-5">{item.conclusionSignal.nextStep}</p>
+                    </>
+                  ) : (
+                    <p className="mt-1 leading-6">
+                      {item.primaryRequirementUnit
+                        ? clarificationQueueStatus?.callbackNeeded
+                          ? `该 Clarification 来源问题已回链到 ${item.primaryRequirementUnit.unitKey} · ${item.primaryRequirementUnit.title}。Issue Queue 已结束当前问题推进，下一步请回到 Clarification 与该 Unit 一起确认结论是否已沉淀。`
+                          : isActiveIssueStatus(item.status)
+                            ? `该 Clarification 来源问题当前主要影响 ${item.primaryRequirementUnit.unitKey} · ${item.primaryRequirementUnit.title}。优先在 Issue Queue 处理问题，再把结论回填到这个 Unit。`
+                            : `该 Clarification 来源问题已关闭，下一步请检查 ${item.primaryRequirementUnit.unitKey} · ${item.primaryRequirementUnit.title} 是否因此改善了推进条件。`
+                        : '当前来源问题还没有绑定主要受影响的 Requirement Unit。建议补上这条关系，减少问题关闭后再人工查找影响单元。'}
+                    </p>
+                  )}
                   <div className="mt-2 flex flex-wrap gap-2 text-xs">
                     {item.primaryRequirementUnit ? (
                       <a

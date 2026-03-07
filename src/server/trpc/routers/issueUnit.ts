@@ -4,6 +4,8 @@ import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { IssueUnitSeverityEnum, IssueUnitStatusEnum } from '@/lib/requirement-evolution'
 import {
+  buildClarificationConclusionMeta,
+  buildClarificationQueueStatusMeta,
   buildIssueQueueLifecycleMeta,
   compareIssueQueueItems,
   getClarificationCategoryLabel,
@@ -114,6 +116,13 @@ export const issueUnitRouter = createTRPCRouter({
           const clarification = item.sourceType === 'clarification' && item.sourceRef
             ? clarificationById.get(item.sourceRef)
             : null
+          const clarificationQueueStatus = clarification
+            ? buildClarificationQueueStatusMeta({
+                category: clarification.category,
+                clarificationStatus: clarification.status,
+                issueStatus: item.status,
+              })
+            : null
 
           return {
             id: item.id,
@@ -134,6 +143,15 @@ export const issueUnitRouter = createTRPCRouter({
               sourceType: item.sourceType,
               status: clarification?.status,
             }),
+            conclusionSignal: item.sourceType === 'clarification'
+              ? buildClarificationConclusionMeta({
+                  issueType: item.type,
+                  issueStatus: item.status,
+                  clarificationCategory: clarification?.category ?? null,
+                  callbackNeeded: clarificationQueueStatus?.callbackNeeded ?? false,
+                  primaryRequirementUnit: item.primaryRequirementUnit,
+                })
+              : null,
             sourceCategory: clarification?.category ?? null,
             sourceCategoryLabel: getClarificationCategoryLabel(clarification?.category),
             lifecycle: buildIssueQueueLifecycleMeta({

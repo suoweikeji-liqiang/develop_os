@@ -35,6 +35,7 @@ import {
   getClarificationCategoryLabel,
   getClarificationStatusLabel,
   getIssueTypeLabel,
+  type ClarificationConclusionMeta,
 } from '@/lib/issue-queue'
 import { getRequirementUnitLayerTargetGroups } from '@/lib/requirement-unit-layer'
 
@@ -163,6 +164,16 @@ interface WorksurfaceSummary {
     headline: string
     nextStep: string
     nextActions: string[]
+    clarificationConclusions: Array<{
+      questionId: string
+      questionText: string
+      label: string
+      effectLabel: string
+      summary: string
+      nextStep: string
+      unitKey: string | null
+      unitTitle: string | null
+    }>
     signals: RequirementGuidanceHint[]
     reasons: string[]
   }
@@ -183,6 +194,7 @@ interface ClarificationQuestionItem {
     callbackNeeded: boolean
     callbackSummary: string | null
   }
+  conclusionSignal: ClarificationConclusionMeta | null
   issueProjection: {
     id: string
     status: string
@@ -978,6 +990,41 @@ export function RequirementDetailClient({
               当前还没有明显的阻断或低成熟度信号。
             </p>
           )}
+          {worksurfaceSummary?.impactSummary.clarificationConclusions?.length ? (
+            <div className="mt-4 rounded-[18px] border border-slate-200 bg-white px-4 py-4">
+              <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Conclusion Sink Highlights</p>
+              <div className="mt-3 space-y-3">
+                {worksurfaceSummary.impactSummary.clarificationConclusions.map((item) => (
+                  <div key={item.questionId} className="rounded-[16px] border border-slate-200/80 bg-slate-50/80 px-3 py-3">
+                    <div className="flex flex-wrap items-center gap-2 text-xs">
+                      <span className="app-chip">{item.label}</span>
+                      <span className="app-chip">{item.effectLabel}</span>
+                      {item.unitKey ? <span className="app-chip">沉淀到 {item.unitKey}</span> : null}
+                    </div>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">{item.questionText}</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">{item.summary}</p>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">{item.nextStep}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                      {item.unitKey ? (
+                        <a
+                          href="#requirement-units"
+                          className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600 hover:bg-slate-50"
+                        >
+                          查看 {item.unitKey}
+                        </a>
+                      ) : null}
+                      <a
+                        href="#clarification-queue"
+                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600 hover:bg-slate-50"
+                      >
+                        回到 Clarification
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           {worksurfaceSummary?.impactSummary.affectedRequirementUnits?.length ? (
             <div className="mt-4 rounded-[18px] border border-slate-200 bg-white px-4 py-4">
               <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Affected Requirement Units</p>
@@ -1518,13 +1565,29 @@ export function RequirementDetailClient({
                                   ? 'border-amber-200 bg-amber-50 text-amber-800'
                                   : 'border-sky-200 bg-sky-50 text-sky-800'
                               }`}>
-                                <p className="font-medium">回链 Requirement Unit</p>
-                                <p className="mt-1 leading-6">
-                                  该澄清问题当前主要影响 {linkedRequirementUnit.unitKey} · {linkedRequirementUnit.title}。
-                                  {question.queueStatus.callbackNeeded
-                                    ? ' 对应 Issue 已结束当前推进，下一步请回到 Clarification 与该 Unit 一起确认结论是否已真正沉淀。'
-                                    : ' 问题推进默认仍在 Issue Queue 中进行，后续结论应优先回填到该 Unit。'}
+                                <p className="font-medium">
+                                  {question.conclusionSignal ? '结论沉淀到 Requirement Unit' : '回链 Requirement Unit'}
                                 </p>
+                                {question.conclusionSignal ? (
+                                  <>
+                                    <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                                      <span className="app-chip">{question.conclusionSignal.label}</span>
+                                      <span className="app-chip">{question.conclusionSignal.effectLabel}</span>
+                                      <span className={`app-chip ${question.conclusionSignal.requiresManualContentUpdate ? 'text-amber-700' : ''}`}>
+                                        {question.conclusionSignal.sinkLabel}
+                                      </span>
+                                    </div>
+                                    <p className="mt-2 leading-6">{question.conclusionSignal.summary}</p>
+                                    <p className="mt-2 text-xs leading-5">{question.conclusionSignal.nextStep}</p>
+                                  </>
+                                ) : (
+                                  <p className="mt-1 leading-6">
+                                    该澄清问题当前主要影响 {linkedRequirementUnit.unitKey} · {linkedRequirementUnit.title}。
+                                    {question.queueStatus.callbackNeeded
+                                      ? ' 对应 Issue 已结束当前推进，下一步请回到 Clarification 与该 Unit 一起确认结论是否已真正沉淀。'
+                                      : ' 问题推进默认仍在 Issue Queue 中进行，后续结论应优先回填到该 Unit。'}
+                                  </p>
+                                )}
                                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
                                   <a
                                     href="#requirement-units"
@@ -1539,6 +1602,24 @@ export function RequirementDetailClient({
                                     回到 Issue Queue
                                   </a>
                                 </div>
+                              </div>
+                            ) : null}
+                            {question.conclusionSignal && !linkedRequirementUnit ? (
+                              <div className={`rounded-[16px] border px-3 py-3 text-sm ${
+                                question.conclusionSignal.requiresManualContentUpdate
+                                  ? 'border-amber-200 bg-amber-50 text-amber-800'
+                                  : 'border-sky-200 bg-sky-50 text-sky-800'
+                              }`}>
+                                <p className="font-medium">结论沉淀提示</p>
+                                <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                                  <span className="app-chip">{question.conclusionSignal.label}</span>
+                                  <span className="app-chip">{question.conclusionSignal.effectLabel}</span>
+                                  <span className={`app-chip ${question.conclusionSignal.requiresManualContentUpdate ? 'text-amber-700' : ''}`}>
+                                    {question.conclusionSignal.sinkLabel}
+                                  </span>
+                                </div>
+                                <p className="mt-2 leading-6">{question.conclusionSignal.summary}</p>
+                                <p className="mt-2 text-xs leading-5">{question.conclusionSignal.nextStep}</p>
                               </div>
                             ) : null}
                             {question.issueProjection && !linkedRequirementUnit ? (

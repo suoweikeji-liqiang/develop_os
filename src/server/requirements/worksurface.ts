@@ -76,6 +76,18 @@ interface RequirementImpactSummarySeed {
   blockingIssueCount: number
   openConflictCount: number
   pendingClarificationCount: number
+  clarificationCallbackCount?: number
+  clarificationSinklessCount?: number
+  clarificationConclusions?: Array<{
+    questionId: string
+    questionText: string
+    label: string
+    effectLabel: string
+    summary: string
+    nextStep: string
+    unitKey: string | null
+    unitTitle: string | null
+  }>
   unitsBelowTarget: number
   unitsBelowTargetSummary: Array<{
     layerLabel: string
@@ -445,6 +457,9 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
   const reasons: string[] = []
   const signals: RequirementGuidanceHint[] = []
   const nextActions: string[] = []
+  const clarificationCallbackCount = seed.clarificationCallbackCount ?? 0
+  const clarificationSinklessCount = seed.clarificationSinklessCount ?? 0
+  const clarificationConclusions = seed.clarificationConclusions ?? []
   const advanceUnitText = seed.advanceUnits
     .slice(0, 2)
     .map((unit) => `${unit.unitKey} · ${unit.title}`)
@@ -493,6 +508,26 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       message: `当前仍有 ${seed.pendingClarificationCount} 个 Clarification 未收敛，这些问题后续仍可能继续转入 Issue Queue 或改写 Requirement Units。`,
     })
     nextActions.push(`先回到 Clarification 收敛 ${seed.pendingClarificationCount} 个未完成问答或回源确认。`)
+  }
+
+  if (clarificationCallbackCount > 0) {
+    reasons.push(`有 ${clarificationCallbackCount} 条已关闭问题仍待回源确认`)
+    signals.push({
+      level: 'warning',
+      title: '部分已关闭问题还没有完成结论确认',
+      message: `当前有 ${clarificationCallbackCount} 条 Clarification 来源问题虽然已关闭，但仍需要回到来源问答面确认结论是否真正收敛到对应 Requirement Unit。`,
+    })
+    nextActions.push(`先回到 Clarification 确认 ${clarificationCallbackCount} 条已关闭问题是否已经沉淀到对应 Requirement Unit。`)
+  }
+
+  if (clarificationSinklessCount > 0) {
+    reasons.push(`有 ${clarificationSinklessCount} 条已关闭问题尚未形成明确内容落点`)
+    signals.push({
+      level: 'warning',
+      title: '部分已关闭问题仍缺少内容沉淀落点',
+      message: `当前有 ${clarificationSinklessCount} 条 Clarification 来源问题虽然已关闭，但还没有明确沉淀到具体 Requirement Unit，仍需人工补内容。`,
+    })
+    nextActions.push(`先补齐 ${clarificationSinklessCount} 条已关闭问题的 Unit 落点或内容回填，避免只关问题不沉淀结论。`)
   }
 
   if (seed.unitsBelowTarget > 0) {
@@ -558,6 +593,7 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
     headline,
     nextStep,
     nextActions: nextActions.slice(0, 4),
+    clarificationConclusions: clarificationConclusions.slice(0, 3),
     signals,
     reasons,
   }

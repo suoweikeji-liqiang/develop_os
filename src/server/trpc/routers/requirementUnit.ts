@@ -4,6 +4,7 @@ import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { RequirementStabilityLevelEnum, RequirementUnitStatusEnum } from '@/lib/requirement-evolution'
 import {
+  buildClarificationConclusionMeta,
   buildClarificationQueueStatusMeta,
   getClarificationCategoryLabel,
   getClarificationStatusLabel,
@@ -124,7 +125,18 @@ export const requirementUnitRouter = createTRPCRouter({
               clarificationStatus: clarification.status,
               clarificationStatusLabel: getClarificationStatusLabel(clarification.status),
               issueStatus: issue.status,
+              issueType: issue.type,
               callbackNeeded: queueStatus.callbackNeeded,
+              conclusionSignal: buildClarificationConclusionMeta({
+                issueType: issue.type,
+                issueStatus: issue.status,
+                clarificationCategory: clarification.category,
+                callbackNeeded: queueStatus.callbackNeeded,
+                primaryRequirementUnit: {
+                  unitKey: unit.unitKey,
+                  title: unit.title,
+                },
+              }),
               blockDev: issue.blockDev,
               updatedAt: issue.updatedAt,
             }

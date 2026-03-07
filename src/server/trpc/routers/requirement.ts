@@ -17,6 +17,8 @@ import {
 } from '@/server/requirements/change-units'
 import {
   ACTIVE_ISSUE_UNIT_STATUSES,
+  buildClarificationConclusionMeta,
+  buildClarificationQueueStatusMeta,
   getIssueTypeLabel,
   isIssueType,
 } from '@/lib/issue-queue'
@@ -408,7 +410,7 @@ export const requirementRouter = createTRPCRouter({
         throw new TRPCError({ code: 'NOT_FOUND', message: 'Requirement not found' })
       }
 
-      const [units, activeIssueUnits, openConflictCount, pendingClarificationCount, highRiskChangeCount, resignoffChangeCount] = await Promise.all([
+      const [units, activeIssueUnits, openConflictCount, pendingClarificationCount, highRiskChangeCount, resignoffChangeCount, clarificationIssueUnits] = await Promise.all([
         prisma.requirementUnit.findMany({
           where: { requirementId: input.requirementId },
           select: {
@@ -472,7 +474,49 @@ export const requirementRouter = createTRPCRouter({
             requiresResignoff: true,
           },
         }),
+        prisma.issueUnit.findMany({
+          where: {
+            requirementId: input.requirementId,
+            sourceType: 'clarification',
+          },
+          select: {
+            id: true,
+            type: true,
+            status: true,
+            sourceRef: true,
+            primaryRequirementUnitId: true,
+            updatedAt: true,
+            primaryRequirementUnit: {
+              select: {
+                unitKey: true,
+                title: true,
+                layer: true,
+              },
+            },
+          },
+        }),
       ])
+
+      const clarificationQuestions = clarificationIssueUnits.length > 0
+        ? await prisma.clarificationQuestion.findMany({
+            where: {
+              id: {
+                in: clarificationIssueUnits
+                  .map((item) => item.sourceRef)
+                  .filter((item): item is string => Boolean(item)),
+              },
+            },
+            select: {
+              id: true,
+              category: true,
+              status: true,
+              questionText: true,
+            },
+          })
+        : []
+      const clarificationById = new Map(
+        clarificationQuestions.map((item) => [item.id, item]),
+      )
 
       const activeUnits = units.filter((unit) => unit.status !== 'ARCHIVED')
       const readyUnits = activeUnits.filter((unit) => unit.status === 'READY_FOR_DEV')
@@ -529,6 +573,58 @@ export const requirementRouter = createTRPCRouter({
           `当前低于 ${STABILITY_LABELS[getRequirementUnitTargetStabilityLevel(unit.layer)]} 的分层目标`,
         )
       }
+
+      const clarificationConclusions = clarificationIssueUnits
+        .map((issue) => {
+          if (!issue.sourceRef) return null
+          const clarification = clarificationById.get(issue.sourceRef)
+          if (!clarification) return null
+
+          const queueStatus = buildClarificationQueueStatusMeta({
+            category: clarification.category,
+            clarificationStatus: clarification.status,
+            issueStatus: issue.status,
+          })
+          const conclusionSignal = buildClarificationConclusionMeta({
+            issueType: issue.type,
+            issueStatus: issue.status,
+            clarificationCategory: clarification.category,
+            callbackNeeded: queueStatus.callbackNeeded,
+            primaryRequirementUnit: issue.primaryRequirementUnit,
+          })
+
+          if (!conclusionSignal || conclusionSignal.state !== 'concluded') return null
+
+          if (queueStatus.callbackNeeded && issue.primaryRequirementUnitId) {
+            impactedRequirementUnitIds.add(issue.primaryRequirementUnitId)
+            addAffectedUnitReason(issue.primaryRequirementUnitId, '有已关闭澄清结论待回源确认')
+          }
+
+          return {
+            questionId: clarification.id,
+            questionText: clarification.questionText,
+            callbackNeeded: queueStatus.callbackNeeded,
+            requiresManualContentUpdate: conclusionSignal.requiresManualContentUpdate,
+            label: conclusionSignal.label,
+            effectLabel: conclusionSignal.effectLabel,
+            summary: conclusionSignal.summary,
+            nextStep: conclusionSignal.nextStep,
+            unitKey: issue.primaryRequirementUnit?.unitKey ?? null,
+            unitTitle: issue.primaryRequirementUnit?.title ?? null,
+            updatedAt: issue.updatedAt,
+          }
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+        .sort((a, b) => {
+          if (a.callbackNeeded !== b.callbackNeeded) return a.callbackNeeded ? -1 : 1
+          if (a.requiresManualContentUpdate !== b.requiresManualContentUpdate) {
+            return a.requiresManualContentUpdate ? -1 : 1
+          }
+          return new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime()
+        })
+
+      const clarificationCallbackCount = clarificationConclusions.filter((item) => item.callbackNeeded).length
+      const clarificationSinklessCount = clarificationConclusions.filter((item) => item.requiresManualContentUpdate && !item.unitKey).length
 
       const affectedRequirementUnits = Array.from(impactedRequirementUnitIds)
         .map((unitId) => {
@@ -605,6 +701,18 @@ export const requirementRouter = createTRPCRouter({
           blockingIssueCount,
           openConflictCount,
           pendingClarificationCount,
+          clarificationCallbackCount,
+          clarificationSinklessCount,
+          clarificationConclusions: clarificationConclusions.map((item) => ({
+            questionId: item.questionId,
+            questionText: item.questionText,
+            label: item.label,
+            effectLabel: item.effectLabel,
+            summary: item.summary,
+            nextStep: item.nextStep,
+            unitKey: item.unitKey,
+            unitTitle: item.unitTitle,
+          })),
           unitsBelowTarget: unitsBelowTarget.length,
           unitsBelowTargetSummary,
           requirementStabilityLevel: requirement.stabilityLevel,
