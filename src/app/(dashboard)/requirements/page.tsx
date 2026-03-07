@@ -1,7 +1,7 @@
-import { ExplorationIndexPage } from '../explorations/exploration-index-page'
+import { RequirementIndexPage } from './requirement-index-page'
 
 export const dynamic = 'force-dynamic'
 
 export default async function RequirementsPage() {
-  return <ExplorationIndexPage listView="explorations" />
+  return <RequirementIndexPage listView="explorations" />
 }

@@ -1,5 +1,5 @@
-import NewExplorationPage from '../../explorations/new/page'
+import NewRequirementPage from './new-requirement-page'
 
 export const dynamic = 'force-dynamic'
 
-export default NewExplorationPage
+export default NewRequirementPage

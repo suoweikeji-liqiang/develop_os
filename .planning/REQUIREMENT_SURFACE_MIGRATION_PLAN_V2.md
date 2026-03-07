@@ -51,6 +51,13 @@
      - `requirement-units-panel.tsx`
      - `conflict-panel.tsx`
 
+### 当前状态更新
+- `ISSUE 4` 已完成本轮最小迁移：
+  - `/requirements` 列表页主实现已迁到 `requirements/*`
+  - `/requirements/new` 新建页主实现已迁到 `requirements/new/*`
+  - `issue-units-panel.tsx`、`requirement-units-panel.tsx`、`conflict-panel.tsx` 已迁到 `requirements/[id]/*`
+  - `explorations/*` 对应文件已退回 wrapper / alias 层
+
 ### 哪些先保持 wrapper / 兼容层
 - `/explorations`
 - `/explorations/new`
