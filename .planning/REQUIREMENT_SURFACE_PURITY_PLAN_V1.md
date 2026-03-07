@@ -61,6 +61,11 @@
   - `status-control.tsx`
   - `version-history.tsx`
   - `change-units-panel.tsx`
+- Worksurface 1.0 closing iteration 已继续迁回：
+  - `signoff-panel.tsx`
+  - `consensus-status.tsx`
+  - `test-case-panel.tsx`
+  - `review-checklist.tsx`（作为 signoff 的最小依赖）
 - `comment-input.tsx` 与 `version-diff-view.tsx` 已作为配套依赖迁回 `requirements/[id]/*`
 - 原 `src/app/(dashboard)/explorations/[id]/*` 对应文件已退为兼容 wrapper
 - `ISSUE 5` 再次确认：Requirement 主路径当前只剩辅助共享面板仍经由 `explorations/[id]/*` 引入，核心推进/演化组件已经不再挂在 Exploration 主语下
@@ -96,10 +101,7 @@
 ## 当前残留
 - `model-tabs.tsx`
 - `role-view-tabs.tsx`
-- `signoff-panel.tsx`
-- `consensus-status.tsx`
 - `chat-panel.tsx`
-- `test-case-panel.tsx`
 - `PendingAssumption` 类型仍从 `explorations/[id]/assumption-card` 引入
 - `/explorations*` 路由仍保留兼容壳
 

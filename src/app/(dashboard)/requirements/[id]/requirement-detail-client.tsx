@@ -11,13 +11,13 @@ import {
 } from 'lucide-react'
 import { ModelTabs } from '../../explorations/[id]/model-tabs'
 import { RoleViewTabs } from '../../explorations/[id]/role-view-tabs'
-import { SignoffPanel } from '../../explorations/[id]/signoff-panel'
-import { ConsensusStatus } from '../../explorations/[id]/consensus-status'
+import { SignoffPanel } from './signoff-panel'
+import { ConsensusStatus } from './consensus-status'
 import { ChatPanel } from '../../explorations/[id]/chat-panel'
 import { VersionHistory } from './version-history'
 import { StatusControl } from './status-control'
 import { ConflictPanel } from './conflict-panel'
-import { TestCasePanel } from '../../explorations/[id]/test-case-panel'
+import { TestCasePanel } from './test-case-panel'
 import { RequirementUnitsPanel } from './requirement-units-panel'
 import { IssueUnitsPanel } from './issue-units-panel'
 import { ChangeUnitsPanel } from './change-units-panel'
@@ -285,7 +285,7 @@ function getRequirementUnitAnchor(unitId: string | null | undefined): string {
 
 // Primary location: this client component now owns the Requirement worksurface
 // implementation. Remaining imports from `explorations/[id]` are transitional
-// shared panels only (model, signoff, chat, test-case, assumption typing).
+// shared panels only (model, role view, chat, assumption typing).
 // `/requirements/[id]` is the product-facing implementation root.
 export function RequirementDetailClient({
   requirementId,
