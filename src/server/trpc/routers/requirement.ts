@@ -545,6 +545,16 @@ export const requirementRouter = createTRPCRouter({
         }))
         .sort((a, b) => b.count - a.count)
 
+      const stabilityGovernance = buildRequirementStabilityGovernance({
+        requirementStatus: requirement.status,
+        requirementStabilityLevel: requirement.stabilityLevel,
+        units: activeUnits,
+        unitsBelowTargetSummary,
+        blockingIssueCount,
+        openConflictCount,
+        pendingClarificationCount,
+      })
+
       return {
         counts: {
           totalUnits: units.length,
@@ -571,18 +581,12 @@ export const requirementRouter = createTRPCRouter({
           highRiskChangeCount,
           resignoffChangeCount,
         }),
-        stabilityGovernance: buildRequirementStabilityGovernance({
-          requirementStatus: requirement.status,
-          requirementStabilityLevel: requirement.stabilityLevel,
-          units: activeUnits,
-          unitsBelowTargetSummary,
-          blockingIssueCount,
-          openConflictCount,
-          pendingClarificationCount,
-        }),
+        stabilityGovernance,
         impactSummary: buildRequirementImpactSummary({
           affectedRequirementUnitCount: impactedRequirementUnitIds.size,
           affectedRequirementUnits,
+          advanceUnits: stabilityGovernance.readyUnits,
+          focusUnits: stabilityGovernance.focusUnits,
           openIssueCount: activeIssueCount,
           blockingIssueCount,
           openConflictCount,

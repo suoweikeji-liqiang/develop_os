@@ -24,6 +24,24 @@ describe('requirement worksurface impact summary', () => {
           reasons: ['关联阻断问题 Risk', '当前低于 S3_ALMOST_READY 的分层目标'],
         },
       ],
+      advanceUnits: [
+        {
+          id: 'ru-advance',
+          unitKey: 'RU-03',
+          title: '验证码发送',
+          layerLabel: 'Scenario',
+          recommendation: '当前已达到本层目标，可继续推进到设计或开发准备。',
+        },
+      ],
+      focusUnits: [
+        {
+          id: 'ru-focus',
+          unitKey: 'RU-02',
+          title: '异常兜底',
+          layerLabel: 'Exception',
+          recommendation: '异常层还未达到开发前目标，建议先补齐失败恢复边界。',
+        },
+      ],
       openIssueCount: 5,
       blockingIssueCount: 2,
       openConflictCount: 1,
@@ -39,7 +57,10 @@ describe('requirement worksurface impact summary', () => {
     expect(summary.pendingClarificationCount).toBe(2)
     expect(summary.unitsBelowTarget).toBe(3)
     expect(summary.affectedRequirementUnits[0]?.unitKey).toBe('RU-01')
+    expect(summary.focusUnits[0]?.unitKey).toBe('RU-02')
+    expect(summary.advanceUnits[0]?.unitKey).toBe('RU-03')
     expect(summary.nextActions[0]).toContain('阻断问题')
+    expect(summary.nextActions.some((action) => action.includes('RU-02'))).toBe(true)
     expect(summary.signals.map((signal) => signal.title)).toEqual(expect.arrayContaining([
       '阻断问题会直接影响推进',
       '冲突投影仍未收敛',
@@ -53,6 +74,8 @@ describe('requirement worksurface impact summary', () => {
     const summary = buildRequirementImpactSummary({
       affectedRequirementUnitCount: 0,
       affectedRequirementUnits: [],
+      advanceUnits: [],
+      focusUnits: [],
       openIssueCount: 0,
       blockingIssueCount: 0,
       openConflictCount: 0,

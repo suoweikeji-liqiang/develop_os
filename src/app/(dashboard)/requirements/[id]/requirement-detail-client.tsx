@@ -123,6 +123,20 @@ interface WorksurfaceSummary {
       title: string
       reasons: string[]
     }>
+    advanceUnits: Array<{
+      id: string
+      unitKey: string
+      title: string
+      layerLabel: string
+      recommendation: string
+    }>
+    focusUnits: Array<{
+      id: string
+      unitKey: string
+      title: string
+      layerLabel: string
+      recommendation: string
+    }>
     openIssueCount: number
     blockingIssueCount: number
     openConflictCount: number
@@ -954,7 +968,15 @@ export function RequirementDetailClient({
               <div className="mt-3 space-y-3">
                 {worksurfaceSummary.impactSummary.affectedRequirementUnits.map((unit) => (
                   <div key={unit.id} className="rounded-[16px] border border-slate-200/80 bg-slate-50/80 px-3 py-3">
-                    <p className="text-sm font-semibold text-slate-900">{unit.unitKey} · {unit.title}</p>
+                    <div className="flex flex-wrap items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-slate-900">{unit.unitKey} · {unit.title}</p>
+                      <a
+                        href="#requirement-units"
+                        className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50"
+                      >
+                        在 Requirement Units 区查看
+                      </a>
+                    </div>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
                       {unit.reasons.map((reason) => (
                         <span key={`${unit.id}-${reason}`} className="rounded-full border border-slate-200 bg-white px-3 py-1">
@@ -964,6 +986,58 @@ export function RequirementDetailClient({
                     </div>
                   </div>
                 ))}
+              </div>
+            </div>
+          ) : null}
+          {worksurfaceSummary?.impactSummary.advanceUnits?.length || worksurfaceSummary?.impactSummary.focusUnits?.length ? (
+            <div className="mt-4 grid gap-3 xl:grid-cols-2">
+              <div className="rounded-[18px] border border-emerald-200 bg-emerald-50/70 px-4 py-4">
+                <p className="text-[0.68rem] uppercase tracking-[0.22em] text-emerald-700">Advance First</p>
+                <div className="mt-3 space-y-3">
+                  {worksurfaceSummary?.impactSummary.advanceUnits?.length ? (
+                    worksurfaceSummary.impactSummary.advanceUnits.map((unit) => (
+                      <div key={unit.id} className="rounded-[16px] border border-white/70 bg-white/90 px-3 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-900">{unit.unitKey} · {unit.title}</p>
+                          <a
+                            href="#requirement-units"
+                            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50"
+                          >
+                            查看 Unit
+                          </a>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">{unit.layerLabel}</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-700">{unit.recommendation}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-600">当前还没有明显可优先放大的 Requirement Unit。</p>
+                  )}
+                </div>
+              </div>
+              <div className="rounded-[18px] border border-amber-200 bg-amber-50/70 px-4 py-4">
+                <p className="text-[0.68rem] uppercase tracking-[0.22em] text-amber-700">Stabilize First</p>
+                <div className="mt-3 space-y-3">
+                  {worksurfaceSummary?.impactSummary.focusUnits?.length ? (
+                    worksurfaceSummary.impactSummary.focusUnits.map((unit) => (
+                      <div key={unit.id} className="rounded-[16px] border border-white/70 bg-white/90 px-3 py-3">
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <p className="text-sm font-semibold text-slate-900">{unit.unitKey} · {unit.title}</p>
+                          <a
+                            href="#requirement-units"
+                            className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50"
+                          >
+                            查看 Unit
+                          </a>
+                        </div>
+                        <p className="mt-1 text-xs text-slate-500">{unit.layerLabel}</p>
+                        <p className="mt-2 text-sm leading-6 text-slate-700">{unit.recommendation}</p>
+                      </div>
+                    ))
+                  ) : (
+                    <p className="text-sm text-slate-600">当前没有明显优先需要补齐的 Requirement Unit。</p>
+                  )}
+                </div>
               </div>
             </div>
           ) : null}
@@ -1264,6 +1338,11 @@ export function RequirementDetailClient({
             <RequirementUnitsPanel
               requirementId={requirementId}
               hasModel={Boolean(model)}
+              summaryHighlights={{
+                affectedUnits: worksurfaceSummary?.impactSummary.affectedRequirementUnits ?? [],
+                advanceUnits: worksurfaceSummary?.impactSummary.advanceUnits ?? [],
+                focusUnits: worksurfaceSummary?.impactSummary.focusUnits ?? [],
+              }}
               onDataChanged={handleRequirementUnitChanged}
             />
           </section>

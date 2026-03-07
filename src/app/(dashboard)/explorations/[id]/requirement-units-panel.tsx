@@ -64,10 +64,24 @@ interface RequirementUnitItem {
 interface Props {
   requirementId: string
   hasModel: boolean
+  summaryHighlights?: {
+    affectedUnits: Array<{
+      id: string
+      reasons: string[]
+    }>
+    advanceUnits: Array<{
+      id: string
+      recommendation: string
+    }>
+    focusUnits: Array<{
+      id: string
+      recommendation: string
+    }>
+  }
   onDataChanged?: () => void
 }
 
-export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }: Props) {
+export function RequirementUnitsPanel({ requirementId, hasModel, summaryHighlights, onDataChanged }: Props) {
   const [items, setItems] = useState<RequirementUnitItem[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -149,6 +163,18 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
       atTargetCount,
     }
   }, [items])
+
+  const affectedUnitReasonMap = useMemo(() => new Map(
+    (summaryHighlights?.affectedUnits ?? []).map((item) => [item.id, item.reasons]),
+  ), [summaryHighlights?.affectedUnits])
+
+  const advanceUnitRecommendationMap = useMemo(() => new Map(
+    (summaryHighlights?.advanceUnits ?? []).map((item) => [item.id, item.recommendation]),
+  ), [summaryHighlights?.advanceUnits])
+
+  const focusUnitRecommendationMap = useMemo(() => new Map(
+    (summaryHighlights?.focusUnits ?? []).map((item) => [item.id, item.recommendation]),
+  ), [summaryHighlights?.focusUnits])
 
   async function handleCreate() {
     if (!title.trim() || !summaryText.trim() || !layer.trim()) return
@@ -431,6 +457,9 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
               stabilityLevel: item.stabilityLevel,
               status: item.status,
             })
+            const affectedReasons = affectedUnitReasonMap.get(item.id) ?? []
+            const advanceRecommendation = advanceUnitRecommendationMap.get(item.id)
+            const focusRecommendation = focusUnitRecommendationMap.get(item.id)
 
             return (
               <li key={item.id} className="rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
@@ -489,6 +518,47 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
                   <p className="font-semibold">{progressHint.label}</p>
                   <p className="mt-1 leading-6">{progressHint.message}</p>
                 </div>
+
+                {focusRecommendation ? (
+                  <div className="mt-3 rounded-[16px] border border-amber-200 bg-amber-50/80 px-3 py-3 text-sm text-amber-800">
+                    <p className="font-semibold">Impact Summary 当前建议优先补齐该 Unit</p>
+                    <p className="mt-1 leading-6">{focusRecommendation}</p>
+                    {affectedReasons.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        {affectedReasons.map((reason) => (
+                          <span key={`${item.id}-${reason}`} className="app-chip text-amber-800">
+                            {reason}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : advanceRecommendation ? (
+                  <div className="mt-3 rounded-[16px] border border-emerald-200 bg-emerald-50/80 px-3 py-3 text-sm text-emerald-800">
+                    <p className="font-semibold">Impact Summary 当前建议优先推进该 Unit</p>
+                    <p className="mt-1 leading-6">{advanceRecommendation}</p>
+                    {affectedReasons.length > 0 ? (
+                      <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                        {affectedReasons.map((reason) => (
+                          <span key={`${item.id}-${reason}`} className="app-chip text-emerald-800">
+                            {reason}
+                          </span>
+                        ))}
+                      </div>
+                    ) : null}
+                  </div>
+                ) : affectedReasons.length > 0 ? (
+                  <div className="mt-3 rounded-[16px] border border-slate-200/80 bg-white/80 px-3 py-3 text-sm text-slate-700">
+                    <p className="font-semibold text-slate-900">Impact Summary 当前把该 Unit 视为受影响单元</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+                      {affectedReasons.map((reason) => (
+                        <span key={`${item.id}-${reason}`} className="app-chip">
+                          {reason}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ) : null}
 
                 {item.linkedClarifications.length > 0 ? (
                   <div className="mt-3 rounded-[16px] border border-slate-200/80 bg-white/80 px-3 py-3 text-sm text-slate-700">

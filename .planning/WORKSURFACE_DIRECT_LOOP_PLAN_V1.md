@@ -61,6 +61,10 @@
   - Clarification 转入 Issue Queue 时可以直接绑定主要受影响的 Requirement Unit
   - Clarification、Issue Queue、Requirement Unit 三处都能看到这条回链
   - issue 关闭后是否还要回源确认，也开始能结合具体 Unit 解释
+- `ISSUE 2` 已开始把第二段链路收紧：
+  - Impact Summary 会直接列出优先推进 / 优先补齐的 Requirement Units
+  - Requirement Unit 卡片会反向显示自己为什么进入总体 summary
+  - `nextStep / nextActions` 会优先落到具体 Unit，而不只停留在抽象状态摘要
 
 ### 预期落点
 - Clarification 区、Issue Queue、Requirement Units 区、Impact Summary 区之间的回链更短

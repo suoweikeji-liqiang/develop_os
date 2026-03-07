@@ -67,6 +67,10 @@
   - `clarification.list` 会回传 `issueProjection.primaryRequirementUnit`
   - `requirementUnit.listByRequirement` 会回传 linked clarifications 与 callback 摘要
   - Requirement 详情页 Clarification 区、Issue Queue 区、Requirement Units 区已经可以直接看到这条回链
+- `ISSUE 2` 已把 Requirement Unit -> Impact Summary 的解释补齐一层：
+  - Impact Summary 会点名当前优先推进 / 优先补齐的 Unit
+  - Requirement Unit 卡片能直接看到自己为什么被总体摘要关注
+  - `nextActions` 不再只描述状态，而会优先指向具体 Unit 推进动作
 
 ### 哪些动作自动
 - Clarification -> Issue 的最小投影

@@ -57,6 +57,20 @@ interface RequirementImpactSummarySeed {
     title: string
     reasons: string[]
   }>
+  advanceUnits: Array<{
+    id: string
+    unitKey: string
+    title: string
+    layerLabel: string
+    recommendation: string
+  }>
+  focusUnits: Array<{
+    id: string
+    unitKey: string
+    title: string
+    layerLabel: string
+    recommendation: string
+  }>
   openIssueCount: number
   blockingIssueCount: number
   openConflictCount: number
@@ -345,6 +359,14 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
   const reasons: string[] = []
   const signals: RequirementGuidanceHint[] = []
   const nextActions: string[] = []
+  const advanceUnitText = seed.advanceUnits
+    .slice(0, 2)
+    .map((unit) => `${unit.unitKey} · ${unit.title}`)
+    .join('、')
+  const focusUnitText = seed.focusUnits
+    .slice(0, 2)
+    .map((unit) => `${unit.unitKey} · ${unit.title}`)
+    .join('、')
 
   if (seed.blockingIssueCount > 0) {
     reasons.push(`存在 ${seed.blockingIssueCount} 个阻断问题`)
@@ -395,7 +417,11 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       title: '部分 Requirement Units 仍低于分层目标',
       message: `当前有 ${seed.unitsBelowTarget} 个 Requirement Units 低于各自 layer 的推荐稳定度${focusLayers ? `，其中 ${focusLayers}` : ''}。`,
     })
-    nextActions.push(`优先补齐低于分层目标的 Requirement Units，再评估是否继续放大推进动作。`)
+    nextActions.push(
+      focusUnitText
+        ? `优先补齐 ${focusUnitText}，再评估是否继续放大推进动作。`
+        : '优先补齐低于分层目标的 Requirement Units，再评估是否继续放大推进动作。',
+    )
   }
 
   if (isLowRequirementStability(seed.requirementStabilityLevel)) {
@@ -408,11 +434,25 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
     nextActions.push('先补顶层边界与主流程，再继续进入更后阶段。')
   }
 
+  if (seed.advanceUnits.length > 0) {
+    nextActions.push(
+      advanceUnitText
+        ? `可并行推进 ${advanceUnitText}，这些 Units 当前更接近阶段目标。`
+        : '可优先推进已达到当前阶段目标的 Requirement Units。',
+    )
+  }
+
   const headline = reasons.length > 0
     ? `当前推进会牵动 ${seed.affectedRequirementUnitCount} 个 Requirement Units，并受到 ${seed.openIssueCount} 个开放问题信号影响。`
     : '当前未发现明显的推进外溢信号，影响面相对可控。'
 
-  const nextStep = nextActions[0] ?? '可以继续按当前 Requirement Worksurface 推进，并关注新增问题信号。'
+  const nextStep = seed.blockingIssueCount > 0
+    ? nextActions[0] ?? '先回到 Issue Queue 处理当前最影响推进的问题。'
+    : seed.focusUnits[0]
+      ? `先补齐 ${seed.focusUnits[0].unitKey} · ${seed.focusUnits[0].title}，它目前最直接影响总体推进判断。`
+      : seed.advanceUnits[0]
+        ? `优先推进 ${seed.advanceUnits[0].unitKey} · ${seed.advanceUnits[0].title}，它当前已经更接近可继续放大的推进条件。`
+        : nextActions[0] ?? '可以继续按当前 Requirement Worksurface 推进，并关注新增问题信号。'
 
   return {
     affectedRequirementUnitCount: seed.affectedRequirementUnitCount,
@@ -420,6 +460,8 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       ...unit,
       reasons: unit.reasons.slice(0, 3),
     })),
+    advanceUnits: seed.advanceUnits.slice(0, 3),
+    focusUnits: seed.focusUnits.slice(0, 3),
     openIssueCount: seed.openIssueCount,
     blockingIssueCount: seed.blockingIssueCount,
     hasBlockingIssue: seed.blockingIssueCount > 0,
