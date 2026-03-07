@@ -81,3 +81,22 @@
 - 详情页迁完后，再考虑列表页和新建页
 - 目录迁移完成后，再决定是否 rename `Exploration*` 组件
 - 兼容 alias 可继续保留，但应退化为薄 wrapper
+
+## 状态更新
+
+### 已完成
+- `/requirements/[id]` 已不再直接 re-export `explorations/[id]/page`
+- Requirement 详情页的 server page 与 detail client 主实现已迁到：
+  - `src/app/(dashboard)/requirements/[id]/page.tsx`
+  - `src/app/(dashboard)/requirements/[id]/requirement-detail-client.tsx`
+- `/explorations/[id]` 已退回 legacy alias wrapper
+- `explorations/[id]/exploration-detail-client.tsx` 已退回兼容 re-export
+
+### 当前残留
+- Requirement 列表主实现仍在 `explorations/*`
+- Requirement 新建主实现仍在 `explorations/*`
+- 详情页子组件仍主要位于 `explorations/[id]/*`
+
+### 下一轮可继续推进
+- 若继续迁移，优先抽详情页子组件到中性共享位置
+- 再处理列表页与新建页主实现
