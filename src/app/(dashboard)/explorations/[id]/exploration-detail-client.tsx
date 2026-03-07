@@ -117,6 +117,12 @@ interface WorksurfaceSummary {
   }
   impactSummary: {
     affectedRequirementUnitCount: number
+    affectedRequirementUnits: Array<{
+      id: string
+      unitKey: string
+      title: string
+      reasons: string[]
+    }>
     openIssueCount: number
     blockingIssueCount: number
     openConflictCount: number
@@ -126,6 +132,7 @@ interface WorksurfaceSummary {
     mayAffectStability: boolean
     headline: string
     nextStep: string
+    nextActions: string[]
     signals: RequirementGuidanceHint[]
     reasons: string[]
   }
@@ -820,7 +827,7 @@ export function ExplorationDetailClient({
             <div>
               <p className="text-sm font-semibold text-slate-900">Impact Summary</p>
               <p className="mt-1 text-sm leading-6 text-slate-500">
-                第一版只做轻量规则摘要，用于解释“当前推进为什么会影响到这些对象”。</p>
+                第一版只做轻量规则摘要，用于解释“当前推进为什么会影响到这些对象，以及为什么现在还不宜顺畅推进”。</p>
             </div>
             <div className="flex flex-wrap gap-2 text-xs">
               <span className="app-chip">影响 Units {worksurfaceSummary?.impactSummary.affectedRequirementUnitCount ?? 0}</span>
@@ -871,11 +878,39 @@ export function ExplorationDetailClient({
               当前还没有明显的阻断或低成熟度信号。
             </p>
           )}
+          {worksurfaceSummary?.impactSummary.affectedRequirementUnits?.length ? (
+            <div className="mt-4 rounded-[18px] border border-slate-200 bg-white px-4 py-4">
+              <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Affected Requirement Units</p>
+              <div className="mt-3 space-y-3">
+                {worksurfaceSummary.impactSummary.affectedRequirementUnits.map((unit) => (
+                  <div key={unit.id} className="rounded-[16px] border border-slate-200/80 bg-slate-50/80 px-3 py-3">
+                    <p className="text-sm font-semibold text-slate-900">{unit.unitKey} · {unit.title}</p>
+                    <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+                      {unit.reasons.map((reason) => (
+                        <span key={`${unit.id}-${reason}`} className="rounded-full border border-slate-200 bg-white px-3 py-1">
+                          {reason}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
           <div className="mt-4 rounded-[18px] border border-slate-200 bg-white px-4 py-3">
             <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Suggested Next Step</p>
             <p className="mt-2 text-sm leading-6 text-slate-700">
               {worksurfaceSummary?.impactSummary.nextStep ?? '继续按当前 Requirement Worksurface 推进。'}
             </p>
+            {worksurfaceSummary?.impactSummary.nextActions?.length ? (
+              <ol className="mt-3 space-y-2 text-sm leading-6 text-slate-600">
+                {worksurfaceSummary.impactSummary.nextActions.map((action, index) => (
+                  <li key={`${index + 1}-${action}`}>
+                    {index + 1}. {action}
+                  </li>
+                ))}
+              </ol>
+            ) : null}
           </div>
         </div>
       </section>

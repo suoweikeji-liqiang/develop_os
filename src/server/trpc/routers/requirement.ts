@@ -8,7 +8,7 @@ import { assertTransition, RequirementStatusEnum } from '@/lib/workflow/status-m
 import type { RequirementStatus } from '@/lib/workflow/status-machine'
 import { WORKFLOW_REVIEWER_ROLES, canManageRequirementWorkflow } from '@/lib/workflow/permissions'
 import { scanRequirementConflicts } from '@/server/conflicts/service'
-import { RequirementStabilityLevelEnum } from '@/lib/requirement-evolution'
+import { RequirementStabilityLevelEnum, STABILITY_LABELS } from '@/lib/requirement-evolution'
 import { attachRequirementOverviewStats } from '@/server/requirements/overview'
 import {
   ACTIVE_CHANGE_STATUSES,
@@ -492,15 +492,49 @@ export const requirementRouter = createTRPCRouter({
         })
       }
 
+      const unitById = new Map(units.map((unit) => [unit.id, unit]))
       const impactedRequirementUnitIds = new Set<string>()
+      const affectedUnitReasons = new Map<string, Set<string>>()
+
+      function addAffectedUnitReason(unitId: string, reason: string) {
+        const current = affectedUnitReasons.get(unitId) ?? new Set<string>()
+        current.add(reason)
+        affectedUnitReasons.set(unitId, current)
+      }
+
       for (const issue of activeIssueUnits) {
         if (issue.primaryRequirementUnitId) {
           impactedRequirementUnitIds.add(issue.primaryRequirementUnitId)
+          addAffectedUnitReason(
+            issue.primaryRequirementUnitId,
+            issue.blockDev
+              ? `关联阻断问题 ${getIssueTypeLabel(issue.type)}`
+              : `关联开放问题 ${getIssueTypeLabel(issue.type)}`,
+          )
         }
       }
       for (const unit of unitsBelowTarget) {
         impactedRequirementUnitIds.add(unit.id)
+        addAffectedUnitReason(
+          unit.id,
+          `当前低于 ${STABILITY_LABELS[getRequirementUnitTargetStabilityLevel(unit.layer)]} 的分层目标`,
+        )
       }
+
+      const affectedRequirementUnits = Array.from(impactedRequirementUnitIds)
+        .map((unitId) => {
+          const unit = unitById.get(unitId)
+          if (!unit) return null
+
+          return {
+            id: unit.id,
+            unitKey: unit.unitKey,
+            title: unit.title,
+            reasons: Array.from(affectedUnitReasons.get(unit.id) ?? []),
+          }
+        })
+        .filter((item): item is NonNullable<typeof item> => item !== null)
+        .sort((a, b) => b.reasons.length - a.reasons.length)
 
       const issueBreakdown = Array.from(typeCounter.entries())
         .map(([type, stats]) => ({
@@ -548,6 +582,7 @@ export const requirementRouter = createTRPCRouter({
         }),
         impactSummary: buildRequirementImpactSummary({
           affectedRequirementUnitCount: impactedRequirementUnitIds.size,
+          affectedRequirementUnits,
           openIssueCount: activeIssueCount,
           blockingIssueCount,
           openConflictCount,

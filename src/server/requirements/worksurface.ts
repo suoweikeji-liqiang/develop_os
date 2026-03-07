@@ -51,6 +51,12 @@ interface RequirementWorksurfaceGuidanceSeed {
 
 interface RequirementImpactSummarySeed {
   affectedRequirementUnitCount: number
+  affectedRequirementUnits: Array<{
+    id: string
+    unitKey: string
+    title: string
+    reasons: string[]
+  }>
   openIssueCount: number
   blockingIssueCount: number
   openConflictCount: number
@@ -338,6 +344,7 @@ export function buildRequirementWorksurfaceGuidance(seed: RequirementWorksurface
 export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed) {
   const reasons: string[] = []
   const signals: RequirementGuidanceHint[] = []
+  const nextActions: string[] = []
 
   if (seed.blockingIssueCount > 0) {
     reasons.push(`存在 ${seed.blockingIssueCount} 个阻断问题`)
@@ -346,6 +353,7 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       title: '阻断问题会直接影响推进',
       message: `当前有 ${seed.blockingIssueCount} 个阻断问题仍未关闭，Requirement 的后续推进会先受这些问题牵制。`,
     })
+    nextActions.push(`先回到 Issue Queue 处理 ${seed.blockingIssueCount} 个阻断问题，再继续推进相关 Requirement Units。`)
   }
 
   if (seed.openIssueCount > 0) {
@@ -354,6 +362,9 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       title: '已有开放问题正在牵动当前推进',
       message: `当前有 ${seed.openIssueCount} 个开放问题项仍在 Issue Queue 中，说明这次推进会继续受到既有问题面的影响。`,
     })
+    if (seed.blockingIssueCount === 0) {
+      nextActions.push(`先在 Issue Queue 分诊并收敛 ${seed.openIssueCount} 个开放问题。`)
+    }
   }
 
   if (seed.openConflictCount > 0) {
@@ -363,6 +374,7 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       title: '冲突投影仍未收敛',
       message: `当前有 ${seed.openConflictCount} 个 Conflict projection 仍未关闭，相关 Requirement Units 和边界定义可能继续被修正。`,
     })
+    nextActions.push(`先确认 ${seed.openConflictCount} 个 Conflict projection 的处理结论，避免边界继续反复。`)
   }
 
   if (seed.pendingClarificationCount > 0) {
@@ -372,6 +384,7 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       title: '澄清问题可能继续外溢',
       message: `当前仍有 ${seed.pendingClarificationCount} 个 Clarification 未收敛，这些问题后续仍可能继续转入 Issue Queue 或改写 Requirement Units。`,
     })
+    nextActions.push(`先回到 Clarification 收敛 ${seed.pendingClarificationCount} 个未完成问答或回源确认。`)
   }
 
   if (seed.unitsBelowTarget > 0) {
@@ -382,6 +395,7 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       title: '部分 Requirement Units 仍低于分层目标',
       message: `当前有 ${seed.unitsBelowTarget} 个 Requirement Units 低于各自 layer 的推荐稳定度${focusLayers ? `，其中 ${focusLayers}` : ''}。`,
     })
+    nextActions.push(`优先补齐低于分层目标的 Requirement Units，再评估是否继续放大推进动作。`)
   }
 
   if (isLowRequirementStability(seed.requirementStabilityLevel)) {
@@ -391,26 +405,21 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       title: '总体稳定度仍会放大影响面',
       message: `Requirement 总体稳定度目前为 ${STABILITY_LABELS[seed.requirementStabilityLevel]}，意味着局部改动更容易反向影响顶层边界和推进判断。`,
     })
+    nextActions.push('先补顶层边界与主流程，再继续进入更后阶段。')
   }
 
   const headline = reasons.length > 0
     ? `当前推进会牵动 ${seed.affectedRequirementUnitCount} 个 Requirement Units，并受到 ${seed.openIssueCount} 个开放问题信号影响。`
     : '当前未发现明显的推进外溢信号，影响面相对可控。'
 
-  const nextStep = seed.blockingIssueCount > 0
-    ? '建议先回到 Issue Queue 处理阻断问题，再继续推进 Requirement Units。'
-    : seed.openConflictCount > 0
-      ? '建议先确认 Conflict projection 的处理结论，避免边界继续反复。'
-      : seed.pendingClarificationCount > 0
-        ? '建议优先收敛 Clarification，避免继续生成新的问题项。'
-        : seed.unitsBelowTarget > 0
-          ? '建议优先补齐未达分层目标的 Requirement Units，再评估开发准备度。'
-          : isLowRequirementStability(seed.requirementStabilityLevel)
-            ? '建议先补顶层边界与主流程，再继续放大颗粒推进动作。'
-            : '可以继续按当前 Requirement Worksurface 推进，并关注新增问题信号。'
+  const nextStep = nextActions[0] ?? '可以继续按当前 Requirement Worksurface 推进，并关注新增问题信号。'
 
   return {
     affectedRequirementUnitCount: seed.affectedRequirementUnitCount,
+    affectedRequirementUnits: seed.affectedRequirementUnits.slice(0, 4).map((unit) => ({
+      ...unit,
+      reasons: unit.reasons.slice(0, 3),
+    })),
     openIssueCount: seed.openIssueCount,
     blockingIssueCount: seed.blockingIssueCount,
     hasBlockingIssue: seed.blockingIssueCount > 0,
@@ -420,6 +429,7 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
     unitsBelowTarget: seed.unitsBelowTarget,
     headline,
     nextStep,
+    nextActions: nextActions.slice(0, 4),
     signals,
     reasons,
   }

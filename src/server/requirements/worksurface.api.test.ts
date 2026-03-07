@@ -16,6 +16,14 @@ describe('requirement worksurface impact summary', () => {
 
     const summary = buildRequirementImpactSummary({
       affectedRequirementUnitCount: 3,
+      affectedRequirementUnits: [
+        {
+          id: 'ru-1',
+          unitKey: 'RU-01',
+          title: '注册主流程',
+          reasons: ['关联阻断问题 Risk', '当前低于 S3_ALMOST_READY 的分层目标'],
+        },
+      ],
       openIssueCount: 5,
       blockingIssueCount: 2,
       openConflictCount: 1,
@@ -30,6 +38,8 @@ describe('requirement worksurface impact summary', () => {
     expect(summary.openConflictCount).toBe(1)
     expect(summary.pendingClarificationCount).toBe(2)
     expect(summary.unitsBelowTarget).toBe(3)
+    expect(summary.affectedRequirementUnits[0]?.unitKey).toBe('RU-01')
+    expect(summary.nextActions[0]).toContain('阻断问题')
     expect(summary.signals.map((signal) => signal.title)).toEqual(expect.arrayContaining([
       '阻断问题会直接影响推进',
       '冲突投影仍未收敛',
@@ -42,6 +52,7 @@ describe('requirement worksurface impact summary', () => {
   it('stays lightweight when no obvious signals exist', () => {
     const summary = buildRequirementImpactSummary({
       affectedRequirementUnitCount: 0,
+      affectedRequirementUnits: [],
       openIssueCount: 0,
       blockingIssueCount: 0,
       openConflictCount: 0,
