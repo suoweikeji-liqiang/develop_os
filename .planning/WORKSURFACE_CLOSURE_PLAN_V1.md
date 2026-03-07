@@ -105,3 +105,34 @@
 4. 再增强 impact summary 的变化后果提示
 5. 再做 Requirement 主语的最小实现迁移
 6. 最后做一轮命名、注释、planning 状态收口
+
+## 状态更新
+
+### 已完成
+- Clarification 已形成最小闭环：
+  - eligibility 解释
+  - Issue Queue 跟踪关系
+  - issue 关闭后的回源确认提示
+- Conflict 已进一步收紧为“证据面”，Issue Queue 继续作为默认处理面
+- Stability 已从分层解释推进到推荐型治理：
+  - 可优先推进 Units
+  - 应优先补齐 Units
+  - 主要风险 Layer
+  - 阶段切换前软提示
+- impact summary 已增强为轻量“变化后果摘要”：
+  - 受影响 Requirement Units
+  - 受影响原因
+  - 优先动作建议
+- Requirement 主路径已开始脱离 `explorations/*`
+  - `/requirements/[id]` 已拥有详情页主实现
+  - `/explorations/[id]` 已退回兼容 alias
+
+### 当前残留
+- Requirement 列表页与新建页主实现仍在 `explorations/*`
+- Requirement 详情页子组件仍大量位于 `explorations/[id]/*`
+- 闭环提示仍以规则驱动和人工确认为主，没有自动状态机
+
+### 下一轮建议
+- 继续迁移 Requirement 列表页与新建页主实现
+- 补强 Clarification / Requirement Unit / Impact Summary 之间的回链
+- 继续把 Requirement worksurface 的共享子组件从历史目录中抽离

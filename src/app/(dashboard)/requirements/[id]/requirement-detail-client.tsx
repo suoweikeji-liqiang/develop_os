@@ -176,7 +176,7 @@ const MODELCARD_SECTIONS = [
 
 const REQUIREMENT_UNIT_LAYER_TARGET_GROUPS = getRequirementUnitLayerTargetGroups()
 
-function getExplorationStage(status: string): 'open' | 'refining' | 'stabilized' {
+function getRequirementStage(status: string): 'open' | 'refining' | 'stabilized' {
   if (status === 'DONE') return 'stabilized'
   if (status === 'DRAFT') return 'open'
   return 'refining'
@@ -201,7 +201,9 @@ function getStageCopy(stage: 'open' | 'refining' | 'stabilized'): string {
 }
 
 // Primary location: this client component now owns the Requirement worksurface
-// implementation. The legacy `explorations/[id]` path re-exports from here.
+// implementation. Some subpanels still live under `explorations/[id]` as
+// transitional shared UI, but `/requirements/[id]` is now the product-facing
+// implementation root.
 export function RequirementDetailClient({
   requirementId,
   title,
@@ -258,7 +260,7 @@ export function RequirementDetailClient({
   const [specLoading, setSpecLoading] = useState(false)
   const previousModelRef = useRef<FiveLayerModel | null>(null)
   const citations = (initialCitations ?? []) as CitationItem[]
-  const explorationStage = getExplorationStage(currentStatus)
+  const requirementStage = getRequirementStage(currentStatus)
   const canManageWorkflow = canManageRequirementWorkflow({ roles: userRoles, isAdmin })
   const handleRequirementUnitChanged = useCallback(() => {
     setChangeRefreshToken((prev) => prev + 1)
@@ -721,8 +723,8 @@ export function RequirementDetailClient({
           <div className="space-y-6">
             <div className="flex flex-wrap items-center gap-2 text-xs">
               <span className="app-chip-dark">Requirement</span>
-              <span className={`rounded-full border px-3 py-1 font-medium ${getStageClasses(explorationStage)}`}>
-                {getStageLabel(explorationStage)}
+              <span className={`rounded-full border px-3 py-1 font-medium ${getStageClasses(requirementStage)}`}>
+                {getStageLabel(requirementStage)}
               </span>
               <span className="app-chip-dark">Status {currentStatus}</span>
               <StabilityBadge level={currentStabilityLevel} />
@@ -734,7 +736,7 @@ export function RequirementDetailClient({
                 {title}
               </h1>
               <p className="max-w-2xl text-base leading-7 text-white/70">
-                {getStageCopy(explorationStage)}
+                {getStageCopy(requirementStage)}
               </p>
             </div>
 
