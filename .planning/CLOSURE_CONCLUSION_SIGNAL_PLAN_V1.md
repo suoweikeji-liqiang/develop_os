@@ -85,6 +85,10 @@
   - 结论更像边界澄清 / 风险确认 / 缺失补齐 / 冲突裁定 / 仅关闭未沉淀
   - 结论当前主要沉淀到哪个 Requirement Unit
   - 仍需人工确认还是仍需人工补内容
+- `ISSUE 4` 已把这条结论链继续压短：
+  - Impact Summary 会直接点出哪个 Unit 被结论影响、为什么被点名、当前建议动作是什么
+  - Requirement Unit 卡片可以直接看到自己为何进入 summary，并能回跳到 Impact Summary
+  - 用户现在可以沿着 `Clarification -> Issue Queue -> Requirement Unit -> Impact Summary` 连续追踪结论落点
 
 ## 非目标
 - 不做自动状态机
@@ -108,3 +112,18 @@
 - 后续可再细化“沉淀到哪个 Unit 字段 / 哪类内容块”
 - 后续可扩展到 Conflict projection 等更多来源类型
 - 后续可把结论信号与版本链或 change evidence 做更轻量的衔接，但仍不引入正式 Change Unit
+
+## 已完成
+- Clarification 来源 issue 已具备结论标签、结论落点、推进影响与下一步说明
+- Issue Queue、Requirement Unit、Impact Summary 已统一消费这层结论信号
+- Impact Summary 与 Requirement Unit 之间已补上双向解释和跳转
+
+## 当前残留
+- 结论仍只沉到“哪个 Unit”，尚未细到 Unit 内哪个字段或内容块
+- 关闭 issue 之后仍不自动更新 Unit 状态或稳定度，仍依赖人工判断
+- Conflict projection 还没有复用同一套“结论沉淀标签”，目前仍以状态关系和来源说明为主
+
+## 下一轮建议
+- 继续把“结论沉淀到哪个 Unit 字段”做成轻量提示，而不是状态机
+- 让 Impact Summary 能更直接引用回源未完成的具体来源对象
+- 评估是否给 Conflict projection 增补一层与 Clarification 对齐的轻量结论信号

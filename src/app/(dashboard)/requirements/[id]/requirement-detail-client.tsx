@@ -284,9 +284,9 @@ function getRequirementUnitAnchor(unitId: string | null | undefined): string {
 }
 
 // Primary location: this client component now owns the Requirement worksurface
-// implementation. Some subpanels still live under `explorations/[id]` as
-// transitional shared UI, but `/requirements/[id]` is now the product-facing
-// implementation root.
+// implementation. Remaining imports from `explorations/[id]` are transitional
+// shared panels only (model, signoff, chat, test-case, assumption typing).
+// `/requirements/[id]` is the product-facing implementation root.
 export function RequirementDetailClient({
   requirementId,
   title,

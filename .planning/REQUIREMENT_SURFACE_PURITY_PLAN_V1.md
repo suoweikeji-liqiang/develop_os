@@ -3,13 +3,8 @@
 ## 当前状态
 
 ### 当前 Requirement 主路径还残留哪些 exploration 依附
-- `src/app/(dashboard)/requirements/[id]/page.tsx`
-  - 仍直接从 `../../explorations/[id]/comments-panel` 引入 `CommentsPanel`
 - `src/app/(dashboard)/requirements/[id]/requirement-detail-client.tsx`
   - 仍直接从 `../../explorations/[id]/*` 引入以下子组件：
-    - `status-control.tsx`
-    - `version-history.tsx`
-    - `change-units-panel.tsx`
     - `model-tabs.tsx`
     - `role-view-tabs.tsx`
     - `signoff-panel.tsx`
@@ -17,7 +12,7 @@
     - `chat-panel.tsx`
     - `test-case-panel.tsx`
   - 同时仍从 `../../explorations/[id]/assumption-card` 引入 `PendingAssumption` 类型
-- 当前 `/requirements`、`/requirements/new`、`/requirements/[id]` 的 page 级主实现已经迁回 `requirements/*`，但详情页中推进/演化相关的几个高频子组件仍挂在 `explorations/[id]/*`
+- 当前 `/requirements`、`/requirements/new`、`/requirements/[id]` 的 page 级主实现已经迁回 `requirements/*`，但详情页中少量辅助子组件与类型仍挂在 `explorations/[id]/*`
 
 ### 哪些组件最该优先迁移
 本轮只优先处理与 Requirement 主路径纯度直接相关、且已经被用户点名的 4 个组件：
@@ -68,6 +63,7 @@
   - `change-units-panel.tsx`
 - `comment-input.tsx` 与 `version-diff-view.tsx` 已作为配套依赖迁回 `requirements/[id]/*`
 - 原 `src/app/(dashboard)/explorations/[id]/*` 对应文件已退为兼容 wrapper
+- `ISSUE 5` 再次确认：Requirement 主路径当前只剩辅助共享面板仍经由 `explorations/[id]/*` 引入，核心推进/演化组件已经不再挂在 Exploration 主语下
 
 ## 非目标
 - 不做全仓库 rename
@@ -91,3 +87,23 @@
 - 后续再评估 `model-tabs.tsx`、`role-view-tabs.tsx`、`signoff-panel.tsx`、`consensus-status.tsx` 的迁移顺序
 - 后续再做最小的组件命名清理，减少新的 `Exploration*` 心智残留
 - `/explorations*` 路由继续保留兼容，但不再承载主实现
+
+## 已完成
+- `/requirements`、`/requirements/new`、`/requirements/[id]` 的主实现已迁回 `requirements/*`
+- `comments-panel.tsx`、`status-control.tsx`、`version-history.tsx`、`change-units-panel.tsx` 已迁回 `requirements/[id]/*`
+- 旧 `explorations/[id]/*` 对应文件已退为 wrapper，并补了兼容说明
+
+## 当前残留
+- `model-tabs.tsx`
+- `role-view-tabs.tsx`
+- `signoff-panel.tsx`
+- `consensus-status.tsx`
+- `chat-panel.tsx`
+- `test-case-panel.tsx`
+- `PendingAssumption` 类型仍从 `explorations/[id]/assumption-card` 引入
+- `/explorations*` 路由仍保留兼容壳
+
+## 下一轮建议
+- 优先处理 `signoff-panel.tsx`、`consensus-status.tsx`、`test-case-panel.tsx` 这类仍直接影响 Requirement 主流程的共享面板
+- 再评估 `PendingAssumption` 类型是否可以抽到更中性的共享位置
+- 继续保持 `/explorations*` 仅作兼容入口，不再承载新的主实现

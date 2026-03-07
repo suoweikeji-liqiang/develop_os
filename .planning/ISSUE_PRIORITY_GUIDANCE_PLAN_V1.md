@@ -79,6 +79,10 @@
   - 同类问题是否为热点
   - 同一 Unit 是否已有多条开放问题
 - Stability Summary 已开始直接引用这些信号，不再只停留在 `Hot Issue Types / Hot Layers`
+- `ISSUE 4` 已把这些信号继续投到推进结论面：
+  - Impact Summary 会直接给出动作化的 `actionPlan`
+  - 被点名的 Requirement Units 会显示为什么被关注、当前建议动作是什么
+  - 用户看到优先级后，可以直接追到对应 Unit 或对应工作区继续推进
 
 ## 非目标
 - 不做复杂优先级算法平台
@@ -102,3 +106,18 @@
 - 后续可补更细的单位影响度，例如多 Unit 影响或阶段特定权重
 - 后续可把优先级信号扩展到来源对象回链上
 - 后续可引入更细的 current-stage-aware 排序，但仍保持规则驱动和可解释
+
+## 已完成
+- Issue Queue 已能用 `Phase Blocker / Highest Leverage / Fast Stabilization Win` 回答“先处理哪类问题最值”
+- 排序与标签已联动到 Stability Summary
+- Impact Summary 已开始把优先级信号转成面向推进动作的结论卡片
+
+## 当前残留
+- 当前优先级仍是规则驱动，没有显式 stage-specific 权重
+- 多 Unit 影响仍主要通过热点和关联数近似表达，没有单独影响度模型
+- 结论面虽然已动作化，但还没细到“处理这个 issue 预计改善多少稳定度”
+
+## 下一轮建议
+- 继续加强 stage-aware 优先级解释，但保持规则透明
+- 让优先级信号更直接回链到来源对象和 Unit 内容落点
+- 只在必要时再补更细的多 Unit 影响信号，避免把规则做成复杂评分系统
