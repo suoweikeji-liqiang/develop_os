@@ -147,6 +147,8 @@ interface WorksurfaceSummary {
       unitKey: string
       title: string
       reasons: string[]
+      attentionSummary: string
+      nextAction: string
     }>
     advanceUnits: Array<{
       id: string
@@ -154,6 +156,9 @@ interface WorksurfaceSummary {
       title: string
       layerLabel: string
       recommendation: string
+      reasons: string[]
+      attentionSummary: string
+      nextAction: string
     }>
     focusUnits: Array<{
       id: string
@@ -161,6 +166,9 @@ interface WorksurfaceSummary {
       title: string
       layerLabel: string
       recommendation: string
+      reasons: string[]
+      attentionSummary: string
+      nextAction: string
     }>
     openIssueCount: number
     blockingIssueCount: number
@@ -184,6 +192,13 @@ interface WorksurfaceSummary {
     }>
     signals: RequirementGuidanceHint[]
     reasons: string[]
+    actionPlan: Array<{
+      key: string
+      title: string
+      detail: string
+      targetSection: 'issue-queue' | 'requirement-units' | 'clarification-queue' | 'stability-summary'
+      tone: 'critical' | 'warning' | 'info'
+    }>
   }
 }
 
@@ -262,6 +277,10 @@ function getStageCopy(stage: 'open' | 'refining' | 'stabilized'): string {
   if (stage === 'open') return '需求仍在采样与边界收敛阶段，适合补澄清、补来源上下文和确认顶层边界。'
   if (stage === 'stabilized') return '需求已接近稳定，可重点关注收尾、签字与沉淀。'
   return '需求已经进入修正与收敛阶段，适合持续对话和冲突扫描。'
+}
+
+function getRequirementUnitAnchor(unitId: string | null | undefined): string {
+  return unitId ? `#requirement-unit-${unitId}` : '#requirement-units'
 }
 
 // Primary location: this client component now owns the Requirement worksurface
@@ -942,7 +961,7 @@ export function RequirementDetailClient({
             </a>
           ))}
         </div>
-        <div className="mt-4 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
+        <div id="impact-summary" className="mt-4 rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
           <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <p className="text-sm font-semibold text-slate-900">Impact Summary</p>
@@ -998,6 +1017,27 @@ export function RequirementDetailClient({
               当前还没有明显的阻断或低成熟度信号。
             </p>
           )}
+          {worksurfaceSummary?.impactSummary.actionPlan?.length ? (
+            <div className="mt-4 grid gap-3 xl:grid-cols-2">
+              {worksurfaceSummary.impactSummary.actionPlan.map((action) => (
+                <a
+                  key={action.key}
+                  href={`#${action.targetSection}`}
+                  className={`rounded-[18px] border px-4 py-3 text-sm transition hover:shadow-sm ${
+                    action.tone === 'critical'
+                      ? 'border-red-200 bg-red-50 text-red-700'
+                      : action.tone === 'warning'
+                        ? 'border-amber-200 bg-amber-50 text-amber-800'
+                        : 'border-emerald-200 bg-emerald-50 text-emerald-800'
+                  }`}
+                >
+                  <p className="font-semibold">{action.title}</p>
+                  <p className="mt-1 leading-6">{action.detail}</p>
+                  <p className="mt-2 text-xs opacity-80">跳转到对应工作区继续推进</p>
+                </a>
+              ))}
+            </div>
+          ) : null}
           {worksurfaceSummary?.impactSummary.clarificationConclusions?.length ? (
             <div className="mt-4 rounded-[18px] border border-slate-200 bg-white px-4 py-4">
               <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Conclusion Sink Highlights</p>
@@ -1015,7 +1055,9 @@ export function RequirementDetailClient({
                     <div className="mt-2 flex flex-wrap gap-2 text-xs">
                       {item.unitKey ? (
                         <a
-                          href="#requirement-units"
+                          href={getRequirementUnitAnchor(
+                            worksurfaceSummary.impactSummary.affectedRequirementUnits.find((unit) => unit.unitKey === item.unitKey)?.id,
+                          )}
                           className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-slate-600 hover:bg-slate-50"
                         >
                           查看 {item.unitKey}
@@ -1042,12 +1084,13 @@ export function RequirementDetailClient({
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <p className="text-sm font-semibold text-slate-900">{unit.unitKey} · {unit.title}</p>
                       <a
-                        href="#requirement-units"
+                        href={getRequirementUnitAnchor(unit.id)}
                         className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50"
                       >
                         在 Requirement Units 区查看
                       </a>
                     </div>
+                    <p className="mt-2 text-sm leading-6 text-slate-700">{unit.attentionSummary}</p>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
                       {unit.reasons.map((reason) => (
                         <span key={`${unit.id}-${reason}`} className="rounded-full border border-slate-200 bg-white px-3 py-1">
@@ -1055,6 +1098,7 @@ export function RequirementDetailClient({
                         </span>
                       ))}
                     </div>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">{unit.nextAction}</p>
                   </div>
                 ))}
               </div>
@@ -1071,7 +1115,7 @@ export function RequirementDetailClient({
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-slate-900">{unit.unitKey} · {unit.title}</p>
                           <a
-                            href="#requirement-units"
+                            href={getRequirementUnitAnchor(unit.id)}
                             className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50"
                           >
                             查看 Unit
@@ -1079,6 +1123,17 @@ export function RequirementDetailClient({
                         </div>
                         <p className="mt-1 text-xs text-slate-500">{unit.layerLabel}</p>
                         <p className="mt-2 text-sm leading-6 text-slate-700">{unit.recommendation}</p>
+                        <p className="mt-2 text-xs leading-5 text-slate-500">{unit.attentionSummary}</p>
+                        {unit.reasons.length > 0 ? (
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+                            {unit.reasons.map((reason) => (
+                              <span key={`${unit.id}-${reason}`} className="rounded-full border border-slate-200 bg-white px-3 py-1">
+                                {reason}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                        <p className="mt-2 text-xs leading-5 text-emerald-700">{unit.nextAction}</p>
                       </div>
                     ))
                   ) : (
@@ -1095,7 +1150,7 @@ export function RequirementDetailClient({
                         <div className="flex flex-wrap items-center justify-between gap-2">
                           <p className="text-sm font-semibold text-slate-900">{unit.unitKey} · {unit.title}</p>
                           <a
-                            href="#requirement-units"
+                            href={getRequirementUnitAnchor(unit.id)}
                             className="inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50"
                           >
                             查看 Unit
@@ -1103,6 +1158,17 @@ export function RequirementDetailClient({
                         </div>
                         <p className="mt-1 text-xs text-slate-500">{unit.layerLabel}</p>
                         <p className="mt-2 text-sm leading-6 text-slate-700">{unit.recommendation}</p>
+                        <p className="mt-2 text-xs leading-5 text-slate-500">{unit.attentionSummary}</p>
+                        {unit.reasons.length > 0 ? (
+                          <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
+                            {unit.reasons.map((reason) => (
+                              <span key={`${unit.id}-${reason}`} className="rounded-full border border-slate-200 bg-white px-3 py-1">
+                                {reason}
+                              </span>
+                            ))}
+                          </div>
+                        ) : null}
+                        <p className="mt-2 text-xs leading-5 text-amber-700">{unit.nextAction}</p>
                       </div>
                     ))
                   ) : (

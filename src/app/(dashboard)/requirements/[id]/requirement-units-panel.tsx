@@ -73,14 +73,20 @@ interface Props {
     affectedUnits: Array<{
       id: string
       reasons: string[]
+      attentionSummary: string
+      nextAction: string
     }>
     advanceUnits: Array<{
       id: string
       recommendation: string
+      attentionSummary: string
+      nextAction: string
     }>
     focusUnits: Array<{
       id: string
       recommendation: string
+      attentionSummary: string
+      nextAction: string
     }>
   }
   onDataChanged?: () => void
@@ -170,15 +176,15 @@ export function RequirementUnitsPanel({ requirementId, hasModel, summaryHighligh
   }, [items])
 
   const affectedUnitReasonMap = useMemo(() => new Map(
-    (summaryHighlights?.affectedUnits ?? []).map((item) => [item.id, item.reasons]),
+    (summaryHighlights?.affectedUnits ?? []).map((item) => [item.id, item]),
   ), [summaryHighlights?.affectedUnits])
 
   const advanceUnitRecommendationMap = useMemo(() => new Map(
-    (summaryHighlights?.advanceUnits ?? []).map((item) => [item.id, item.recommendation]),
+    (summaryHighlights?.advanceUnits ?? []).map((item) => [item.id, item]),
   ), [summaryHighlights?.advanceUnits])
 
   const focusUnitRecommendationMap = useMemo(() => new Map(
-    (summaryHighlights?.focusUnits ?? []).map((item) => [item.id, item.recommendation]),
+    (summaryHighlights?.focusUnits ?? []).map((item) => [item.id, item]),
   ), [summaryHighlights?.focusUnits])
 
   async function handleCreate() {
@@ -462,12 +468,13 @@ export function RequirementUnitsPanel({ requirementId, hasModel, summaryHighligh
               stabilityLevel: item.stabilityLevel,
               status: item.status,
             })
-            const affectedReasons = affectedUnitReasonMap.get(item.id) ?? []
+            const affectedSummary = affectedUnitReasonMap.get(item.id)
+            const affectedReasons = affectedSummary?.reasons ?? []
             const advanceRecommendation = advanceUnitRecommendationMap.get(item.id)
             const focusRecommendation = focusUnitRecommendationMap.get(item.id)
 
             return (
-              <li key={item.id} className="rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
+              <li id={`requirement-unit-${item.id}`} key={item.id} className="rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
                 <div className="flex flex-wrap items-center gap-2">
                   <span className="app-chip">{item.unitKey}</span>
                   <span className="app-chip">{layerProfile.label}</span>
@@ -527,7 +534,8 @@ export function RequirementUnitsPanel({ requirementId, hasModel, summaryHighligh
                 {focusRecommendation ? (
                   <div className="mt-3 rounded-[16px] border border-amber-200 bg-amber-50/80 px-3 py-3 text-sm text-amber-800">
                     <p className="font-semibold">Impact Summary 当前建议优先补齐该 Unit</p>
-                    <p className="mt-1 leading-6">{focusRecommendation}</p>
+                    <p className="mt-1 leading-6">{focusRecommendation.recommendation}</p>
+                    <p className="mt-2 text-xs leading-5">{focusRecommendation.attentionSummary}</p>
                     {affectedReasons.length > 0 ? (
                       <div className="mt-2 flex flex-wrap gap-2 text-xs">
                         {affectedReasons.map((reason) => (
@@ -537,11 +545,19 @@ export function RequirementUnitsPanel({ requirementId, hasModel, summaryHighligh
                         ))}
                       </div>
                     ) : null}
+                    <p className="mt-2 text-xs leading-5">{focusRecommendation.nextAction}</p>
+                    <a
+                      href="#impact-summary"
+                      className="mt-2 inline-flex items-center justify-center rounded-full border border-amber-200 bg-white px-2.5 py-1 text-xs text-amber-800 hover:bg-amber-50"
+                    >
+                      回到 Impact Summary
+                    </a>
                   </div>
                 ) : advanceRecommendation ? (
                   <div className="mt-3 rounded-[16px] border border-emerald-200 bg-emerald-50/80 px-3 py-3 text-sm text-emerald-800">
                     <p className="font-semibold">Impact Summary 当前建议优先推进该 Unit</p>
-                    <p className="mt-1 leading-6">{advanceRecommendation}</p>
+                    <p className="mt-1 leading-6">{advanceRecommendation.recommendation}</p>
+                    <p className="mt-2 text-xs leading-5">{advanceRecommendation.attentionSummary}</p>
                     {affectedReasons.length > 0 ? (
                       <div className="mt-2 flex flex-wrap gap-2 text-xs">
                         {affectedReasons.map((reason) => (
@@ -551,10 +567,20 @@ export function RequirementUnitsPanel({ requirementId, hasModel, summaryHighligh
                         ))}
                       </div>
                     ) : null}
+                    <p className="mt-2 text-xs leading-5">{advanceRecommendation.nextAction}</p>
+                    <a
+                      href="#impact-summary"
+                      className="mt-2 inline-flex items-center justify-center rounded-full border border-emerald-200 bg-white px-2.5 py-1 text-xs text-emerald-800 hover:bg-emerald-50"
+                    >
+                      回到 Impact Summary
+                    </a>
                   </div>
                 ) : affectedReasons.length > 0 ? (
                   <div className="mt-3 rounded-[16px] border border-slate-200/80 bg-white/80 px-3 py-3 text-sm text-slate-700">
                     <p className="font-semibold text-slate-900">Impact Summary 当前把该 Unit 视为受影响单元</p>
+                    {affectedSummary?.attentionSummary ? (
+                      <p className="mt-1 leading-6">{affectedSummary.attentionSummary}</p>
+                    ) : null}
                     <div className="mt-2 flex flex-wrap gap-2 text-xs text-slate-600">
                       {affectedReasons.map((reason) => (
                         <span key={`${item.id}-${reason}`} className="app-chip">
@@ -562,6 +588,15 @@ export function RequirementUnitsPanel({ requirementId, hasModel, summaryHighligh
                         </span>
                       ))}
                     </div>
+                    {affectedSummary?.nextAction ? (
+                      <p className="mt-2 text-xs leading-5 text-slate-500">{affectedSummary.nextAction}</p>
+                    ) : null}
+                    <a
+                      href="#impact-summary"
+                      className="mt-2 inline-flex items-center justify-center rounded-full border border-slate-200 bg-white px-2.5 py-1 text-xs text-slate-600 hover:bg-slate-50"
+                    >
+                      回到 Impact Summary
+                    </a>
                   </div>
                 ) : null}
 

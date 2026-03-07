@@ -58,9 +58,16 @@ describe('requirement worksurface impact summary', () => {
     expect(summary.pendingClarificationCount).toBe(2)
     expect(summary.unitsBelowTarget).toBe(3)
     expect(summary.affectedRequirementUnits[0]?.unitKey).toBe('RU-01')
+    expect(summary.affectedRequirementUnits[0]?.attentionSummary).toContain('RU-01')
+    expect(summary.affectedRequirementUnits[0]?.nextAction).toContain('RU-01')
     expect(summary.focusUnits[0]?.unitKey).toBe('RU-02')
+    expect(summary.focusUnits[0]?.attentionSummary).toContain('优先补齐')
+    expect(summary.focusUnits[0]?.nextAction).toContain('RU-02')
     expect(summary.advanceUnits[0]?.unitKey).toBe('RU-03')
+    expect(summary.advanceUnits[0]?.attentionSummary).toContain('优先推进')
+    expect(summary.advanceUnits[0]?.nextAction).toContain('RU-03')
     expect(summary.nextActions[0]).toContain('阻断问题')
+    expect(summary.actionPlan[0]?.title).toContain('阻断问题')
     expect(summary.nextActions.some((action) => action.includes('RU-02'))).toBe(true)
     expect(summary.signals.map((signal) => signal.title)).toEqual(expect.arrayContaining([
       '阻断问题会直接影响推进',
@@ -89,6 +96,7 @@ describe('requirement worksurface impact summary', () => {
     expect(summary.mayAffectStability).toBe(false)
     expect(summary.headline).toContain('影响面相对可控')
     expect(summary.signals).toHaveLength(0)
+    expect(summary.actionPlan).toHaveLength(0)
   })
 
   it('surfaces closed clarification conclusions that still need sink confirmation', () => {
@@ -137,6 +145,7 @@ describe('requirement worksurface impact summary', () => {
     ]))
     expect(summary.clarificationConclusions[0]?.label).toBe('风险被确认')
     expect(summary.nextActions.some((action) => action.includes('Clarification'))).toBe(true)
+    expect(summary.actionPlan.some((action) => action.targetSection === 'clarification-queue')).toBe(true)
   })
 
   it('surfaces governance suggestions for ready units, lagging units and stage advance', () => {

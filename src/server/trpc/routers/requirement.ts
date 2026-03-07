@@ -31,7 +31,7 @@ import {
   summarizeUnitsBelowLayerTarget,
   TARGET_REQUIREMENT_UNIT_STABILITY_LEVEL,
 } from '@/server/requirements/worksurface'
-import { getRequirementUnitTargetStabilityLevel } from '@/lib/requirement-unit-layer'
+import { getRequirementUnitLayerProfile, getRequirementUnitTargetStabilityLevel } from '@/lib/requirement-unit-layer'
 import {
   computeCompleteness,
   deriveSpecDraft,
@@ -570,9 +570,10 @@ export const requirementRouter = createTRPCRouter({
       }
       for (const unit of unitsBelowTarget) {
         impactedRequirementUnitIds.add(unit.id)
+        const layerProfile = getRequirementUnitLayerProfile(unit.layer)
         addAffectedUnitReason(
           unit.id,
-          `当前低于 ${STABILITY_LABELS[getRequirementUnitTargetStabilityLevel(unit.layer)]} 的分层目标`,
+          `${layerProfile.label} 层当前低于 ${STABILITY_LABELS[getRequirementUnitTargetStabilityLevel(unit.layer)]} 的分层目标`,
         )
       }
 

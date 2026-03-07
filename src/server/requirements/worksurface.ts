@@ -97,6 +97,34 @@ interface RequirementImpactSummarySeed {
   requirementStabilityLevel: RequirementStabilityLevel
 }
 
+interface RequirementImpactUnitSummary {
+  id: string
+  unitKey: string
+  title: string
+  reasons: string[]
+  attentionSummary: string
+  nextAction: string
+}
+
+interface RequirementImpactRecommendationUnitSummary {
+  id: string
+  unitKey: string
+  title: string
+  layerLabel: string
+  recommendation: string
+  reasons: string[]
+  attentionSummary: string
+  nextAction: string
+}
+
+interface RequirementImpactActionPlanItem {
+  key: string
+  title: string
+  detail: string
+  targetSection: 'issue-queue' | 'requirement-units' | 'clarification-queue' | 'stability-summary'
+  tone: 'critical' | 'warning' | 'info'
+}
+
 interface RequirementStabilityGovernanceUnitSeed {
   id: string
   unitKey: string
@@ -183,6 +211,43 @@ function getRequirementUnitStabilityOrder(level: string | null | undefined): num
 function getRequirementUnitGapScore(unit: RequirementStabilityGovernanceUnitSeed): number {
   const profile = getRequirementUnitLayerProfile(unit.layer)
   return STABILITY_ORDER[profile.targetStabilityLevel] - getRequirementUnitStabilityOrder(unit.stabilityLevel)
+}
+
+function formatImpactReasonSummary(reasons: string[]): string {
+  if (reasons.length === 0) return '当前主要因为总体推进判断仍未完全收敛。'
+  if (reasons.length === 1) return reasons[0]
+  if (reasons.length === 2) return `${reasons[0]}，以及 ${reasons[1]}`
+  return `${reasons[0]}、${reasons[1]} 等 ${reasons.length} 个信号`
+}
+
+function buildRequirementImpactUnitNextAction(input: {
+  unitKey: string
+  title: string
+  reasons: string[]
+  focusRecommendation?: string | null
+  advanceRecommendation?: string | null
+}): string {
+  if (input.focusRecommendation) {
+    return `先补齐 ${input.unitKey} · ${input.title}：${input.focusRecommendation}`
+  }
+
+  if (input.advanceRecommendation) {
+    return `可优先推进 ${input.unitKey} · ${input.title}：${input.advanceRecommendation}`
+  }
+
+  if (input.reasons.some((reason) => reason.includes('回源确认'))) {
+    return `先确认 ${input.unitKey} 相关的已关闭问题是否已经真正沉淀到 Unit 内容，再决定是否继续推进。`
+  }
+
+  if (input.reasons.some((reason) => reason.includes('阻断问题'))) {
+    return `先回到 Issue Queue 处理挂在 ${input.unitKey} 上的阻断问题，再继续推进 ${input.unitKey}。`
+  }
+
+  if (input.reasons.some((reason) => reason.includes('低于'))) {
+    return `先补齐 ${input.unitKey} 当前层内稳定度，再决定是否继续放大推进动作。`
+  }
+
+  return `继续复核 ${input.unitKey} 当前的开放问题、稳定度与结论沉淀，再决定下一步推进动作。`
 }
 
 export function buildRequirementStageAdvanceGuidance(seed: RequirementStabilityGovernanceSeed): RequirementGuidanceHint {
@@ -498,6 +563,9 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
   const clarificationCallbackCount = seed.clarificationCallbackCount ?? 0
   const clarificationSinklessCount = seed.clarificationSinklessCount ?? 0
   const clarificationConclusions = seed.clarificationConclusions ?? []
+  const affectedReasonMap = new Map(
+    seed.affectedRequirementUnits.map((unit) => [unit.id, unit.reasons.slice(0, 3)]),
+  )
   const advanceUnitText = seed.advanceUnits
     .slice(0, 2)
     .map((unit) => `${unit.unitKey} · ${unit.title}`)
@@ -506,6 +574,69 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
     .slice(0, 2)
     .map((unit) => `${unit.unitKey} · ${unit.title}`)
     .join('、')
+  const advanceUnits = seed.advanceUnits
+    .slice(0, 3)
+    .map((unit): RequirementImpactRecommendationUnitSummary => {
+      const unitReasons = affectedReasonMap.get(unit.id) ?? []
+
+      return {
+        ...unit,
+        reasons: unitReasons,
+        attentionSummary: unitReasons.length > 0
+          ? `${unit.unitKey} 当前被列入优先推进，因为 ${formatImpactReasonSummary(unitReasons)}。`
+          : `${unit.unitKey} 当前已被列入优先推进，并已达到 ${unit.layerLabel} 层推荐目标，适合继续承接推进动作。`,
+        nextAction: buildRequirementImpactUnitNextAction({
+          unitKey: unit.unitKey,
+          title: unit.title,
+          reasons: unitReasons,
+          advanceRecommendation: unit.recommendation,
+        }),
+      }
+    })
+  const focusUnits = seed.focusUnits
+    .slice(0, 3)
+    .map((unit): RequirementImpactRecommendationUnitSummary => {
+      const unitReasons = affectedReasonMap.get(unit.id) ?? []
+
+      return {
+        ...unit,
+        reasons: unitReasons,
+        attentionSummary: unitReasons.length > 0
+          ? `${unit.unitKey} 当前被列入优先补齐，因为 ${formatImpactReasonSummary(unitReasons)}。`
+          : `${unit.unitKey} 当前已被列入优先补齐，仍低于 ${unit.layerLabel} 层推荐目标，应先补齐后再放大推进。`,
+        nextAction: buildRequirementImpactUnitNextAction({
+          unitKey: unit.unitKey,
+          title: unit.title,
+          reasons: unitReasons,
+          focusRecommendation: unit.recommendation,
+        }),
+      }
+    })
+  const focusUnitById = new Map(focusUnits.map((unit) => [unit.id, unit]))
+  const advanceUnitById = new Map(advanceUnits.map((unit) => [unit.id, unit]))
+  const affectedRequirementUnits = seed.affectedRequirementUnits
+    .slice(0, 4)
+    .map((unit): RequirementImpactUnitSummary => {
+      const unitReasons = unit.reasons.slice(0, 3)
+      const focusUnit = focusUnitById.get(unit.id)
+      const advanceUnit = advanceUnitById.get(unit.id)
+
+      return {
+        ...unit,
+        reasons: unitReasons,
+        attentionSummary: unitReasons.length > 0
+          ? `${unit.unitKey} 当前被 summary 点名，因为 ${formatImpactReasonSummary(unitReasons)}。`
+          : `${unit.unitKey} 当前仍在推进影响面内，需要继续跟踪。`,
+        nextAction: buildRequirementImpactUnitNextAction({
+          unitKey: unit.unitKey,
+          title: unit.title,
+          reasons: unitReasons,
+          focusRecommendation: focusUnit?.recommendation,
+          advanceRecommendation: advanceUnit?.recommendation,
+        }),
+      }
+    })
+  const actionPlan: RequirementImpactActionPlanItem[] = []
 
   if (seed.blockingIssueCount > 0) {
     reasons.push(`存在 ${seed.blockingIssueCount} 个阻断问题`)
@@ -515,6 +646,13 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       message: `当前有 ${seed.blockingIssueCount} 个阻断问题仍未关闭，Requirement 的后续推进会先受这些问题牵制。`,
     })
     nextActions.push(`先回到 Issue Queue 处理 ${seed.blockingIssueCount} 个阻断问题，再继续推进相关 Requirement Units。`)
+    actionPlan.push({
+      key: 'issue-blockers',
+      title: '先处理阻断问题',
+      detail: `先回到 Issue Queue 处理 ${seed.blockingIssueCount} 个阻断问题，再继续推进相关 Requirement Units。`,
+      targetSection: 'issue-queue',
+      tone: 'critical',
+    })
   }
 
   if (seed.openIssueCount > 0) {
@@ -525,6 +663,13 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
     })
     if (seed.blockingIssueCount === 0) {
       nextActions.push(`先在 Issue Queue 分诊并收敛 ${seed.openIssueCount} 个开放问题。`)
+      actionPlan.push({
+        key: 'issue-open',
+        title: '先分诊开放问题',
+        detail: `先在 Issue Queue 分诊并收敛 ${seed.openIssueCount} 个开放问题，减少它们对推进判断的持续干扰。`,
+        targetSection: 'issue-queue',
+        tone: 'warning',
+      })
     }
   }
 
@@ -556,6 +701,13 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       message: `当前有 ${clarificationCallbackCount} 条 Clarification 来源问题虽然已关闭，但仍需要回到来源问答面确认结论是否真正收敛到对应 Requirement Unit。`,
     })
     nextActions.push(`先回到 Clarification 确认 ${clarificationCallbackCount} 条已关闭问题是否已经沉淀到对应 Requirement Unit。`)
+    actionPlan.push({
+      key: 'clarification-callback',
+      title: '先确认已关闭问题的结论落点',
+      detail: `先回到 Clarification 确认 ${clarificationCallbackCount} 条已关闭问题是否已经沉淀到对应 Requirement Unit。`,
+      targetSection: 'clarification-queue',
+      tone: 'warning',
+    })
   }
 
   if (clarificationSinklessCount > 0) {
@@ -566,6 +718,13 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       message: `当前有 ${clarificationSinklessCount} 条 Clarification 来源问题虽然已关闭，但还没有明确沉淀到具体 Requirement Unit，仍需人工补内容。`,
     })
     nextActions.push(`先补齐 ${clarificationSinklessCount} 条已关闭问题的 Unit 落点或内容回填，避免只关问题不沉淀结论。`)
+    actionPlan.push({
+      key: 'clarification-sinkless',
+      title: '先补齐未沉淀结论',
+      detail: `先补齐 ${clarificationSinklessCount} 条已关闭问题的 Unit 落点或内容回填，避免只关问题不沉淀结论。`,
+      targetSection: 'clarification-queue',
+      tone: 'warning',
+    })
   }
 
   if (seed.unitsBelowTarget > 0) {
@@ -581,6 +740,15 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
         ? `优先补齐 ${focusUnitText}，再评估是否继续放大推进动作。`
         : '优先补齐低于分层目标的 Requirement Units，再评估是否继续放大推进动作。',
     )
+    if (focusUnits[0]) {
+      actionPlan.push({
+        key: `focus-unit-${focusUnits[0].id}`,
+        title: `先补齐 ${focusUnits[0].unitKey}`,
+        detail: focusUnits[0].nextAction,
+        targetSection: 'requirement-units',
+        tone: 'warning',
+      })
+    }
   }
 
   if (isLowRequirementStability(seed.requirementStabilityLevel)) {
@@ -591,6 +759,13 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
       message: `Requirement 总体稳定度目前为 ${STABILITY_LABELS[seed.requirementStabilityLevel]}，意味着局部改动更容易反向影响顶层边界和推进判断。`,
     })
     nextActions.push('先补顶层边界与主流程，再继续进入更后阶段。')
+    actionPlan.push({
+      key: 'overall-stability',
+      title: '先降低总体边界风险',
+      detail: `Requirement 总体稳定度仍为 ${STABILITY_LABELS[seed.requirementStabilityLevel]}，先补顶层边界与主流程，再进入更后阶段。`,
+      targetSection: 'stability-summary',
+      tone: 'warning',
+    })
   }
 
   if (seed.advanceUnits.length > 0) {
@@ -599,14 +774,33 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
         ? `可并行推进 ${advanceUnitText}，这些 Units 当前更接近阶段目标。`
         : '可优先推进已达到当前阶段目标的 Requirement Units。',
     )
+    if (advanceUnits[0]) {
+      actionPlan.push({
+        key: `advance-unit-${advanceUnits[0].id}`,
+        title: `可优先推进 ${advanceUnits[0].unitKey}`,
+        detail: advanceUnits[0].nextAction,
+        targetSection: 'requirement-units',
+        tone: 'info',
+      })
+    }
   }
 
+  const orderedActionPlan = Array.from(
+    new Map(actionPlan.map((item) => [item.key, item])).values(),
+  ).slice(0, 4)
+  const orderedNextActions = Array.from(new Set([
+    ...orderedActionPlan.map((item) => item.detail),
+    ...nextActions,
+  ])).slice(0, 4)
+
   const headline = reasons.length > 0
-    ? `当前推进会牵动 ${seed.affectedRequirementUnitCount} 个 Requirement Units，并受到 ${seed.openIssueCount} 个开放问题信号影响。`
+    ? `当前推进会牵动 ${seed.affectedRequirementUnitCount} 个 Requirement Units，并受到 ${seed.openIssueCount} 个开放问题信号影响。最需要先处理的是 ${orderedActionPlan[0]?.title ?? '当前最强影响信号'}。`
     : '当前未发现明显的推进外溢信号，影响面相对可控。'
 
-  const nextStep = seed.blockingIssueCount > 0
-    ? nextActions[0] ?? '先回到 Issue Queue 处理当前最影响推进的问题。'
+  const nextStep = orderedActionPlan[0]
+    ? orderedActionPlan[0].detail
+    : seed.blockingIssueCount > 0
+      ? nextActions[0] ?? '先回到 Issue Queue 处理当前最影响推进的问题。'
     : seed.focusUnits[0]
       ? `先补齐 ${seed.focusUnits[0].unitKey} · ${seed.focusUnits[0].title}，它目前最直接影响总体推进判断。`
       : seed.advanceUnits[0]
@@ -615,12 +809,9 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
 
   return {
     affectedRequirementUnitCount: seed.affectedRequirementUnitCount,
-    affectedRequirementUnits: seed.affectedRequirementUnits.slice(0, 4).map((unit) => ({
-      ...unit,
-      reasons: unit.reasons.slice(0, 3),
-    })),
-    advanceUnits: seed.advanceUnits.slice(0, 3),
-    focusUnits: seed.focusUnits.slice(0, 3),
+    affectedRequirementUnits,
+    advanceUnits,
+    focusUnits,
     openIssueCount: seed.openIssueCount,
     blockingIssueCount: seed.blockingIssueCount,
     hasBlockingIssue: seed.blockingIssueCount > 0,
@@ -630,7 +821,8 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
     unitsBelowTarget: seed.unitsBelowTarget,
     headline,
     nextStep,
-    nextActions: nextActions.slice(0, 4),
+    nextActions: orderedNextActions,
+    actionPlan: orderedActionPlan,
     clarificationConclusions: clarificationConclusions.slice(0, 3),
     signals,
     reasons,
