@@ -24,8 +24,10 @@ import {
   buildRequirementImpactSummary,
   buildRequirementWorksurfaceGuidance,
   isRequirementStabilityAtLeast,
+  summarizeUnitsBelowLayerTarget,
   TARGET_REQUIREMENT_UNIT_STABILITY_LEVEL,
 } from '@/server/requirements/worksurface'
+import { getRequirementUnitTargetStabilityLevel } from '@/lib/requirement-unit-layer'
 import {
   computeCompleteness,
   deriveSpecDraft,
@@ -408,6 +410,7 @@ export const requirementRouter = createTRPCRouter({
           where: { requirementId: input.requirementId },
           select: {
             id: true,
+            layer: true,
             status: true,
             stabilityLevel: true,
           },
@@ -460,7 +463,11 @@ export const requirementRouter = createTRPCRouter({
 
       const activeUnits = units.filter((unit) => unit.status !== 'ARCHIVED')
       const readyUnits = activeUnits.filter((unit) => unit.status === 'READY_FOR_DEV')
-      const unitsBelowTarget = activeUnits.filter((unit) => !isRequirementStabilityAtLeast(unit.stabilityLevel, TARGET_REQUIREMENT_UNIT_STABILITY_LEVEL))
+      const unitsBelowTarget = activeUnits.filter((unit) => !isRequirementStabilityAtLeast(
+        unit.stabilityLevel,
+        getRequirementUnitTargetStabilityLevel(unit.layer),
+      ))
+      const unitsBelowTargetSummary = summarizeUnitsBelowLayerTarget(activeUnits)
       const blockingIssueCount = activeIssueUnits.filter((issue) => issue.blockDev).length
       const activeIssueCount = activeIssueUnits.length + openConflictCount
 
@@ -518,6 +525,7 @@ export const requirementRouter = createTRPCRouter({
           totalUnits: units.length,
           activeUnits: activeUnits.length,
           unitsBelowTarget: unitsBelowTarget.length,
+          unitsBelowTargetSummary,
           openIssueCount: activeIssueCount,
           blockingIssueCount,
           openConflictCount,

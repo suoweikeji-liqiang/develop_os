@@ -1,9 +1,10 @@
 import { FiveLayerModelSchema, type FiveLayerModel } from '@/lib/schemas/requirement'
+import type { RequirementUnitLayer } from '@/lib/requirement-unit-layer'
 
 interface DraftRequirementUnit {
   title: string
   summary: string
-  layer: string
+  layer: RequirementUnitLayer
   sourceRef: string
 }
 

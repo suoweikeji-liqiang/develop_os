@@ -4,8 +4,17 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   REQUIREMENT_UNIT_STATUS_LABELS,
   REQUIREMENT_UNIT_STATUS_OPTIONS,
+  STABILITY_LABELS,
   STABILITY_OPTIONS,
 } from '@/lib/requirement-evolution'
+import {
+  DEFAULT_REQUIREMENT_UNIT_LAYER,
+  getRequirementUnitLayerGuidanceMessage,
+  getRequirementUnitLayerProfile,
+  getRequirementUnitTargetStabilityLabel,
+  isRequirementUnitAtTarget,
+  REQUIREMENT_UNIT_LAYER_OPTIONS,
+} from '@/lib/requirement-unit-layer'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
@@ -47,7 +56,7 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
   const [bootstrapMessage, setBootstrapMessage] = useState<string | null>(null)
   const [title, setTitle] = useState('')
   const [summaryText, setSummaryText] = useState('')
-  const [layer, setLayer] = useState('scenario')
+  const [layer, setLayer] = useState(DEFAULT_REQUIREMENT_UNIT_LAYER)
   const [stabilityDrafts, setStabilityDrafts] = useState<Record<string, {
     level: string
     score: string
@@ -111,16 +120,12 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
 
   const summary = useMemo(() => {
     const readyCount = items.filter((item) => item.status === 'READY_FOR_DEV').length
-    const stableCount = items.filter((item) => (
-      item.stabilityLevel === 'S3_ALMOST_READY'
-      || item.stabilityLevel === 'S4_READY_FOR_DEVELOPMENT'
-      || item.stabilityLevel === 'S5_VERIFIED_STABLE'
-    )).length
+    const atTargetCount = items.filter((item) => isRequirementUnitAtTarget(item.layer, item.stabilityLevel)).length
 
     return {
       total: items.length,
       readyCount,
-      stableCount,
+      atTargetCount,
     }
   }, [items])
 
@@ -149,7 +154,7 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
 
       setTitle('')
       setSummaryText('')
-      setLayer('scenario')
+      setLayer(DEFAULT_REQUIREMENT_UNIT_LAYER)
       await loadItems()
       onDataChanged?.()
     } catch (err) {
@@ -214,7 +219,7 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
       [id]: {
         title: prev[id]?.title ?? '',
         summary: prev[id]?.summary ?? '',
-        layer: prev[id]?.layer ?? 'scenario',
+        layer: prev[id]?.layer ?? DEFAULT_REQUIREMENT_UNIT_LAYER,
         open: prev[id]?.open ?? false,
         saving: prev[id]?.saving ?? false,
         error: prev[id]?.error ?? null,
@@ -338,7 +343,7 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
         </div>
         <div className="flex flex-wrap gap-2 text-xs">
           <span className="app-chip">总数 {summary.total}</span>
-          <span className="app-chip">较稳定 {summary.stableCount}</span>
+          <span className="app-chip">达目标 {summary.atTargetCount}</span>
           <span className="app-chip">可开发 {summary.readyCount}</span>
           <Button
             size="sm"
@@ -367,18 +372,14 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
           />
           <select
             value={layer}
-            onChange={(event) => setLayer(event.target.value)}
+            onChange={(event) => setLayer(event.target.value as typeof layer)}
             className="h-12 rounded-[1.1rem] border border-slate-200 bg-white/72 px-4 text-sm text-slate-800 outline-none focus-visible:border-slate-400"
           >
-            <option value="goal">goal</option>
-            <option value="role">role</option>
-            <option value="scenario">scenario</option>
-            <option value="flow">flow</option>
-            <option value="data">data</option>
-            <option value="permission">permission</option>
-            <option value="exception">exception</option>
-            <option value="ui">ui</option>
-            <option value="constraint">constraint</option>
+            {REQUIREMENT_UNIT_LAYER_OPTIONS.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
           </select>
         </div>
         <Textarea
@@ -401,160 +402,174 @@ export function RequirementUnitsPanel({ requirementId, hasModel, onDataChanged }
 
       {!loading && !error && items.length > 0 ? (
         <ul className="space-y-3">
-          {items.map((item) => (
-            <li key={item.id} className="rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="app-chip">{item.unitKey}</span>
-                <span className="app-chip capitalize">{item.layer}</span>
-                <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
-                  {REQUIREMENT_UNIT_STATUS_LABELS[item.status] ?? item.status}
-                </span>
-                <StabilityBadge level={item.stabilityLevel} />
-              </div>
+          {items.map((item) => {
+            const layerProfile = getRequirementUnitLayerProfile(item.layer)
+            const meetsTarget = isRequirementUnitAtTarget(item.layer, item.stabilityLevel)
 
-              <div className="mt-3">
-                <h4 className="text-sm font-semibold text-slate-900">{item.title}</h4>
-                <p className="mt-1 text-sm leading-6 text-slate-600 whitespace-pre-wrap">{item.summary}</p>
-              </div>
+            return (
+              <li key={item.id} className="rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="app-chip">{item.unitKey}</span>
+                  <span className="app-chip">{layerProfile.label}</span>
+                  <span className="app-chip">目标 {getRequirementUnitTargetStabilityLabel(item.layer)}</span>
+                  <span className="rounded-full bg-white px-2.5 py-1 text-xs font-medium text-slate-600">
+                    {REQUIREMENT_UNIT_STATUS_LABELS[item.status] ?? item.status}
+                  </span>
+                  <StabilityBadge level={item.stabilityLevel} />
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    meetsTarget
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {meetsTarget ? '已达本层目标' : '低于本层目标'}
+                  </span>
+                </div>
 
-              <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
-                <span className="app-chip">关联问题 {item._count.issueUnits}</span>
-                <span className="app-chip">子单元 {item._count.childUnits}</span>
-                {item.stabilityScore !== null ? <span className="app-chip">稳定度分 {item.stabilityScore}</span> : null}
-                {item.ownerId ? <span className="app-chip">Owner {item.ownerId}</span> : null}
-                <Button
-                  size="sm"
-                  variant="outline"
-                  onClick={() => updateEditDraft(item.id, { open: !editDrafts[item.id]?.open })}
-                >
-                  {editDrafts[item.id]?.open ? '收起编辑' : '编辑 Unit'}
-                </Button>
-              </div>
+                <div className="mt-3">
+                  <h4 className="text-sm font-semibold text-slate-900">{item.title}</h4>
+                  <p className="mt-1 text-sm leading-6 text-slate-600 whitespace-pre-wrap">{item.summary}</p>
+                </div>
 
-              {item.stabilityReason ? (
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-500">
+                  <span className="app-chip">关联问题 {item._count.issueUnits}</span>
+                  <span className="app-chip">子单元 {item._count.childUnits}</span>
+                  {item.stabilityScore !== null ? <span className="app-chip">稳定度分 {item.stabilityScore}</span> : null}
+                  {item.ownerId ? <span className="app-chip">Owner {item.ownerId}</span> : null}
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => updateEditDraft(item.id, { open: !editDrafts[item.id]?.open })}
+                  >
+                    {editDrafts[item.id]?.open ? '收起编辑' : '编辑 Unit'}
+                  </Button>
+                </div>
+
                 <p className="mt-3 text-xs leading-5 text-slate-500">
-                  稳定度说明：{item.stabilityReason}
+                  分层说明：{layerProfile.description} 推荐目标 {STABILITY_LABELS[layerProfile.targetStabilityLevel]}。
+                  {getRequirementUnitLayerGuidanceMessage(item.layer, item.stabilityLevel)}
                 </p>
-              ) : null}
 
-              {editDrafts[item.id]?.open ? (
-                <div className="mt-4 grid gap-3 rounded-[18px] border border-slate-200/70 bg-white/70 p-3">
-                  <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px]">
-                    <Input
-                      value={editDrafts[item.id]?.title ?? item.title}
-                      onChange={(event) => updateEditDraft(item.id, { title: event.target.value })}
-                      placeholder="标题"
+                {item.stabilityReason ? (
+                  <p className="mt-3 text-xs leading-5 text-slate-500">
+                    稳定度说明：{item.stabilityReason}
+                  </p>
+                ) : null}
+
+                {editDrafts[item.id]?.open ? (
+                  <div className="mt-4 grid gap-3 rounded-[18px] border border-slate-200/70 bg-white/70 p-3">
+                    <div className="grid gap-3 md:grid-cols-[minmax(0,1fr)_160px]">
+                      <Input
+                        value={editDrafts[item.id]?.title ?? item.title}
+                        onChange={(event) => updateEditDraft(item.id, { title: event.target.value })}
+                        placeholder="标题"
+                      />
+                      <select
+                        value={editDrafts[item.id]?.layer ?? item.layer}
+                        onChange={(event) => updateEditDraft(item.id, { layer: event.target.value })}
+                        className="h-12 rounded-[1.1rem] border border-slate-200 bg-white/72 px-4 text-sm text-slate-800 outline-none focus-visible:border-slate-400"
+                      >
+                        {REQUIREMENT_UNIT_LAYER_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>
+                            {option.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <Textarea
+                      rows={4}
+                      value={editDrafts[item.id]?.summary ?? item.summary}
+                      onChange={(event) => updateEditDraft(item.id, { summary: event.target.value })}
+                      placeholder="摘要"
                     />
-                    <select
-                      value={editDrafts[item.id]?.layer ?? item.layer}
-                      onChange={(event) => updateEditDraft(item.id, { layer: event.target.value })}
-                      className="h-12 rounded-[1.1rem] border border-slate-200 bg-white/72 px-4 text-sm text-slate-800 outline-none focus-visible:border-slate-400"
-                    >
-                      <option value="goal">goal</option>
-                      <option value="role">role</option>
-                      <option value="scenario">scenario</option>
-                      <option value="flow">flow</option>
-                      <option value="data">data</option>
-                      <option value="permission">permission</option>
-                      <option value="exception">exception</option>
-                      <option value="ui">ui</option>
-                      <option value="constraint">constraint</option>
-                    </select>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => void handleSaveEdit(item.id)}
+                        disabled={editDrafts[item.id]?.saving}
+                      >
+                        {editDrafts[item.id]?.saving ? '保存中...' : '保存编辑'}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => updateEditDraft(item.id, {
+                          open: false,
+                          title: item.title,
+                          summary: item.summary,
+                          layer: item.layer,
+                          error: null,
+                        })}
+                      >
+                        取消
+                      </Button>
+                    </div>
+                    {editDrafts[item.id]?.error ? (
+                      <p className="text-xs text-red-600">{editDrafts[item.id]?.error}</p>
+                    ) : null}
                   </div>
-                  <Textarea
-                    rows={4}
-                    value={editDrafts[item.id]?.summary ?? item.summary}
-                    onChange={(event) => updateEditDraft(item.id, { summary: event.target.value })}
-                    placeholder="摘要"
-                  />
-                  <div className="flex gap-2">
-                    <Button
-                      size="sm"
-                      onClick={() => void handleSaveEdit(item.id)}
-                      disabled={editDrafts[item.id]?.saving}
+                ) : null}
+
+                <div className="mt-4 grid gap-3 rounded-[18px] border border-slate-200/70 bg-white/70 p-3">
+                  <div className="grid gap-3 md:grid-cols-[220px_120px]">
+                    <select
+                      value={stabilityDrafts[item.id]?.status ?? item.status}
+                      onChange={(event) => updateDraft(item.id, { status: event.target.value })}
+                      className="h-10 rounded-[1rem] border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus-visible:border-slate-400"
                     >
-                      {editDrafts[item.id]?.saving ? '保存中...' : '保存编辑'}
-                    </Button>
+                      {REQUIREMENT_UNIT_STATUS_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
                     <Button
                       size="sm"
                       variant="outline"
-                      onClick={() => updateEditDraft(item.id, {
-                        open: false,
-                        title: item.title,
-                        summary: item.summary,
-                        layer: item.layer,
-                        error: null,
-                      })}
+                      onClick={() => void handleSaveStatus(item.id)}
+                      disabled={stabilityDrafts[item.id]?.statusSaving}
                     >
-                      取消
+                      {stabilityDrafts[item.id]?.statusSaving ? '保存中...' : '保存状态'}
                     </Button>
                   </div>
-                  {editDrafts[item.id]?.error ? (
-                    <p className="text-xs text-red-600">{editDrafts[item.id]?.error}</p>
+                  <div className="grid gap-3 md:grid-cols-[180px_120px_minmax(0,1fr)_120px]">
+                    <select
+                      value={stabilityDrafts[item.id]?.level ?? item.stabilityLevel}
+                      onChange={(event) => updateDraft(item.id, { level: event.target.value })}
+                      className="h-10 rounded-[1rem] border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus-visible:border-slate-400"
+                    >
+                      {STABILITY_OPTIONS.map((option) => (
+                        <option key={option.value} value={option.value}>
+                          {option.label}
+                        </option>
+                      ))}
+                    </select>
+                    <Input
+                      value={stabilityDrafts[item.id]?.score ?? ''}
+                      onChange={(event) => updateDraft(item.id, { score: event.target.value })}
+                      placeholder="分数"
+                      inputMode="numeric"
+                    />
+                    <Input
+                      value={stabilityDrafts[item.id]?.reason ?? ''}
+                      onChange={(event) => updateDraft(item.id, { reason: event.target.value })}
+                      placeholder="稳定度说明"
+                    />
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void handleSaveStability(item.id)}
+                      disabled={stabilityDrafts[item.id]?.saving}
+                    >
+                      {stabilityDrafts[item.id]?.saving ? '保存中...' : '保存稳定度'}
+                    </Button>
+                  </div>
+                  {stabilityDrafts[item.id]?.error ? (
+                    <p className="text-xs text-red-600">{stabilityDrafts[item.id].error}</p>
                   ) : null}
                 </div>
-              ) : null}
-
-              <div className="mt-4 grid gap-3 rounded-[18px] border border-slate-200/70 bg-white/70 p-3">
-                <div className="grid gap-3 md:grid-cols-[220px_120px]">
-                  <select
-                    value={stabilityDrafts[item.id]?.status ?? item.status}
-                    onChange={(event) => updateDraft(item.id, { status: event.target.value })}
-                    className="h-10 rounded-[1rem] border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus-visible:border-slate-400"
-                  >
-                    {REQUIREMENT_UNIT_STATUS_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void handleSaveStatus(item.id)}
-                    disabled={stabilityDrafts[item.id]?.statusSaving}
-                  >
-                    {stabilityDrafts[item.id]?.statusSaving ? '保存中...' : '保存状态'}
-                  </Button>
-                </div>
-                <div className="grid gap-3 md:grid-cols-[180px_120px_minmax(0,1fr)_120px]">
-                  <select
-                    value={stabilityDrafts[item.id]?.level ?? item.stabilityLevel}
-                    onChange={(event) => updateDraft(item.id, { level: event.target.value })}
-                    className="h-10 rounded-[1rem] border border-slate-200 bg-white px-3 text-sm text-slate-800 outline-none focus-visible:border-slate-400"
-                  >
-                    {STABILITY_OPTIONS.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                  <Input
-                    value={stabilityDrafts[item.id]?.score ?? ''}
-                    onChange={(event) => updateDraft(item.id, { score: event.target.value })}
-                    placeholder="分数"
-                    inputMode="numeric"
-                  />
-                  <Input
-                    value={stabilityDrafts[item.id]?.reason ?? ''}
-                    onChange={(event) => updateDraft(item.id, { reason: event.target.value })}
-                    placeholder="稳定度说明"
-                  />
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => void handleSaveStability(item.id)}
-                    disabled={stabilityDrafts[item.id]?.saving}
-                  >
-                    {stabilityDrafts[item.id]?.saving ? '保存中...' : '保存稳定度'}
-                  </Button>
-                </div>
-                {stabilityDrafts[item.id]?.error ? (
-                  <p className="text-xs text-red-600">{stabilityDrafts[item.id].error}</p>
-                ) : null}
-              </div>
-            </li>
-          ))}
+              </li>
+            )
+          })}
         </ul>
       ) : null}
     </section>

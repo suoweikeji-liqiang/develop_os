@@ -31,6 +31,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { ISSUE_UNIT_STATUS_LABELS, STABILITY_LABELS, STABILITY_OPTIONS } from '@/lib/requirement-evolution'
+import { getRequirementUnitLayerTargetGroups } from '@/lib/requirement-unit-layer'
 
 interface Props {
   requirementId: string
@@ -101,6 +102,8 @@ const MODELCARD_SECTIONS = [
   'Migration Attempts',
   'Evolution Timeline',
 ] as const
+
+const REQUIREMENT_UNIT_LAYER_TARGET_GROUPS = getRequirementUnitLayerTargetGroups()
 
 function getExplorationStage(status: string): 'open' | 'refining' | 'stabilized' {
   if (status === 'DONE') return 'stabilized'
@@ -864,13 +867,16 @@ export function ExplorationDetailClient({
             </div>
           </div>
           <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-3">
-            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Unit Target</p>
-            <p className="mt-2 text-sm font-semibold text-slate-950">
-              {worksurfaceSummary?.targetRequirementUnitStabilityLevel && worksurfaceSummary.targetRequirementUnitStabilityLevel in STABILITY_LABELS
-                ? STABILITY_LABELS[worksurfaceSummary.targetRequirementUnitStabilityLevel as keyof typeof STABILITY_LABELS]
-                : 'S3 Almost Ready'}
-            </p>
-            <p className="mt-2 text-xs leading-5 text-slate-500">非归档 Requirement Unit 低于目标线时，会被建议优先补齐。</p>
+            <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Layer Targets</p>
+            <div className="mt-2 space-y-1.5 text-sm text-slate-900">
+              {REQUIREMENT_UNIT_LAYER_TARGET_GROUPS.map((group) => (
+                <p key={group.targetStabilityLevel}>
+                  <span className="font-semibold">{group.targetLabel}</span>
+                  <span className="text-slate-500"> · {group.layers.map((layer) => layer.label).join(' / ')}</span>
+                </p>
+              ))}
+            </div>
+            <p className="mt-2 text-xs leading-5 text-slate-500">Requirement Units 按 layer 使用不同推荐目标，不再统一按单条 S3 判断。</p>
           </div>
           <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-3">
             <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Units Below Target</p>

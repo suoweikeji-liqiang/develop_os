@@ -1,6 +1,10 @@
 import { STABILITY_LABELS, type RequirementStabilityLevel } from '@/lib/requirement-evolution'
+import {
+  DEFAULT_REQUIREMENT_UNIT_TARGET_STABILITY_LEVEL,
+  getRequirementUnitLayerProfile,
+} from '@/lib/requirement-unit-layer'
 
-export const TARGET_REQUIREMENT_UNIT_STABILITY_LEVEL: RequirementStabilityLevel = 'S3_ALMOST_READY'
+export const TARGET_REQUIREMENT_UNIT_STABILITY_LEVEL: RequirementStabilityLevel = DEFAULT_REQUIREMENT_UNIT_TARGET_STABILITY_LEVEL
 export const LOW_REQUIREMENT_STABILITY_LEVELS = ['S0_IDEA', 'S1_ROUGHLY_DEFINED'] as const satisfies readonly RequirementStabilityLevel[]
 
 const STABILITY_ORDER: Record<RequirementStabilityLevel, number> = {
@@ -23,6 +27,11 @@ interface RequirementWorksurfaceGuidanceSeed {
   totalUnits: number
   activeUnits: number
   unitsBelowTarget: number
+  unitsBelowTargetSummary: Array<{
+    layerLabel: string
+    count: number
+    targetStabilityLevel: RequirementStabilityLevel
+  }>
   openIssueCount: number
   blockingIssueCount: number
   openConflictCount: number
@@ -49,6 +58,17 @@ export function isRequirementStabilityAtLeast(level: string | null | undefined, 
 export function isLowRequirementStability(level: string | null | undefined): boolean {
   if (!level) return true
   return (LOW_REQUIREMENT_STABILITY_LEVELS as readonly string[]).includes(level)
+}
+
+function formatUnitsBelowTargetSummary(
+  summary: RequirementWorksurfaceGuidanceSeed['unitsBelowTargetSummary'],
+): string {
+  if (summary.length === 0) return ''
+
+  return summary
+    .slice(0, 3)
+    .map((item) => `${item.layerLabel} ${item.count} 个（目标 ${STABILITY_LABELS[item.targetStabilityLevel]}）`)
+    .join('；')
 }
 
 export function buildRequirementWorksurfaceGuidance(seed: RequirementWorksurfaceGuidanceSeed): RequirementGuidanceHint[] {
@@ -79,10 +99,11 @@ export function buildRequirementWorksurfaceGuidance(seed: RequirementWorksurface
   }
 
   if (seed.unitsBelowTarget > 0) {
+    const summaryText = formatUnitsBelowTargetSummary(seed.unitsBelowTargetSummary)
     hints.push({
       level: 'warning',
       title: '关键单元稳定度未达标',
-      message: `当前有 ${seed.unitsBelowTarget} 个 Requirement Units 低于 ${STABILITY_LABELS[TARGET_REQUIREMENT_UNIT_STABILITY_LEVEL]}，建议优先补齐颗粒推进。`,
+      message: `当前有 ${seed.unitsBelowTarget} 个 Requirement Units 低于各自 layer 的推荐目标${summaryText ? `，其中 ${summaryText}` : ''}，建议优先补齐颗粒推进。`,
     })
   }
 
@@ -160,4 +181,46 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
     mayAffectStability: reasons.length > 0,
     reasons,
   }
+}
+
+export function summarizeUnitsBelowLayerTarget(units: Array<{
+  layer: string
+  stabilityLevel: string | null | undefined
+}>): Array<{
+  layer: string
+  layerLabel: string
+  count: number
+  targetStabilityLevel: RequirementStabilityLevel
+}> {
+  const counter = new Map<string, {
+    layerLabel: string
+    count: number
+    targetStabilityLevel: RequirementStabilityLevel
+  }>()
+
+  for (const unit of units) {
+    const profile = getRequirementUnitLayerProfile(unit.layer)
+    if (isRequirementStabilityAtLeast(unit.stabilityLevel, profile.targetStabilityLevel)) {
+      continue
+    }
+
+    const current = counter.get(unit.layer) ?? {
+      layerLabel: profile.label,
+      count: 0,
+      targetStabilityLevel: profile.targetStabilityLevel,
+    }
+
+    counter.set(unit.layer, {
+      layerLabel: current.layerLabel,
+      count: current.count + 1,
+      targetStabilityLevel: current.targetStabilityLevel,
+    })
+  }
+
+  return Array.from(counter.entries())
+    .map(([layer, data]) => ({
+      layer,
+      ...data,
+    }))
+    .sort((a, b) => b.count - a.count)
 }

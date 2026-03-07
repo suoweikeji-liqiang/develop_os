@@ -3,6 +3,7 @@ import { TRPCError } from '@trpc/server'
 import { createTRPCRouter, protectedProcedure } from '../init'
 import { prisma } from '@/server/db/client'
 import { RequirementStabilityLevelEnum, RequirementUnitStatusEnum } from '@/lib/requirement-evolution'
+import { normalizeRequirementUnitLayer } from '@/lib/requirement-unit-layer'
 import { deriveRequirementUnitsFromModel } from '@/server/requirements/requirement-units'
 
 const CreateRequirementUnitInput = z.object({
@@ -83,7 +84,7 @@ export const requirementUnitRouter = createTRPCRouter({
           unitKey,
           title: input.title,
           summary: input.summary,
-          layer: input.layer.toLowerCase(),
+          layer: normalizeRequirementUnitLayer(input.layer),
           sourceType: 'manual',
           status: 'DRAFT',
           stabilityLevel: 'S0_IDEA',
@@ -101,7 +102,7 @@ export const requirementUnitRouter = createTRPCRouter({
         data: {
           title: input.title,
           summary: input.summary,
-          layer: input.layer.toLowerCase(),
+          layer: normalizeRequirementUnitLayer(input.layer),
         },
         select: {
           id: true,

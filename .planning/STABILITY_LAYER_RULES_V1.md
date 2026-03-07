@@ -88,6 +88,49 @@
   - `src/app/(dashboard)/explorations/[id]/requirement-units-panel.tsx`
   - `src/app/(dashboard)/explorations/[id]/exploration-detail-client.tsx`
 
+## 本轮落地规则（已实现）
+
+### 已统一的 layer 集合
+- `goal`
+- `role`
+- `scenario`
+- `flow`
+- `data`
+- `permission`
+- `exception`
+- `ui`
+- `constraint`
+
+统一位置：
+- `src/lib/requirement-unit-layer.ts`
+
+### layer -> target stability 映射
+- `goal -> S2_MAIN_FLOW_CLEAR`
+- `role -> S2_MAIN_FLOW_CLEAR`
+- `scenario -> S3_ALMOST_READY`
+- `flow -> S3_ALMOST_READY`
+- `data -> S3_ALMOST_READY`
+- `ui -> S3_ALMOST_READY`
+- `permission -> S4_READY_FOR_DEVELOPMENT`
+- `exception -> S4_READY_FOR_DEVELOPMENT`
+- `constraint -> S4_READY_FOR_DEVELOPMENT`
+
+### 页面体现方式
+- Requirement Units 列表现在会显示：
+  - 当前 layer
+  - 该 layer 的推荐目标稳定度
+  - 当前是否达到本层目标
+  - 为什么该层使用这个目标线
+- Requirement 详情页的 Stability Summary 现在会显示分层目标带：
+  - `S2_MAIN_FLOW_CLEAR`：`Goal / Role`
+  - `S3_ALMOST_READY`：`Scenario / Flow / Data / UI`
+  - `S4_READY_FOR_DEVELOPMENT`：`Permission / Exception / Constraint`
+
+### worksurface guidance 的最小变化
+- `unitsBelowTarget` 不再按统一 `S3` 计算
+- 改为按各自 layer 的推荐目标计算
+- Guidance 文案会优先提示哪些 layer 仍低于目标线
+
 ## 非目标
 - 不做复杂权重评分
 - 不做 layer 级强阻断
@@ -98,4 +141,3 @@
 - 针对不同 layer 的更细 guidance
 - 将 layer target 与 Impact Summary / Issue 类型进一步结合
 - 根据 Requirement status 调整不同 layer 的目标线
-
