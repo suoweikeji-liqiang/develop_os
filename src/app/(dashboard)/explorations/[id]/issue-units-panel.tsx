@@ -11,6 +11,7 @@ import {
   ACTIVE_ISSUE_UNIT_STATUSES,
   buildClarificationQueueStatusMeta,
   buildConflictProjectionStatusMeta,
+  buildIssueQueueStabilityImpactMeta,
   getIssueTypeDescription,
   getIssueTypeLabel,
   ISSUE_UNIT_TYPE_OPTIONS,
@@ -54,6 +55,8 @@ interface IssueUnitItem {
     id: string
     unitKey: string
     title: string
+    layer: string
+    stabilityLevel: string | null
   } | null
 }
 
@@ -561,6 +564,12 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
             const conflictProjectionStatus = item.queueKind === 'conflict'
               ? buildConflictProjectionStatusMeta(item.sourceStatus)
               : null
+            const stabilityImpact = buildIssueQueueStabilityImpactMeta({
+              type: item.type,
+              issueStatus: item.status,
+              blockDev: item.blockDev,
+              primaryRequirementUnit: item.primaryRequirementUnit,
+            })
 
             return (
             <li key={item.id} className="rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
@@ -672,6 +681,16 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                   </div>
                 </div>
               ) : null}
+              <div className={`mt-3 rounded-[16px] border px-3 py-3 text-sm ${
+                stabilityImpact.level === 'critical'
+                  ? 'border-red-200 bg-red-50/80 text-red-700'
+                  : stabilityImpact.level === 'warning'
+                    ? 'border-amber-200 bg-amber-50/80 text-amber-800'
+                    : 'border-sky-200 bg-sky-50/80 text-sky-800'
+              }`}>
+                <p className="font-semibold">{stabilityImpact.title}</p>
+                <p className="mt-1 leading-6">{stabilityImpact.summary}</p>
+              </div>
 
               <div className="mt-4 grid gap-3 md:grid-cols-2">
                 <div className="rounded-[18px] border border-slate-200/70 bg-white/80 p-3">

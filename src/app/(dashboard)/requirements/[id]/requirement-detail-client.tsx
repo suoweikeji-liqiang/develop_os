@@ -87,6 +87,22 @@ interface WorksurfaceSummary {
     count: number
     blockingCount: number
   }>
+  issuePressure: {
+    typeHotspots: Array<{
+      type: string
+      typeLabel: string
+      count: number
+      blockingCount: number
+      recommendation: string
+    }>
+    layerHotspots: Array<{
+      layer: string
+      layerLabel: string
+      count: number
+      recommendation: string
+    }>
+    nextQueueAction: string
+  }
   guidance: RequirementGuidanceHint[]
   stabilityGovernance: {
     readyUnits: Array<{
@@ -1194,6 +1210,60 @@ export function RequirementDetailClient({
               <p className="font-semibold">{worksurfaceSummary.stabilityGovernance.stageAdvanceHint.title}</p>
               <p className="mt-1 leading-6">{worksurfaceSummary.stabilityGovernance.stageAdvanceHint.message}</p>
             </div>
+            {worksurfaceSummary.issuePressure.typeHotspots.length > 0 || worksurfaceSummary.issuePressure.layerHotspots.length > 0 ? (
+              <div className="rounded-[18px] border border-slate-200/80 bg-white px-4 py-4">
+                <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
+                  <div>
+                    <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Issue Pressure</p>
+                    <p className="mt-2 text-sm leading-6 text-slate-600">
+                      Stability 当前最受这些问题热点影响。它们不是强阻断规则，但会直接改变“先推进什么、先补什么”的建议。
+                    </p>
+                  </div>
+                  <a
+                    href="#issue-queue"
+                    className="inline-flex items-center justify-center rounded-[1rem] border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700 hover:bg-white"
+                  >
+                    回到 Issue Queue
+                  </a>
+                </div>
+                <p className="mt-3 text-sm leading-6 text-slate-700">{worksurfaceSummary.issuePressure.nextQueueAction}</p>
+                <div className="mt-4 grid gap-3 xl:grid-cols-2">
+                  <div className="rounded-[16px] border border-slate-200/80 bg-slate-50/80 px-3 py-3">
+                    <p className="text-[0.68rem] uppercase tracking-[0.18em] text-slate-500">Hot Issue Types</p>
+                    <div className="mt-3 space-y-3">
+                      {worksurfaceSummary.issuePressure.typeHotspots.map((item) => (
+                        <div key={item.type} className="rounded-[14px] border border-white/80 bg-white/90 px-3 py-3">
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            <span className="app-chip">{item.typeLabel}</span>
+                            <span className="app-chip">开放 {item.count}</span>
+                            {item.blockingCount > 0 ? <span className="app-chip text-red-700">阻断 {item.blockingCount}</span> : null}
+                          </div>
+                          <p className="mt-2 text-sm leading-6 text-slate-700">{item.recommendation}</p>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="rounded-[16px] border border-slate-200/80 bg-slate-50/80 px-3 py-3">
+                    <p className="text-[0.68rem] uppercase tracking-[0.18em] text-slate-500">Hot Layers</p>
+                    <div className="mt-3 space-y-3">
+                      {worksurfaceSummary.issuePressure.layerHotspots.length > 0 ? (
+                        worksurfaceSummary.issuePressure.layerHotspots.map((item) => (
+                          <div key={item.layer} className="rounded-[14px] border border-white/80 bg-white/90 px-3 py-3">
+                            <div className="flex flex-wrap gap-2 text-xs">
+                              <span className="app-chip">{item.layerLabel}</span>
+                              <span className="app-chip">关联问题 {item.count}</span>
+                            </div>
+                            <p className="mt-2 text-sm leading-6 text-slate-700">{item.recommendation}</p>
+                          </div>
+                        ))
+                      ) : (
+                        <p className="text-sm text-slate-500">当前开放问题还没有明显集中压在某个 Requirement Unit layer 上。</p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            ) : null}
             <div className="grid gap-3 xl:grid-cols-3">
               <div className="rounded-[18px] border border-slate-200/80 bg-slate-50/80 px-4 py-4">
                 <p className="text-[0.68rem] uppercase tracking-[0.22em] text-slate-500">Ready To Advance</p>

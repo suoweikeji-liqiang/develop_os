@@ -8,6 +8,7 @@ import {
   getRequirementUnitProgressHint,
   getRequirementUnitLayerProfile,
 } from '@/lib/requirement-unit-layer'
+import { getIssueTypeLabel } from '@/lib/issue-queue'
 import { STATUS_LABELS } from '@/lib/workflow/status-labels'
 import type { RequirementStatus } from '@/lib/workflow/status-machine'
 
@@ -105,6 +106,19 @@ interface RequirementStabilityGovernanceSeed {
   blockingIssueCount: number
   openConflictCount: number
   pendingClarificationCount: number
+}
+
+interface RequirementIssuePressureSeed {
+  activeIssues: Array<{
+    type: string
+    blockDev: boolean
+    primaryRequirementUnit: {
+      unitKey: string
+      title: string
+      layer: string
+    } | null
+  }>
+  openConflictCount: number
 }
 
 const REQUIREMENT_UNIT_STATUS_ORDER: Record<RequirementUnitStatus, number> = {
@@ -273,6 +287,78 @@ export function buildRequirementStabilityGovernance(seed: RequirementStabilityGo
     focusUnits,
     riskLayers,
     stageAdvanceHint: buildRequirementStageAdvanceGuidance(seed),
+  }
+}
+
+export function buildRequirementIssuePressure(seed: RequirementIssuePressureSeed) {
+  const typeCounter = new Map<string, { count: number; blockingCount: number }>()
+  const layerCounter = new Map<string, { layerLabel: string; count: number }>()
+
+  for (const issue of seed.activeIssues) {
+    const typeStats = typeCounter.get(issue.type) ?? { count: 0, blockingCount: 0 }
+    typeCounter.set(issue.type, {
+      count: typeStats.count + 1,
+      blockingCount: typeStats.blockingCount + (issue.blockDev ? 1 : 0),
+    })
+
+    if (issue.primaryRequirementUnit?.layer) {
+      const profile = getRequirementUnitLayerProfile(issue.primaryRequirementUnit.layer)
+      const layerStats = layerCounter.get(issue.primaryRequirementUnit.layer) ?? {
+        layerLabel: profile.label,
+        count: 0,
+      }
+      layerCounter.set(issue.primaryRequirementUnit.layer, {
+        layerLabel: layerStats.layerLabel,
+        count: layerStats.count + 1,
+      })
+    }
+  }
+
+  if (seed.openConflictCount > 0) {
+    const typeStats = typeCounter.get('conflict') ?? { count: 0, blockingCount: 0 }
+    typeCounter.set('conflict', {
+      count: typeStats.count + seed.openConflictCount,
+      blockingCount: typeStats.blockingCount,
+    })
+  }
+
+  const typeHotspots = Array.from(typeCounter.entries())
+    .map(([type, stats]) => ({
+      type,
+      typeLabel: getIssueTypeLabel(type),
+      count: stats.count,
+      blockingCount: stats.blockingCount,
+      recommendation: stats.blockingCount > 0
+        ? `${getIssueTypeLabel(type)} 当前有 ${stats.count} 个开放项，其中 ${stats.blockingCount} 个阻断推进。建议先在 Issue Queue 中集中处理这类问题。`
+        : `${getIssueTypeLabel(type)} 当前有 ${stats.count} 个开放项，建议优先在 Issue Queue 中收敛这类问题，减少对总体推进判断的持续干扰。`,
+    }))
+    .sort((a, b) => {
+      const blockingDiff = b.blockingCount - a.blockingCount
+      if (blockingDiff !== 0) return blockingDiff
+      return b.count - a.count
+    })
+    .slice(0, 3)
+
+  const layerHotspots = Array.from(layerCounter.entries())
+    .map(([layer, stats]) => ({
+      layer,
+      layerLabel: stats.layerLabel,
+      count: stats.count,
+      recommendation: `${stats.layerLabel} 层当前有 ${stats.count} 个开放问题直接挂载，处理后最可能改善这一层的稳定度建议。`,
+    }))
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 3)
+
+  const nextQueueAction = typeHotspots[0]
+    ? typeHotspots[0].blockingCount > 0
+      ? `先回到 Issue Queue 处理 ${typeHotspots[0].typeLabel} 类阻断问题，它们当前最影响阶段推进。`
+      : `先回到 Issue Queue 收敛 ${typeHotspots[0].typeLabel} 类开放问题，减少对当前阶段判断的持续干扰。`
+    : '当前没有明显的 Issue Queue 压力热点。'
+
+  return {
+    typeHotspots,
+    layerHotspots,
+    nextQueueAction,
   }
 }
 

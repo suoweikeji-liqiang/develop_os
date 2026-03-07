@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
   buildRequirementImpactSummary,
+  buildRequirementIssuePressure,
   buildRequirementStabilityGovernance,
   summarizeUnitsBelowLayerTarget,
 } from './worksurface'
@@ -128,5 +129,45 @@ describe('requirement worksurface impact summary', () => {
     expect(governance.riskLayers[0]?.layerLabel).toBe('Exception')
     expect(governance.stageAdvanceHint.title).toContain('实现中')
     expect(governance.stageAdvanceHint.message).toContain('阻断问题')
+  })
+
+  it('explains which issue hotspots currently weigh most on stability', () => {
+    const issuePressure = buildRequirementIssuePressure({
+      activeIssues: [
+        {
+          type: 'risk',
+          blockDev: true,
+          primaryRequirementUnit: {
+            unitKey: 'RU-01',
+            title: '注册主流程',
+            layer: 'scenario',
+          },
+        },
+        {
+          type: 'pending_confirmation',
+          blockDev: false,
+          primaryRequirementUnit: {
+            unitKey: 'RU-02',
+            title: '异常兜底',
+            layer: 'exception',
+          },
+        },
+        {
+          type: 'risk',
+          blockDev: false,
+          primaryRequirementUnit: {
+            unitKey: 'RU-03',
+            title: '验证码发送',
+            layer: 'scenario',
+          },
+        },
+      ],
+      openConflictCount: 1,
+    })
+
+    expect(issuePressure.typeHotspots[0]?.typeLabel).toBe('Risk')
+    expect(issuePressure.typeHotspots[0]?.blockingCount).toBe(1)
+    expect(issuePressure.layerHotspots[0]?.layerLabel).toBe('Scenario')
+    expect(issuePressure.nextQueueAction).toContain('Risk')
   })
 })

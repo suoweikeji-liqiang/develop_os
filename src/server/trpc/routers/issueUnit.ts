@@ -65,6 +65,8 @@ export const issueUnitRouter = createTRPCRouter({
                 id: true,
                 unitKey: true,
                 title: true,
+                layer: true,
+                stabilityLevel: true,
               },
             },
           },

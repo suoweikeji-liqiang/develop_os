@@ -4,6 +4,7 @@ import {
   type IssueUnitSeverity,
   type IssueUnitStatus,
 } from './requirement-evolution'
+import { getRequirementUnitLayerProfile } from './requirement-unit-layer'
 
 export const IssueUnitTypeEnum = z.enum([
   'ambiguity',
@@ -358,6 +359,12 @@ export interface IssueQueueLifecycleMeta {
   requiresSourceFollowup: boolean
 }
 
+export interface IssueQueueStabilityImpactMeta {
+  level: 'critical' | 'warning' | 'info'
+  title: string
+  summary: string
+}
+
 export function buildIssueQueueLifecycleMeta(input: IssueQueueLifecycleInput): IssueQueueLifecycleMeta {
   const active = isActiveIssueStatus(input.issueStatus)
   const clarificationCategoryLabel = getClarificationCategoryLabel(input.sourceCategory)
@@ -426,6 +433,57 @@ export function buildIssueQueueLifecycleMeta(input: IssueQueueLifecycleInput): I
     closeMeaning: '关闭表示该问题已处理、被驳回或无需继续跟踪。',
     followupSummary: '如有相关 Requirement Unit，可继续回到颗粒单元补齐实现边界。',
     requiresSourceFollowup: false,
+  }
+}
+
+export function buildIssueQueueStabilityImpactMeta(input: {
+  type: string
+  issueStatus: string
+  blockDev: boolean
+  primaryRequirementUnit?: {
+    unitKey: string
+    title: string
+    layer?: string | null
+    stabilityLevel?: string | null
+  } | null
+}): IssueQueueStabilityImpactMeta {
+  const typeLabel = getIssueTypeLabel(input.type)
+  const issueStatusLabel = ISSUE_UNIT_STATUS_LABELS[input.issueStatus as IssueUnitStatus] ?? input.issueStatus
+  const unit = input.primaryRequirementUnit ?? null
+  const layerProfile = unit?.layer ? getRequirementUnitLayerProfile(unit.layer) : null
+
+  if (!isActiveIssueStatus(input.issueStatus)) {
+    return {
+      level: 'info',
+      title: '当前已不再直接拖住稳定度',
+      summary: unit
+        ? `${typeLabel} 问题当前已${issueStatusLabel}。下一步重点是确认 ${unit.unitKey} · ${unit.title} 是否因此改善了推进条件或稳定度判断。`
+        : `${typeLabel} 问题当前已${issueStatusLabel}，对当前阶段推进的直接压力已经下降。`,
+    }
+  }
+
+  if (input.blockDev) {
+    return {
+      level: 'critical',
+      title: '当前最影响阶段推进的队列项之一',
+      summary: unit && layerProfile
+        ? `${typeLabel} 当前是阻断项，并直接压在 ${unit.unitKey} · ${unit.title}（${layerProfile.label} 层）上。优先处理这类问题，最可能改善当前阶段推进与稳定度判断。`
+        : `${typeLabel} 当前是阻断项，会直接影响 Requirement 的阶段推进判断。建议优先在 Issue Queue 中处理。`,
+    }
+  }
+
+  if (unit && layerProfile) {
+    return {
+      level: 'warning',
+      title: `主要影响 ${layerProfile.label} 层推进判断`,
+      summary: `${typeLabel} 当前挂在 ${unit.unitKey} · ${unit.title} 上。处理后最可能改善 ${layerProfile.label} 层的稳定度和推进建议。`,
+    }
+  }
+
+  return {
+    level: 'info',
+    title: '当前会继续牵动总体推进判断',
+    summary: `${typeLabel} 当前仍为${issueStatusLabel}，虽然没有直接绑定 Unit，但会继续影响总体问题面与稳定度建议。`,
   }
 }
 

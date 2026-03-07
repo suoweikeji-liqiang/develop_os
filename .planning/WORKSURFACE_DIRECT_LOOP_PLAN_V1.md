@@ -65,6 +65,10 @@
   - Impact Summary 会直接列出优先推进 / 优先补齐的 Requirement Units
   - Requirement Unit 卡片会反向显示自己为什么进入总体 summary
   - `nextStep / nextActions` 会优先落到具体 Unit，而不只停留在抽象状态摘要
+- `ISSUE 3` 已开始把 Issue Queue -> Stability 收紧：
+  - Issue Queue 单项会直接解释自己怎样影响当前稳定度和阶段推进
+  - Stability Summary 会点名当前压力最大的 issue 类型与 layer
+  - 当前应先回到 Issue Queue 处理什么，已开始变成明确建议而不是泛泛提醒
 
 ### 预期落点
 - Clarification 区、Issue Queue、Requirement Units 区、Impact Summary 区之间的回链更短

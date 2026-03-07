@@ -22,6 +22,7 @@ import {
 } from '@/lib/issue-queue'
 import {
   buildRequirementImpactSummary,
+  buildRequirementIssuePressure,
   buildRequirementStabilityGovernance,
   buildRequirementWorksurfaceGuidance,
   isRequirementStabilityAtLeast,
@@ -427,8 +428,16 @@ export const requirementRouter = createTRPCRouter({
           select: {
             id: true,
             type: true,
+            severity: true,
             blockDev: true,
             primaryRequirementUnitId: true,
+            primaryRequirementUnit: {
+              select: {
+                unitKey: true,
+                title: true,
+                layer: true,
+              },
+            },
           },
         }),
         prisma.requirementConflict.count({
@@ -554,6 +563,10 @@ export const requirementRouter = createTRPCRouter({
         openConflictCount,
         pendingClarificationCount,
       })
+      const issuePressure = buildRequirementIssuePressure({
+        activeIssues: activeIssueUnits,
+        openConflictCount,
+      })
 
       return {
         counts: {
@@ -568,6 +581,7 @@ export const requirementRouter = createTRPCRouter({
         },
         targetRequirementUnitStabilityLevel: TARGET_REQUIREMENT_UNIT_STABILITY_LEVEL,
         issueBreakdown,
+        issuePressure,
         guidance: buildRequirementWorksurfaceGuidance({
           requirementStabilityLevel: requirement.stabilityLevel,
           totalUnits: units.length,
