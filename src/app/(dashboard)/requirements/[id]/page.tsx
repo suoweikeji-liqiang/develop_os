@@ -3,7 +3,7 @@ import type { UIMessage } from 'ai'
 import type { FiveLayerModel } from '@/lib/schemas/requirement'
 import { verifySession } from '@/lib/dal'
 import { prisma } from '@/server/db/client'
-import { CommentsPanel } from '../../explorations/[id]/comments-panel'
+import { CommentsPanel } from './comments-panel'
 import { RequirementDetailClient } from './requirement-detail-client'
 
 export const dynamic = 'force-dynamic'

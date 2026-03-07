@@ -60,6 +60,15 @@
 - 保持用户可见文案继续以 Requirement 为主语
 - 在旧 `explorations/[id]/*` 位置保留最薄兼容层，避免路由和引用瞬时断裂
 
+### 当前状态更新
+- `ISSUE 1` 已把以下组件迁回 `src/app/(dashboard)/requirements/[id]/*`：
+  - `comments-panel.tsx`
+  - `status-control.tsx`
+  - `version-history.tsx`
+  - `change-units-panel.tsx`
+- `comment-input.tsx` 与 `version-diff-view.tsx` 已作为配套依赖迁回 `requirements/[id]/*`
+- 原 `src/app/(dashboard)/explorations/[id]/*` 对应文件已退为兼容 wrapper
+
 ## 非目标
 - 不做全仓库 rename
 - 不做大规模目录重构
