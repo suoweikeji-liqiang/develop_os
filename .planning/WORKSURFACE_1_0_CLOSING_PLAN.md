@@ -37,10 +37,10 @@
   - `Fast Stabilization Win`
 
 ### 距离 Worksurface 1.0 还差哪几步
-1. Requirement 主路径还残留少量核心共享面板依附在 `explorations/[id]/*`
-2. conclusionSignal 目前只细到“沉淀到哪个 Unit”，还没细到“更像沉淀到 Unit 的哪类内容块”
-3. Issue Queue 的优先级已经可解释，但还没有明确表达“在当前 Requirement 阶段先处理哪个最值”
-4. 还缺一份明确的里程碑边界文档，无法对外清楚描述 Worksurface 1.0 已解决 / 未解决什么
+1. Requirement 主路径还残留少量非核心共享壳依附在 `explorations/[id]/*`
+2. 结论落点已经细到内容块类型，但还没有细到具体正文位置
+3. stage-aware priority 已建立，但仍是轻量规则而不是正式阶段机
+4. 还需要一份里程碑固化文档，把 Worksurface 1.0 的边界讲清楚
 
 ## 本轮范围
 
@@ -67,6 +67,24 @@
   - 已解决什么
   - 还没解决什么
   - 1.0 明确不包含什么
+
+## 当前状态更新
+- `signoff-panel / consensus-status / test-case-panel` 已迁回 `requirements/[id]/*`
+- conclusionSignal 已细化为内容块级提示：
+  - `boundary_note`
+  - `risk_note`
+  - `missing_info`
+  - `conflict_decision`
+  - `assumption_resolution`
+  - `implementation_hint`
+  - `no_content_sink`
+- Issue Queue / Stability / Impact Summary 已共享轻量 stage context：
+  - 边界澄清阶段
+  - 需求收敛阶段
+  - 开发准备阶段
+  - 验证收尾阶段
+- 本轮新增里程碑文档：
+  - `.planning/MILESTONE_REQUIREMENT_WORKSURFACE_1_0.md`
 
 ## 非目标
 - 不修改数据库 schema
