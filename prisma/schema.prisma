@@ -308,6 +308,8 @@ model ChangeUnit {
   requirement       Requirement               @relation(fields: [requirementId], references: [id], onDelete: Cascade)
   requirementUnits  ChangeUnitRequirementUnit[]
   issueUnits        ChangeUnitIssueUnit[]
+  requirementVersions RequirementVersion[]
+  modelChangeLogs   ModelChangeLog[]
 
   @@unique([requirementId, changeKey])
   @@index([requirementId, status, updatedAt])
@@ -377,6 +379,7 @@ model ClarificationQuestion {
 model ModelChangeLog {
   id           String   @id @default(cuid())
   requirementId String
+  changeUnitId String?
   changeSource String
   patchJson    Json
   rationale    String?
@@ -385,9 +388,12 @@ model ModelChangeLog {
   createdAt    DateTime @default(now())
 
   requirement  Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  changeUnit   ChangeUnit? @relation(fields: [changeUnitId], references: [id], onDelete: SetNull)
 
   @@index([requirementId, createdAt])
   @@index([requirementId, changeSource, createdAt])
+  @@index([changeUnitId])
+  @@index([requirementId, changeUnitId, createdAt])
 }
 
 model SpecArtifact {
@@ -422,6 +428,7 @@ model RequirementTestCaseSuite {
 model RequirementVersion {
   id            String      @id @default(cuid())
   requirementId String
+  changeUnitId  String?
   version       Int
   model         Json
   confidence    Json?
@@ -430,9 +437,12 @@ model RequirementVersion {
   createdAt     DateTime    @default(now())
 
   requirement   Requirement @relation(fields: [requirementId], references: [id], onDelete: Cascade)
+  changeUnit    ChangeUnit? @relation(fields: [changeUnitId], references: [id], onDelete: SetNull)
 
   @@unique([requirementId, version])
   @@index([requirementId, createdAt])
+  @@index([changeUnitId])
+  @@index([requirementId, changeUnitId])
 }
 
 model ConversationMessage {

@@ -37,9 +37,10 @@ interface IssueUnitItem {
 interface Props {
   requirementId: string
   refreshToken?: number
+  onDataChanged?: () => void
 }
 
-export function IssueUnitsPanel({ requirementId, refreshToken = 0 }: Props) {
+export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged }: Props) {
   const [items, setItems] = useState<IssueUnitItem[]>([])
   const [unitOptions, setUnitOptions] = useState<Array<{ id: string; unitKey: string; title: string }>>([])
   const [loading, setLoading] = useState(true)
@@ -177,6 +178,7 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0 }: Props) {
       setSuggestedResolution('')
       setPrimaryRequirementUnitId('')
       await loadItems()
+      onDataChanged?.()
     } catch (err) {
       setCreateError(err instanceof Error ? err.message : '创建 Issue Unit 失败')
     } finally {
@@ -251,6 +253,7 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0 }: Props) {
       }
 
       await loadItems()
+      onDataChanged?.()
     } catch (err) {
       updateStatusDraft(id, {
         saving: false,
@@ -290,6 +293,7 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0 }: Props) {
       }
 
       await loadItems()
+      onDataChanged?.()
       updateEditDraft(id, { open: false, saving: false, error: null })
     } catch (err) {
       updateEditDraft(id, {

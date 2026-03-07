@@ -10,11 +10,17 @@ interface VersionMeta {
   readonly changeSource: string
   readonly createdBy: string | null
   readonly createdAt: string
+  readonly changeUnit: {
+    id: string
+    changeKey: string
+    title: string
+  } | null
 }
 
 interface Props {
   requirementId: string
   currentVersion: number
+  refreshToken?: number
 }
 
 const SOURCE_COLORS: Record<string, string> = {
@@ -51,8 +57,18 @@ function formatRelativeTime(dateStr: string): string {
   return new Date(dateStr).toLocaleDateString('zh-CN')
 }
 
-export function VersionHistory({ requirementId, currentVersion }: Props) {
+export function VersionHistory({ requirementId, currentVersion, refreshToken = 0 }: Props) {
   const [versions, setVersions] = useState<readonly VersionMeta[]>([])
+  const [currentTrace, setCurrentTrace] = useState<{
+    kind: 'modelChangeLog'
+    changeSource: string
+    createdAt: string
+    changeUnit: {
+      id: string
+      changeKey: string
+      title: string
+    } | null
+  } | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [selectedA, setSelectedA] = useState<number | null>(null)
@@ -69,8 +85,9 @@ export function VersionHistory({ requirementId, currentVersion }: Props) {
       const res = await fetch(url)
       if (!res.ok) throw new Error(`加载版本历史失败 (${res.status})`)
       const json = await res.json()
-      const data: VersionMeta[] = json.result?.data?.json ?? []
-      setVersions(data)
+      const data = json.result?.data?.json ?? json.result?.data ?? {}
+      setVersions(Array.isArray(data.versions) ? data.versions : [])
+      setCurrentTrace(data.currentTrace ?? null)
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载版本历史失败')
     } finally {
@@ -80,7 +97,7 @@ export function VersionHistory({ requirementId, currentVersion }: Props) {
 
   useEffect(() => {
     fetchVersions()
-  }, [fetchVersions])
+  }, [fetchVersions, refreshToken])
 
   function handleCompare() {
     if (selectedA !== null && selectedB !== null) {
@@ -132,6 +149,7 @@ export function VersionHistory({ requirementId, currentVersion }: Props) {
       <VersionTimeline
         versions={versions}
         currentVersion={currentVersion}
+        currentTrace={currentTrace}
         selectedA={selectedA}
         selectedB={selectedB}
         onSelectA={setSelectedA}
@@ -165,6 +183,16 @@ export function VersionHistory({ requirementId, currentVersion }: Props) {
 interface TimelineProps {
   versions: readonly VersionMeta[]
   currentVersion: number
+  currentTrace: {
+    kind: 'modelChangeLog'
+    changeSource: string
+    createdAt: string
+    changeUnit: {
+      id: string
+      changeKey: string
+      title: string
+    } | null
+  } | null
   selectedA: number | null
   selectedB: number | null
   onSelectA: (v: number | null) => void
@@ -174,6 +202,7 @@ interface TimelineProps {
 function VersionTimeline({
   versions,
   currentVersion,
+  currentTrace,
   selectedA,
   selectedB,
   onSelectA,
@@ -181,12 +210,19 @@ function VersionTimeline({
 }: TimelineProps) {
   // Build entries: current version at top, then historical snapshots
   const entries = [
-    { version: currentVersion, label: `v${currentVersion} (当前)`, source: '', time: '' },
+    {
+      version: currentVersion,
+      label: `v${currentVersion} (当前)`,
+      source: currentTrace?.changeSource ?? '',
+      time: currentTrace ? formatRelativeTime(currentTrace.createdAt) : '',
+      changeUnit: currentTrace?.changeUnit ?? null,
+    },
     ...versions.map((v) => ({
       version: v.version,
       label: `v${v.version}`,
       source: v.changeSource,
       time: formatRelativeTime(v.createdAt),
+      changeUnit: v.changeUnit,
     })),
   ]
 
@@ -224,6 +260,11 @@ function VersionTimeline({
                 className={`text-[10px] px-1 py-0 ${SOURCE_COLORS[entry.source] ?? ''}`}
               >
                 {SOURCE_LABELS[entry.source] ?? entry.source}
+              </Badge>
+            )}
+            {entry.changeUnit && (
+              <Badge variant="outline" className="text-[10px] px-1 py-0 bg-cyan-100 text-cyan-800">
+                {entry.changeUnit.changeKey}
               </Badge>
             )}
             {entry.time && (

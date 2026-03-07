@@ -42,7 +42,11 @@ export const clarificationRouter = createTRPCRouter({
     }),
 
   answer: protectedProcedure
-    .input(z.object({ questionId: z.string(), answerText: z.string().min(1) }))
+    .input(z.object({
+      questionId: z.string(),
+      answerText: z.string().min(1),
+      changeUnitId: z.string().optional(),
+    }))
     .mutation(async ({ input, ctx }) => {
       const question = await prisma.clarificationQuestion.findUnique({
         where: { id: input.questionId },
@@ -56,6 +60,20 @@ export const clarificationRouter = createTRPCRouter({
       const requirement = question.session.requirement
       if (!requirement.model) {
         throw new TRPCError({ code: 'PRECONDITION_FAILED', message: 'Requirement model not initialized' })
+      }
+
+      if (input.changeUnitId) {
+        const change = await prisma.changeUnit.findFirst({
+          where: {
+            id: input.changeUnitId,
+            requirementId: requirement.id,
+          },
+          select: { id: true },
+        })
+
+        if (!change) {
+          throw new TRPCError({ code: 'BAD_REQUEST', message: 'Change Unit 不属于当前 Requirement' })
+        }
       }
 
       const recent = await prisma.modelChangeLog.findFirst({
@@ -101,6 +119,7 @@ export const clarificationRouter = createTRPCRouter({
               model: current.model,
               confidence: current.confidence ?? undefined,
               changeSource: 'ai-converse',
+              changeUnitId: input.changeUnitId ?? null,
               createdBy: ctx.session.userId,
             },
           })
@@ -115,6 +134,7 @@ export const clarificationRouter = createTRPCRouter({
             confidence: parsed.modelPatch.length
               ? parsed.modelPatch.reduce((sum, item) => sum + item.confidence, 0) / parsed.modelPatch.length
               : null,
+            changeUnitId: input.changeUnitId ?? null,
             evidenceRefs: [question.id],
           },
         })
