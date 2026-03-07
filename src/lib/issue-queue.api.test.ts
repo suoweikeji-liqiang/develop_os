@@ -3,6 +3,7 @@ import {
   buildClarificationConclusionMeta,
   buildIssuePriorityContext,
   buildIssuePriorityMeta,
+  buildRequirementPriorityStageContext,
   buildConflictProjectionStatusMeta,
   buildClarificationQueueStatusMeta,
   doesClarificationIssueNeedSourceConfirmation,
@@ -149,9 +150,57 @@ describe('clarification issue queue callback rules', () => {
           },
         ],
       }),
+      stageContext: buildRequirementPriorityStageContext({
+        requirementStatus: 'DRAFT',
+        requirementStabilityLevel: 'S1_ROUGHLY_DEFINED',
+        unitsBelowTarget: 2,
+        pendingClarificationCount: 3,
+        blockingIssueCount: 0,
+      }),
     })
 
     expect(priority.badges.map((badge) => badge.label)).toContain('Fast Stabilization Win')
+    expect(priority.badges.map((badge) => badge.label)).toContain('Stage Fast Win')
     expect(priority.summary).toContain('Fast Stabilization Win')
+  })
+
+  it('derives a stage context and stage-specific priority for development readiness', () => {
+    const stageContext = buildRequirementPriorityStageContext({
+      requirementStatus: 'CONSENSUS',
+      requirementStabilityLevel: 'S4_READY_FOR_DEVELOPMENT',
+      unitsBelowTarget: 0,
+      pendingClarificationCount: 0,
+      blockingIssueCount: 0,
+    })
+
+    const priority = buildIssuePriorityMeta({
+      type: 'permission_gap',
+      issueStatus: 'OPEN',
+      severity: 'HIGH',
+      blockDev: false,
+      primaryRequirementUnit: {
+        unitKey: 'RU-08',
+        title: '管理后台权限校验',
+        layer: 'permission',
+      },
+      context: buildIssuePriorityContext({
+        activeItems: [
+          {
+            type: 'permission_gap',
+            primaryRequirementUnit: { unitKey: 'RU-08' },
+          },
+        ],
+      }),
+      stageContext,
+    })
+
+    expect(stageContext.label).toBe('开发准备阶段')
+    expect(priority.badges.map((badge) => badge.label)).toEqual(expect.arrayContaining([
+      'Stage Priority',
+      'Stage Blocker',
+    ]))
+    expect(priority.reasons).toEqual(expect.arrayContaining([
+      '在开发准备阶段，这类问题当前最值先处理',
+    ]))
   })
 })

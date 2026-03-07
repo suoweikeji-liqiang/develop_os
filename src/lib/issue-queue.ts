@@ -1,10 +1,13 @@
 import { z } from 'zod'
 import {
   ISSUE_UNIT_STATUS_LABELS,
+  STABILITY_LABELS,
   type IssueUnitSeverity,
   type IssueUnitStatus,
+  type RequirementStabilityLevel,
 } from './requirement-evolution'
 import { getRequirementUnitLayerProfile } from './requirement-unit-layer'
+import type { RequirementStatus } from './workflow/status-machine'
 
 export const IssueUnitTypeEnum = z.enum([
   'ambiguity',
@@ -611,7 +614,7 @@ export interface IssueQueueStabilityImpactMeta {
 }
 
 export interface IssuePriorityBadge {
-  key: 'phase_blocker' | 'highest_leverage' | 'fast_stabilization_win'
+  key: 'phase_blocker' | 'highest_leverage' | 'fast_stabilization_win' | 'stage_priority' | 'stage_blocker' | 'stage_fast_win'
   label: string
 }
 
@@ -622,9 +625,70 @@ export interface IssuePriorityMeta {
   reasons: string[]
 }
 
+export interface RequirementPriorityStageContext {
+  key: 'clarify_scope' | 'converge_requirement' | 'development_readiness' | 'verification_closeout'
+  label: string
+  summary: string
+  priorityBucketLabel: string
+  priorityBucketSummary: string
+  topAction: string
+}
+
 export interface IssuePriorityContext {
   typeCounts: Map<string, number>
   unitCounts: Map<string, number>
+}
+
+const LOW_REQUIREMENT_STABILITY_LEVELS = new Set<RequirementStabilityLevel>(['S0_IDEA', 'S1_ROUGHLY_DEFINED'])
+
+export function buildRequirementPriorityStageContext(input: {
+  requirementStatus: RequirementStatus
+  requirementStabilityLevel: RequirementStabilityLevel
+  unitsBelowTarget: number
+  pendingClarificationCount: number
+  blockingIssueCount: number
+}): RequirementPriorityStageContext {
+  if (input.requirementStatus === 'DONE') {
+    return {
+      key: 'verification_closeout',
+      label: '收尾校验阶段',
+      summary: '当前需求已进入收尾阶段，优先处理遗留风险、验证差异和最终确认项。',
+      priorityBucketLabel: '先清遗留验证风险',
+      priorityBucketSummary: '当前更值先处理仍会影响最终验收、验证一致性和残余风险的问题。',
+      topAction: '优先回到 Issue Queue 清掉仍影响最终验收与验证一致性的风险项。',
+    }
+  }
+
+  if (input.requirementStatus === 'DRAFT' || LOW_REQUIREMENT_STABILITY_LEVELS.has(input.requirementStabilityLevel) || input.pendingClarificationCount > 0) {
+    return {
+      key: 'clarify_scope',
+      label: '边界澄清阶段',
+      summary: `当前总体稳定度仍偏低（${STABILITY_LABELS[input.requirementStabilityLevel]}），或仍有待收敛 Clarification。优先补边界、缺失项和待确认问题最值。`,
+      priorityBucketLabel: '先清边界与缺失',
+      priorityBucketSummary: '当前更值先处理 ambiguity / missing / pending confirmation 这类能直接缩短理解链路的问题。',
+      topAction: '优先处理 ambiguity、missing、pending confirmation，先把边界和缺失项压实，再继续放大推进动作。',
+    }
+  }
+
+  if (input.requirementStatus === 'IMPLEMENTING' || (input.requirementStatus === 'CONSENSUS' && input.unitsBelowTarget === 0 && input.blockingIssueCount === 0)) {
+    return {
+      key: 'development_readiness',
+      label: '开发准备阶段',
+      summary: '当前更接近开发准备阶段，优先清理会影响开发前确认、权限边界、异常处理和实现一致性的问题。',
+      priorityBucketLabel: '先清开发前贵阻塞',
+      priorityBucketSummary: '当前更值先处理 permission / exception / prototype mismatch / blocker risk 这类开发前阻塞问题。',
+      topAction: '优先处理会卡住开发准备的问题，尤其是权限、异常、实现一致性和 blocker risk。',
+    }
+  }
+
+  return {
+    key: 'converge_requirement',
+    label: '需求收敛阶段',
+    summary: '当前已经过了最早期澄清，但仍需优先处理冲突、风险和未达目标稳定度相关问题，收紧 Requirement 主体。',
+    priorityBucketLabel: '先清冲突与收敛风险',
+    priorityBucketSummary: '当前更值先处理 conflict / risk 以及会拖住关键 Unit 稳定度的收敛问题。',
+    topAction: '优先处理 conflict、risk 和挂在关键 Unit 上的开放问题，把 Requirement 从收敛推进到开发准备。',
+  }
 }
 
 export function buildIssuePriorityContext(input: {
@@ -666,6 +730,7 @@ export function buildIssuePriorityMeta(input: {
     stabilityLevel?: string | null
   } | null
   context?: IssuePriorityContext | null
+  stageContext?: RequirementPriorityStageContext | null
 }): IssuePriorityMeta {
   if (!isActiveIssueStatus(input.issueStatus)) {
     return {
@@ -705,6 +770,39 @@ export function buildIssuePriorityMeta(input: {
   if (unitCount >= 2 && unit) reasons.push(`${unit.unitKey} 当前还有多个开放问题`)
   if (fastWin) reasons.push('处理成本相对低，能较快改善稳定度判断')
 
+  const stageContext = input.stageContext ?? null
+  const stagePriority = stageContext
+    ? (
+        (stageContext.key === 'clarify_scope' && ['ambiguity', 'missing', 'pending_confirmation'].includes(input.type))
+        || (stageContext.key === 'converge_requirement' && ['conflict', 'risk', 'missing'].includes(input.type))
+        || (stageContext.key === 'development_readiness' && ['permission_gap', 'exception_gap', 'prototype_doc_mismatch', 'risk'].includes(input.type))
+        || (stageContext.key === 'verification_closeout' && ['risk', 'conflict', 'prototype_doc_mismatch'].includes(input.type))
+      )
+    : false
+  const stageBlocker = stageContext
+    ? (
+        input.blockDev
+        || (stageContext.key === 'development_readiness' && ['permission_gap', 'exception_gap', 'prototype_doc_mismatch'].includes(input.type))
+        || (stageContext.key === 'converge_requirement' && input.type === 'conflict')
+      )
+    : input.blockDev
+  const stageFastWin = stageContext
+    ? (
+        !input.blockDev
+        && (input.severity === 'LOW' || input.severity === 'MEDIUM')
+        && (
+          (stageContext.key === 'clarify_scope' && ['ambiguity', 'pending_confirmation', 'missing'].includes(input.type))
+          || (stageContext.key === 'converge_requirement' && ['pending_confirmation', 'missing'].includes(input.type))
+          || (stageContext.key === 'development_readiness' && ['pending_confirmation', 'prototype_doc_mismatch'].includes(input.type))
+          || (stageContext.key === 'verification_closeout' && ['pending_confirmation'].includes(input.type))
+        )
+      )
+    : fastWin
+
+  if (stagePriority && stageContext) reasons.push(`在${stageContext.label}，这类问题当前最值先处理`)
+  if (stageBlocker && stageContext && !input.blockDev) reasons.push(`在${stageContext.label}，这类问题是当前贵阻塞`)
+  if (stageFastWin && stageContext) reasons.push(`在${stageContext.label}，这类问题属于快速稳定化收益`)
+
   const badges: IssuePriorityBadge[] = []
   if (input.blockDev) {
     badges.push({ key: 'phase_blocker', label: 'Phase Blocker' })
@@ -715,6 +813,15 @@ export function buildIssuePriorityMeta(input: {
   if (fastWin) {
     badges.push({ key: 'fast_stabilization_win', label: 'Fast Stabilization Win' })
   }
+  if (stagePriority) {
+    badges.push({ key: 'stage_priority', label: 'Stage Priority' })
+  }
+  if (stageBlocker) {
+    badges.push({ key: 'stage_blocker', label: 'Stage Blocker' })
+  }
+  if (stageFastWin) {
+    badges.push({ key: 'stage_fast_win', label: 'Stage Fast Win' })
+  }
 
   const score = (
     (input.blockDev ? 100 : 0)
@@ -724,9 +831,12 @@ export function buildIssuePriorityMeta(input: {
     + (unitCount >= 2 ? 8 : 0)
     + (unit ? 5 : 0)
     + (fastWin ? 12 : 0)
+    + (stagePriority ? 18 : 0)
+    + (stageBlocker ? 14 : 0)
+    + (stageFastWin ? 10 : 0)
   )
 
-  const summary = input.blockDev
+  const baseSummary = input.blockDev
     ? unit && layerProfile
       ? `当前是 Phase Blocker，并直接压在 ${unit.unitKey} · ${unit.title}（${layerProfile.label} 层）上。优先处理它，最可能改善当前阶段推进。`
       : '当前是 Phase Blocker，会直接阻断 Requirement 阶段推进。'
@@ -739,6 +849,16 @@ export function buildIssuePriorityMeta(input: {
         : unit && layerProfile
           ? `当前主要压在 ${unit.unitKey} · ${unit.title}（${layerProfile.label} 层）上，仍会继续牵动当前推进判断。`
           : '当前仍是活跃推进问题，但优先级低于前面的阻断项和高杠杆项。'
+  const stageSummary = stageContext
+    ? stageBlocker
+      ? `在${stageContext.label}，它属于当前贵阻塞，处理后最可能释放这一阶段的推进空间。`
+      : stagePriority
+        ? `在${stageContext.label}，它属于当前最值先处理的一类问题。`
+        : stageFastWin
+          ? `在${stageContext.label}，它属于能较快换来稳定度改善的处理项。`
+          : null
+    : null
+  const summary = stageSummary ? `${baseSummary} ${stageSummary}` : baseSummary
 
   return {
     score,

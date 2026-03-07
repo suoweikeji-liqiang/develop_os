@@ -89,6 +89,14 @@ interface WorksurfaceSummary {
     blockingCount: number
   }>
   issuePressure: {
+    stageContext: {
+      key: 'clarify_scope' | 'converge_requirement' | 'development_readiness' | 'verification_closeout'
+      label: string
+      summary: string
+      priorityBucketLabel: string
+      priorityBucketSummary: string
+      topAction: string
+    }
     typeHotspots: Array<{
       type: string
       typeLabel: string
@@ -1335,7 +1343,7 @@ export function RequirementDetailClient({
               <p className="font-semibold">{worksurfaceSummary.stabilityGovernance.stageAdvanceHint.title}</p>
               <p className="mt-1 leading-6">{worksurfaceSummary.stabilityGovernance.stageAdvanceHint.message}</p>
             </div>
-            {worksurfaceSummary.issuePressure.typeHotspots.length > 0 || worksurfaceSummary.issuePressure.layerHotspots.length > 0 ? (
+            {worksurfaceSummary.issuePressure.stageContext || worksurfaceSummary.issuePressure.typeHotspots.length > 0 || worksurfaceSummary.issuePressure.layerHotspots.length > 0 ? (
               <div className="rounded-[18px] border border-slate-200/80 bg-white px-4 py-4">
                 <div className="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
                   <div>
@@ -1351,6 +1359,16 @@ export function RequirementDetailClient({
                     回到 Issue Queue
                   </a>
                 </div>
+                {worksurfaceSummary.issuePressure.stageContext ? (
+                  <div className="mt-4 rounded-[16px] border border-sky-200 bg-sky-50/80 px-3 py-3 text-sm text-sky-800">
+                    <div className="flex flex-wrap gap-2 text-xs">
+                      <span className="app-chip">{worksurfaceSummary.issuePressure.stageContext.label}</span>
+                      <span className="app-chip">{worksurfaceSummary.issuePressure.stageContext.priorityBucketLabel}</span>
+                    </div>
+                    <p className="mt-2 leading-6">{worksurfaceSummary.issuePressure.stageContext.summary}</p>
+                    <p className="mt-2 text-xs leading-5">{worksurfaceSummary.issuePressure.stageContext.priorityBucketSummary}</p>
+                  </div>
+                ) : null}
                 <p className="mt-3 text-sm leading-6 text-slate-700">{worksurfaceSummary.issuePressure.nextQueueAction}</p>
                 {worksurfaceSummary.issuePressure.priorityHighlights.length > 0 ? (
                   <div className="mt-4 rounded-[16px] border border-slate-200/80 bg-slate-50/80 px-3 py-3">
@@ -1365,8 +1383,14 @@ export function RequirementDetailClient({
                                 className={`rounded-full px-2.5 py-1 font-medium ${
                                   badge === 'Phase Blocker'
                                     ? 'bg-red-100 text-red-700'
+                                    : badge === 'Stage Blocker'
+                                      ? 'bg-orange-100 text-orange-800'
                                     : badge === 'Highest Leverage'
                                       ? 'bg-amber-100 text-amber-800'
+                                      : badge === 'Stage Priority'
+                                        ? 'bg-sky-100 text-sky-700'
+                                        : badge === 'Stage Fast Win'
+                                          ? 'bg-cyan-100 text-cyan-700'
                                       : 'bg-emerald-100 text-emerald-700'
                                 }`}
                               >

@@ -8,6 +8,7 @@ import {
   buildClarificationQueueStatusMeta,
   buildIssuePriorityContext,
   buildIssuePriorityMeta,
+  buildRequirementPriorityStageContext,
   buildIssueQueueLifecycleMeta,
   compareIssueQueueItems,
   getClarificationCategoryLabel,
@@ -18,6 +19,8 @@ import {
   mapConflictStatusToIssueStatus,
   normalizeIssueType,
 } from '@/lib/issue-queue'
+import { getRequirementUnitTargetStabilityLevel } from '@/lib/requirement-unit-layer'
+import { isRequirementStabilityAtLeast } from '@/server/requirements/worksurface'
 
 const CreateIssueUnitInput = z.object({
   requirementId: z.string(),
@@ -45,7 +48,14 @@ export const issueUnitRouter = createTRPCRouter({
   listByRequirement: protectedProcedure
     .input(z.object({ requirementId: z.string() }))
     .query(async ({ input }) => {
-      const [issueUnits, conflicts] = await Promise.all([
+      const [requirement, issueUnits, conflicts, requirementUnits, pendingClarificationCount] = await Promise.all([
+        prisma.requirement.findUniqueOrThrow({
+          where: { id: input.requirementId },
+          select: {
+            status: true,
+            stabilityLevel: true,
+          },
+        }),
         prisma.issueUnit.findMany({
           where: { requirementId: input.requirementId },
           orderBy: [
@@ -91,6 +101,24 @@ export const issueUnitRouter = createTRPCRouter({
             summary: true,
             recommendedAction: true,
             updatedAt: true,
+          },
+        }),
+        prisma.requirementUnit.findMany({
+          where: { requirementId: input.requirementId },
+          select: {
+            status: true,
+            layer: true,
+            stabilityLevel: true,
+          },
+        }),
+        prisma.clarificationQuestion.count({
+          where: {
+            session: {
+              requirementId: input.requirementId,
+            },
+            status: {
+              not: 'RESOLVED',
+            },
           },
         }),
       ])
@@ -218,6 +246,19 @@ export const issueUnitRouter = createTRPCRouter({
             primaryRequirementUnit: item.primaryRequirementUnit,
           })),
       })
+      const activeRequirementUnits = requirementUnits.filter((unit) => unit.status !== 'ARCHIVED')
+      const unitsBelowTarget = activeRequirementUnits.filter((unit) => !isRequirementStabilityAtLeast(
+        unit.stabilityLevel,
+        getRequirementUnitTargetStabilityLevel(unit.layer),
+      )).length
+      const blockingIssueCount = queue.filter((item) => item.blockDev && isActiveIssueStatus(item.status)).length
+      const stageContext = buildRequirementPriorityStageContext({
+        requirementStatus: requirement.status,
+        requirementStabilityLevel: requirement.stabilityLevel ?? 'S0_IDEA',
+        unitsBelowTarget,
+        pendingClarificationCount,
+        blockingIssueCount,
+      })
 
       return queue
         .map((item) => {
@@ -228,12 +269,14 @@ export const issueUnitRouter = createTRPCRouter({
             blockDev: item.blockDev,
             primaryRequirementUnit: item.primaryRequirementUnit,
             context: priorityContext,
+            stageContext,
           })
 
           return {
             ...item,
             priority,
             priorityScore: priority.score,
+            stageContext,
           }
         })
         .sort(compareIssueQueueItems)

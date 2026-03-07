@@ -50,6 +50,14 @@ describe('requirement worksurface impact summary', () => {
       unitsBelowTarget: 3,
       unitsBelowTargetSummary,
       requirementStabilityLevel: 'S1_ROUGHLY_DEFINED',
+      stageContext: {
+        key: 'clarify_scope',
+        label: '边界澄清阶段',
+        summary: '当前更适合先补边界、缺失项和待确认问题。',
+        priorityBucketLabel: '先清边界与缺失',
+        priorityBucketSummary: '当前更值先处理 ambiguity / missing / pending confirmation。',
+        topAction: '优先处理 ambiguity、missing、pending confirmation，先把边界和缺失项压实。',
+      },
     })
 
     expect(summary.headline).toContain('3 个 Requirement Units')
@@ -68,6 +76,7 @@ describe('requirement worksurface impact summary', () => {
     expect(summary.advanceUnits[0]?.nextAction).toContain('RU-03')
     expect(summary.nextActions[0]).toContain('阻断问题')
     expect(summary.actionPlan[0]?.title).toContain('阻断问题')
+    expect(summary.actionPlan.some((item) => item.title.includes('边界澄清阶段'))).toBe(true)
     expect(summary.nextActions.some((action) => action.includes('RU-02'))).toBe(true)
     expect(summary.signals.map((signal) => signal.title)).toEqual(expect.arrayContaining([
       '阻断问题会直接影响推进',
@@ -91,12 +100,22 @@ describe('requirement worksurface impact summary', () => {
       unitsBelowTarget: 0,
       unitsBelowTargetSummary: [],
       requirementStabilityLevel: 'S4_READY_FOR_DEVELOPMENT',
+      stageContext: {
+        key: 'development_readiness',
+        label: '开发准备阶段',
+        summary: '当前更接近开发准备阶段。',
+        priorityBucketLabel: '先清开发前贵阻塞',
+        priorityBucketSummary: '当前更值先处理 permission / exception / prototype mismatch。',
+        topAction: '优先处理会卡住开发准备的问题。',
+      },
     })
 
     expect(summary.mayAffectStability).toBe(false)
     expect(summary.headline).toContain('影响面相对可控')
     expect(summary.signals).toHaveLength(0)
-    expect(summary.actionPlan).toHaveLength(0)
+    expect(summary.actionPlan).toHaveLength(1)
+    expect(summary.actionPlan[0]?.title).toContain('开发准备阶段')
+    expect(summary.nextStep).toContain('优先处理会卡住开发准备的问题')
   })
 
   it('surfaces closed clarification conclusions that still need sink confirmation', () => {
@@ -135,6 +154,14 @@ describe('requirement worksurface impact summary', () => {
       unitsBelowTarget: 0,
       unitsBelowTargetSummary: [],
       requirementStabilityLevel: 'S3_ALMOST_READY',
+      stageContext: {
+        key: 'converge_requirement',
+        label: '需求收敛阶段',
+        summary: '当前更适合先处理冲突、风险和关键 Unit 收敛问题。',
+        priorityBucketLabel: '先清冲突与收敛风险',
+        priorityBucketSummary: '当前更值先处理 conflict / risk。',
+        topAction: '优先处理 conflict、risk 和关键 Unit 收敛问题。',
+      },
     })
 
     expect(summary.reasons).toEqual(expect.arrayContaining([
@@ -193,6 +220,14 @@ describe('requirement worksurface impact summary', () => {
 
   it('explains which issue hotspots currently weigh most on stability', () => {
     const issuePressure = buildRequirementIssuePressure({
+      stageContext: {
+        key: 'development_readiness',
+        label: '开发准备阶段',
+        summary: '当前更接近开发准备阶段。',
+        priorityBucketLabel: '先清开发前贵阻塞',
+        priorityBucketSummary: '当前更值先处理权限、异常和实现一致性问题。',
+        topAction: '优先处理会卡住开发准备的问题。',
+      },
       activeIssues: [
         {
           id: 'issue-1',
@@ -238,9 +273,11 @@ describe('requirement worksurface impact summary', () => {
     })
 
     expect(issuePressure.typeHotspots[0]?.typeLabel).toBe('Risk')
+    expect(issuePressure.stageContext.label).toBe('开发准备阶段')
     expect(issuePressure.typeHotspots[0]?.blockingCount).toBe(1)
     expect(issuePressure.layerHotspots[0]?.layerLabel).toBe('Scenario')
-    expect(issuePressure.priorityHighlights[0]?.badges).toContain('Phase Blocker')
+    expect(issuePressure.priorityHighlights[0]?.badges).toEqual(expect.arrayContaining(['Phase Blocker', 'Stage Blocker']))
     expect(issuePressure.nextQueueAction).toContain('注册主流程风险未收敛')
+    expect(issuePressure.nextQueueAction).toContain('开发准备阶段')
   })
 })

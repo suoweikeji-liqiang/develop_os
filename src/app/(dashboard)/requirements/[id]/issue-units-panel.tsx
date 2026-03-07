@@ -55,11 +55,19 @@ interface IssueUnitItem {
   priority: {
     score: number
     badges: Array<{
-      key: 'phase_blocker' | 'highest_leverage' | 'fast_stabilization_win'
+      key: 'phase_blocker' | 'highest_leverage' | 'fast_stabilization_win' | 'stage_priority' | 'stage_blocker' | 'stage_fast_win'
       label: string
     }>
     summary: string
     reasons: string[]
+  }
+  stageContext: {
+    key: 'clarify_scope' | 'converge_requirement' | 'development_readiness' | 'verification_closeout'
+    label: string
+    summary: string
+    priorityBucketLabel: string
+    priorityBucketSummary: string
+    topAction: string
   }
   suggestedResolution: string | null
   ownerId: string | null
@@ -99,9 +107,12 @@ const CONFLICT_STATUS_OPTIONS = ISSUE_UNIT_STATUS_OPTIONS.filter((option) => (
   option.value === 'OPEN' || option.value === 'RESOLVED' || option.value === 'REJECTED'
 ))
 
-function getPriorityBadgeClasses(key: 'phase_blocker' | 'highest_leverage' | 'fast_stabilization_win'): string {
+function getPriorityBadgeClasses(key: 'phase_blocker' | 'highest_leverage' | 'fast_stabilization_win' | 'stage_priority' | 'stage_blocker' | 'stage_fast_win'): string {
   if (key === 'phase_blocker') return 'bg-red-100 text-red-700'
   if (key === 'highest_leverage') return 'bg-amber-100 text-amber-800'
+  if (key === 'stage_priority') return 'bg-sky-100 text-sky-700'
+  if (key === 'stage_blocker') return 'bg-orange-100 text-orange-800'
+  if (key === 'stage_fast_win') return 'bg-cyan-100 text-cyan-700'
   return 'bg-emerald-100 text-emerald-700'
 }
 
@@ -214,6 +225,7 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
     open: items.filter((item) => (ACTIVE_ISSUE_UNIT_STATUSES as readonly string[]).includes(item.status)).length,
     blocking: items.filter((item) => item.blockDev && (ACTIVE_ISSUE_UNIT_STATUSES as readonly string[]).includes(item.status)).length,
   }), [items])
+  const stageContext = items[0]?.stageContext ?? null
 
   const filteredItems = useMemo(() => items.filter((item) => {
     if (typeFilter !== 'ALL' && item.type !== typeFilter) return false
@@ -409,6 +421,17 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
           <span className="app-chip">筛选结果 {filteredItems.length}</span>
         </div>
       </div>
+      {stageContext ? (
+        <div className="rounded-[18px] border border-sky-200 bg-sky-50/80 px-4 py-3 text-sm text-sky-800">
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="app-chip">{stageContext.label}</span>
+            <span className="app-chip">{stageContext.priorityBucketLabel}</span>
+          </div>
+          <p className="mt-2 leading-6">{stageContext.summary}</p>
+          <p className="mt-2 text-xs leading-5">{stageContext.priorityBucketSummary}</p>
+          <p className="mt-2 text-xs leading-5">{stageContext.topAction}</p>
+        </div>
+      ) : null}
 
       <div className="rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4 space-y-3">
         <div className="flex items-center justify-between gap-3">

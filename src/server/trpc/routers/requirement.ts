@@ -19,6 +19,7 @@ import {
   ACTIVE_ISSUE_UNIT_STATUSES,
   buildClarificationConclusionMeta,
   buildClarificationQueueStatusMeta,
+  buildRequirementPriorityStageContext,
   getIssueTypeLabel,
   isIssueType,
 } from '@/lib/issue-queue'
@@ -664,7 +665,15 @@ export const requirementRouter = createTRPCRouter({
         openConflictCount,
         pendingClarificationCount,
       })
+      const stageContext = buildRequirementPriorityStageContext({
+        requirementStatus: requirement.status,
+        requirementStabilityLevel: requirement.stabilityLevel ?? 'S0_IDEA',
+        unitsBelowTarget: unitsBelowTarget.length,
+        pendingClarificationCount,
+        blockingIssueCount,
+      })
       const issuePressure = buildRequirementIssuePressure({
+        stageContext,
         activeIssues: activeIssueUnits,
         openConflictCount,
       })
@@ -723,6 +732,7 @@ export const requirementRouter = createTRPCRouter({
           unitsBelowTarget: unitsBelowTarget.length,
           unitsBelowTargetSummary,
           requirementStabilityLevel: requirement.stabilityLevel,
+          stageContext,
         }),
       }
     }),

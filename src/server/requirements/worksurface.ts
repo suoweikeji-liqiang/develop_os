@@ -8,7 +8,12 @@ import {
   getRequirementUnitProgressHint,
   getRequirementUnitLayerProfile,
 } from '@/lib/requirement-unit-layer'
-import { buildIssuePriorityContext, buildIssuePriorityMeta, getIssueTypeLabel } from '@/lib/issue-queue'
+import {
+  buildIssuePriorityContext,
+  buildIssuePriorityMeta,
+  getIssueTypeLabel,
+  type RequirementPriorityStageContext,
+} from '@/lib/issue-queue'
 import { STATUS_LABELS } from '@/lib/workflow/status-labels'
 import type { RequirementStatus } from '@/lib/workflow/status-machine'
 
@@ -97,6 +102,7 @@ interface RequirementImpactSummarySeed {
     targetStabilityLevel: RequirementStabilityLevel
   }>
   requirementStabilityLevel: RequirementStabilityLevel
+  stageContext?: RequirementPriorityStageContext | null
 }
 
 interface RequirementImpactUnitSummary {
@@ -151,6 +157,7 @@ interface RequirementStabilityGovernanceSeed {
 }
 
 interface RequirementIssuePressureSeed {
+  stageContext: RequirementPriorityStageContext
   activeIssues: Array<{
     id: string
     title: string
@@ -447,6 +454,7 @@ export function buildRequirementIssuePressure(seed: RequirementIssuePressureSeed
         blockDev: issue.blockDev,
         primaryRequirementUnit: issue.primaryRequirementUnit,
         context: priorityContext,
+        stageContext: seed.stageContext,
       })
 
       return {
@@ -464,14 +472,15 @@ export function buildRequirementIssuePressure(seed: RequirementIssuePressureSeed
     .slice(0, 3)
 
   const nextQueueAction = priorityHighlights[0]
-    ? `先处理 ${priorityHighlights[0].title}（${priorityHighlights[0].badges.join(' / ')}），它当前最直接影响推进判断。`
+    ? `当前处于${seed.stageContext.label}，先处理 ${priorityHighlights[0].title}（${priorityHighlights[0].badges.join(' / ')}），它当前最直接影响推进判断。`
     : typeHotspots[0]
       ? typeHotspots[0].blockingCount > 0
-        ? `先回到 Issue Queue 处理 ${typeHotspots[0].typeLabel} 类阻断问题，它们当前最影响阶段推进。`
-        : `先回到 Issue Queue 收敛 ${typeHotspots[0].typeLabel} 类开放问题，减少对当前阶段判断的持续干扰。`
-      : '当前没有明显的 Issue Queue 压力热点。'
+        ? `当前处于${seed.stageContext.label}，先回到 Issue Queue 处理 ${typeHotspots[0].typeLabel} 类阻断问题，它们当前最影响阶段推进。`
+        : `当前处于${seed.stageContext.label}，先回到 Issue Queue 收敛 ${typeHotspots[0].typeLabel} 类开放问题，减少对当前阶段判断的持续干扰。`
+      : `当前处于${seed.stageContext.label}，${seed.stageContext.topAction}`
 
   return {
+    stageContext: seed.stageContext,
     typeHotspots,
     layerHotspots,
     priorityHighlights,
@@ -562,6 +571,7 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
   const reasons: string[] = []
   const signals: RequirementGuidanceHint[] = []
   const nextActions: string[] = []
+  const stageContext = seed.stageContext ?? null
   const clarificationCallbackCount = seed.clarificationCallbackCount ?? 0
   const clarificationSinklessCount = seed.clarificationSinklessCount ?? 0
   const clarificationConclusions = seed.clarificationConclusions ?? []
@@ -770,6 +780,16 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
     })
   }
 
+  if (stageContext) {
+    actionPlan.push({
+      key: `stage-context-${stageContext.key}`,
+      title: `${stageContext.label}：${stageContext.priorityBucketLabel}`,
+      detail: stageContext.topAction,
+      targetSection: 'issue-queue',
+      tone: stageContext.key === 'development_readiness' ? 'warning' : 'info',
+    })
+  }
+
   if (seed.advanceUnits.length > 0) {
     nextActions.push(
       advanceUnitText
@@ -796,13 +816,15 @@ export function buildRequirementImpactSummary(seed: RequirementImpactSummarySeed
   ])).slice(0, 4)
 
   const headline = reasons.length > 0
-    ? `当前推进会牵动 ${seed.affectedRequirementUnitCount} 个 Requirement Units，并受到 ${seed.openIssueCount} 个开放问题信号影响。最需要先处理的是 ${orderedActionPlan[0]?.title ?? '当前最强影响信号'}。`
-    : '当前未发现明显的推进外溢信号，影响面相对可控。'
+    ? `${stageContext ? `当前处于${stageContext.label}。` : ''}当前推进会牵动 ${seed.affectedRequirementUnitCount} 个 Requirement Units，并受到 ${seed.openIssueCount} 个开放问题信号影响。最需要先处理的是 ${orderedActionPlan[0]?.title ?? '当前最强影响信号'}。`
+    : `${stageContext ? `当前处于${stageContext.label}。` : ''}当前未发现明显的推进外溢信号，影响面相对可控。`
 
   const nextStep = orderedActionPlan[0]
     ? orderedActionPlan[0].detail
     : seed.blockingIssueCount > 0
       ? nextActions[0] ?? '先回到 Issue Queue 处理当前最影响推进的问题。'
+    : stageContext
+      ? stageContext.topAction
     : seed.focusUnits[0]
       ? `先补齐 ${seed.focusUnits[0].unitKey} · ${seed.focusUnits[0].title}，它目前最直接影响总体推进判断。`
       : seed.advanceUnits[0]

@@ -42,6 +42,18 @@
    - 不只是告诉用户“风险在哪”
    - 还要告诉用户“当前阶段先去哪里处理什么”
 
+### 当前状态更新
+- Worksurface 1.0 closing iteration 已补出轻量 stage context：
+  - `边界澄清阶段`
+  - `需求收敛阶段`
+  - `开发准备阶段`
+  - `收尾校验阶段`
+- Issue Queue 当前已能显示：
+  - 当前阶段是什么
+  - 当前阶段更值先处理的 issue bucket
+  - `Stage Priority / Stage Blocker / Stage Fast Win`
+- Stability Summary 与 Impact Summary 已开始直接复用这层阶段语义，而不再只给通用优先级
+
 ### 推荐标签 / 排序逻辑 / 解释维度建议
 推荐标签：
 - `Stage Priority`
