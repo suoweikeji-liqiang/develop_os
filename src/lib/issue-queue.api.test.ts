@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  buildConflictProjectionStatusMeta,
   buildClarificationQueueStatusMeta,
   doesClarificationIssueNeedSourceConfirmation,
 } from './issue-queue'
@@ -41,5 +42,11 @@ describe('clarification issue queue callback rules', () => {
 
     expect(status.state).toBe('closed_confirmed')
     expect(status.callbackNeeded).toBe(false)
+  })
+
+  it('explains how conflict projection status maps back to the original conflict', () => {
+    expect(buildConflictProjectionStatusMeta('OPEN').label).toBe('待在 Issue Queue 处理')
+    expect(buildConflictProjectionStatusMeta('RESOLVED').summary).toContain('原 Conflict 已同步为已处理')
+    expect(buildConflictProjectionStatusMeta('DISMISSED').summary).toContain('原 Conflict 已同步为已驳回')
   })
 })

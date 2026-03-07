@@ -122,6 +122,11 @@
   - issue 关闭后的回源确认提示
   - “标记澄清已收敛”的轻量辅助动作
 - Issue Queue 已补更直接的 Clarification 回源确认标识
+- Conflict Panel 已补更明确的 projection 关系说明：
+  - 默认处理面在 Issue Queue
+  - 原 Conflict 状态与 projection 当前含义
+  - 关闭 / 驳回后回写原 Conflict 的解释
+- Issue Queue 中的 conflict projection 已补更直接的同步状态说明，减少“证据面 / 处理面”混淆
 
 ### 当前残留
 - Clarification 关闭仍然依赖人工确认，不做自动闭环

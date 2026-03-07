@@ -10,6 +10,7 @@ import {
 import {
   ACTIVE_ISSUE_UNIT_STATUSES,
   buildClarificationQueueStatusMeta,
+  buildConflictProjectionStatusMeta,
   getIssueTypeDescription,
   getIssueTypeLabel,
   ISSUE_UNIT_TYPE_OPTIONS,
@@ -556,6 +557,9 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                   issueStatus: item.status,
                 })
               : null
+            const conflictProjectionStatus = item.queueKind === 'conflict'
+              ? buildConflictProjectionStatusMeta(item.sourceStatus)
+              : null
 
             return (
             <li key={item.id} className="rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
@@ -571,6 +575,17 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                 {item.sourceCategoryLabel ? <span className="app-chip">{item.sourceCategoryLabel}</span> : null}
                 {item.sourceStatusLabel ? <span className="app-chip">来源状态 {item.sourceStatusLabel}</span> : null}
                 {item.queueKind === 'conflict' ? <span className="app-chip">投影项</span> : null}
+                {conflictProjectionStatus ? (
+                  <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                    item.sourceStatus === 'OPEN'
+                      ? 'bg-sky-100 text-sky-800'
+                      : item.sourceStatus === 'RESOLVED'
+                        ? 'bg-emerald-100 text-emerald-700'
+                        : 'bg-amber-100 text-amber-800'
+                  }`}>
+                    {conflictProjectionStatus.label}
+                  </span>
+                ) : null}
                 {item.blockDev ? (
                   <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">
                     阻断开发
@@ -759,9 +774,12 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                 </Button>
               </div>
               {item.queueKind === 'conflict' ? (
-                <p className="mt-2 text-xs text-slate-500">
-                  该项来自 Conflict Scan。默认建议在 Issue Queue 处理状态；关闭状态会同步回原 Conflict，对应证据仍保留在下方 Conflict Panel。
-                </p>
+                <div className="mt-2 rounded-[16px] border border-slate-200/80 bg-slate-50/80 px-3 py-3 text-xs text-slate-600">
+                  <p className="font-semibold text-slate-700">Conflict projection 说明</p>
+                  <p className="mt-1 leading-5">
+                    {conflictProjectionStatus?.summary ?? '该项来自 Conflict Scan。默认建议在 Issue Queue 处理状态；关闭状态会同步回原 Conflict。'}
+                  </p>
+                </div>
               ) : null}
               {statusDrafts[item.id]?.error ? (
                 <p className="mt-2 text-xs text-red-600">{statusDrafts[item.id].error}</p>

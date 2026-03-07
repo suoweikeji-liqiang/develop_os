@@ -173,6 +173,32 @@ export function getConflictStatusLabel(status: string | null | undefined): strin
   return CONFLICT_STATUS_LABELS[status as ConflictQueueStatus]
 }
 
+export interface ConflictProjectionStatusMeta {
+  label: string
+  summary: string
+}
+
+export function buildConflictProjectionStatusMeta(status: string | null | undefined): ConflictProjectionStatusMeta {
+  if (status === 'RESOLVED') {
+    return {
+      label: '已同步为已处理',
+      summary: '对应 projection 已在 Issue Queue 中关闭，原 Conflict 已同步为已处理；Conflict Panel 继续只保留扫描证据与处理备注。',
+    }
+  }
+
+  if (status === 'DISMISSED') {
+    return {
+      label: '已同步为已驳回',
+      summary: '对应 projection 已在 Issue Queue 中被驳回或归档，原 Conflict 已同步为已驳回；扫描证据仍会保留，必要时可重新复核。',
+    }
+  }
+
+  return {
+    label: '待在 Issue Queue 处理',
+    summary: '原 Conflict 当前仍为待处理。默认问题推进在 Issue Queue 中进行，Conflict Panel 主要提供扫描证据、上下文与处理备注。',
+  }
+}
+
 export function shouldClarificationEnterIssueQueue(input: {
   category: string
   status: string
@@ -346,7 +372,7 @@ export function buildIssueQueueLifecycleMeta(input: IssueQueueLifecycleInput): I
 
   if (input.queueKind === 'conflict') {
     return {
-      sourceSummary: `来自 Conflict Scan 投影${conflictStatusLabel ? `，原 Conflict 当前为${conflictStatusLabel}` : ''}。`,
+      sourceSummary: `来自 Conflict Scan 投影${conflictStatusLabel ? `，原 Conflict 当前为${conflictStatusLabel}` : ''}。默认处理面在 Issue Queue，Conflict Panel 仅保留扫描证据与上下文。`,
       blockingSummary,
       closeMeaning: '在 Issue Queue 中标记为已处理会同步原 Conflict 为已处理；标记为已驳回或归档会同步原 Conflict 为已驳回。',
       followupSummary: '如需复核扫描证据、关联需求或处理备注，请回到 Conflict Panel 查看来源对象。',

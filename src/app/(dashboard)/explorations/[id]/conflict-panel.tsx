@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState } from 'react'
+import { buildConflictProjectionStatusMeta } from '@/lib/issue-queue'
 
 type ConflictStatus = 'OPEN' | 'DISMISSED' | 'RESOLVED'
 type ConflictScope = 'INTERNAL' | 'CROSS_REQUIREMENT'
@@ -141,6 +142,8 @@ export function ConflictPanel({ requirementId, hasModel, onDataChanged }: Props)
   }
 
   const openCount = conflicts.filter((item) => item.status === 'OPEN').length
+  const resolvedCount = conflicts.filter((item) => item.status === 'RESOLVED').length
+  const dismissedCount = conflicts.filter((item) => item.status === 'DISMISSED').length
 
   return (
     <section className="rounded-lg border border-gray-200 p-4 space-y-4">
@@ -150,6 +153,17 @@ export function ConflictPanel({ requirementId, hasModel, onDataChanged }: Props)
           <p className="mt-1 text-sm text-muted-foreground">
             保留为扫描详情与证据面；默认问题推进请优先回到上方 Issue Queue。
           </p>
+          <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+            <span className="app-chip">待处理 {openCount}</span>
+            <span className="app-chip">已处理 {resolvedCount}</span>
+            <span className="app-chip">已驳回 {dismissedCount}</span>
+            <a
+              href="#issue-queue"
+              className="inline-flex items-center rounded-full border border-slate-200 bg-white px-3 py-1 text-slate-700 hover:bg-slate-50"
+            >
+              回到 Issue Queue
+            </a>
+          </div>
         </div>
         <button
           onClick={() => void handleScan()}
@@ -181,7 +195,10 @@ export function ConflictPanel({ requirementId, hasModel, onDataChanged }: Props)
         hasModel ? <p className="text-sm text-gray-500">当前未检测到明显冲突。</p> : null
       ) : (
         <ul className="space-y-3">
-          {conflicts.map((conflict) => (
+          {conflicts.map((conflict) => {
+            const projectionStatus = buildConflictProjectionStatusMeta(conflict.status)
+
+            return (
             <li key={conflict.id} className="rounded-md border p-4 space-y-3">
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${SEVERITY_CLASSES[conflict.severity]}`}>
@@ -192,6 +209,15 @@ export function ConflictPanel({ requirementId, hasModel, onDataChanged }: Props)
                 </span>
                 <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700">
                   {STATUS_LABELS[conflict.status]}
+                </span>
+                <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                  conflict.status === 'OPEN'
+                    ? 'bg-sky-100 text-sky-800'
+                    : conflict.status === 'RESOLVED'
+                      ? 'bg-emerald-100 text-emerald-700'
+                      : 'bg-amber-100 text-amber-800'
+                }`}>
+                  {projectionStatus.label}
                 </span>
               </div>
 
@@ -232,6 +258,11 @@ export function ConflictPanel({ requirementId, hasModel, onDataChanged }: Props)
                 </p>
               )}
 
+              <div className="rounded-md border border-slate-200/80 bg-slate-50/80 px-3 py-3 text-sm text-slate-600">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500">Projection 关系</p>
+                <p className="mt-2 leading-6">{projectionStatus.summary}</p>
+              </div>
+
               {conflict.status === 'OPEN' && (
                 <div className="flex gap-2">
                   <button
@@ -249,7 +280,8 @@ export function ConflictPanel({ requirementId, hasModel, onDataChanged }: Props)
                 </div>
               )}
             </li>
-          ))}
+            )
+          })}
         </ul>
       )}
     </section>
