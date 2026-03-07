@@ -31,6 +31,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { ISSUE_UNIT_STATUS_LABELS, STABILITY_LABELS, STABILITY_OPTIONS } from '@/lib/requirement-evolution'
+import {
+  getClarificationCategoryLabel,
+  getClarificationStatusLabel,
+  getIssueTypeLabel,
+} from '@/lib/issue-queue'
 import { getRequirementUnitLayerTargetGroups } from '@/lib/requirement-unit-layer'
 
 interface Props {
@@ -97,6 +102,31 @@ interface WorksurfaceSummary {
     signals: RequirementGuidanceHint[]
     reasons: string[]
   }
+}
+
+interface ClarificationQuestionItem {
+  id: string
+  category: string
+  status: string
+  questionText: string
+  answerText?: string | null
+  queueEligible: boolean
+  queueEligibilityReason: string
+  queueStatus: {
+    state: string
+    label: string
+    summary: string
+    callbackNeeded: boolean
+    callbackSummary: string | null
+  }
+  issueProjection: {
+    id: string
+    status: string
+    type: string
+    severity: string
+    blockDev: boolean
+    updatedAt: string
+  } | null
 }
 
 const MODELCARD_SECTIONS = [
@@ -175,23 +205,7 @@ export function ExplorationDetailClient({
   const [completeness, setCompleteness] = useState<{ score: number; missingFields: string[] } | null>(null)
   const [clarificationSession, setClarificationSession] = useState<{
     id: string
-    questions: Array<{
-      id: string
-      category: string
-      status: string
-      questionText: string
-      answerText?: string | null
-      queueEligible: boolean
-      queueEligibilityReason: string
-      issueProjection: {
-        id: string
-        status: string
-        type: string
-        severity: string
-        blockDev: boolean
-        updatedAt: string
-      } | null
-    }>
+    questions: ClarificationQuestionItem[]
   } | null>(null)
   const [answerDrafts, setAnswerDrafts] = useState<Record<string, string>>({})
   const [clarificationIssueState, setClarificationIssueState] = useState<Record<string, {
@@ -352,23 +366,7 @@ export function ExplorationDetailClient({
         result?: {
           data?: {
             id: string
-            questions: Array<{
-              id: string
-              category: string
-              status: string
-              questionText: string
-              answerText?: string | null
-              queueEligible: boolean
-              queueEligibilityReason: string
-              issueProjection: {
-                id: string
-                status: string
-                type: string
-                severity: string
-                blockDev: boolean
-                updatedAt: string
-              } | null
-            }>
+            questions: ClarificationQuestionItem[]
           } | null
         }
       }
@@ -529,6 +527,20 @@ export function ExplorationDetailClient({
     }
   }
 
+  async function handleUpdateClarificationQuestionStatus(
+    questionId: string,
+    status: 'OPEN' | 'ANSWERED' | 'RESOLVED' | 'SKIPPED',
+  ) {
+    await fetch('/api/trpc/clarification.updateQuestionStatus', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questionId, status }),
+    })
+    await refreshClarification()
+    setIssueRefreshToken((prev) => prev + 1)
+    setSummaryRefreshToken((prev) => prev + 1)
+  }
+
   async function handleGenerateSpec() {
     setSpecLoading(true)
     try {
@@ -659,6 +671,13 @@ export function ExplorationDetailClient({
       description: 'Stability 负责成熟度判断，不做强阻断。',
     },
   ] as const
+
+  const clarificationQuestions = clarificationSession?.questions ?? []
+  const clarificationQueueEligibleCount = clarificationQuestions.filter((question) => (
+    question.queueEligible && !question.issueProjection
+  )).length
+  const clarificationTrackedCount = clarificationQuestions.filter((question) => Boolean(question.issueProjection)).length
+  const clarificationCallbackCount = clarificationQuestions.filter((question) => question.queueStatus.callbackNeeded).length
 
   return (
     <div className="space-y-6">
@@ -1083,66 +1102,118 @@ export function ExplorationDetailClient({
                   <div>
                     <h3 className="text-sm font-semibold uppercase tracking-[0.22em] text-slate-600">Clarification Queue</h3>
                     <p className="mt-2 text-sm leading-6 text-slate-500">
-                      澄清问题保留为原始问答面；风险项、已回答但未收敛项、或被跳过的项建议转入上方 Issue Queue 持续推进。
+                      Clarification 保留为原始问答面；风险项、已回答但未收敛项、或被跳过的项建议转入上方 Issue Queue 持续推进。问题一旦进入队列，主处理面默认回到 Issue Queue。
                     </p>
+                    <div className="mt-3 flex flex-wrap gap-2 text-xs text-slate-600">
+                      <span className="app-chip">可转入 {clarificationQueueEligibleCount}</span>
+                      <span className="app-chip">已在 Issue Queue {clarificationTrackedCount}</span>
+                      <span className={`app-chip ${clarificationCallbackCount > 0 ? 'text-amber-700' : ''}`}>
+                        待回源确认 {clarificationCallbackCount}
+                      </span>
+                    </div>
                   </div>
                   <details open>
                     <summary className="cursor-pointer text-sm font-semibold text-slate-700">查看澄清问题</summary>
                     <div className="mt-3 space-y-4">
                       <Button variant="outline" onClick={refreshClarification}>刷新澄清问题</Button>
-                      {(clarificationSession?.questions ?? []).map((question) => (
-                        <div key={question.id} className="rounded-md border p-3 space-y-2">
-                          <p className="text-xs text-slate-500">[{question.category}] {question.status}</p>
+                      {clarificationQuestions.map((question) => (
+                        <div key={question.id} className="rounded-[18px] border border-slate-200/80 bg-slate-50/70 p-4 space-y-3">
+                          <div className="flex flex-wrap items-center gap-2 text-xs">
+                            <span className="app-chip">{getClarificationCategoryLabel(question.category) ?? question.category}</span>
+                            <span className="app-chip">来源状态 {getClarificationStatusLabel(question.status) ?? question.status}</span>
+                            <span className={`rounded-full px-2.5 py-1 font-medium ${
+                              question.queueStatus.callbackNeeded
+                                ? 'bg-amber-100 text-amber-800'
+                                : question.issueProjection
+                                  ? 'bg-sky-100 text-sky-800'
+                                  : question.queueEligible
+                                    ? 'bg-emerald-100 text-emerald-700'
+                                    : 'bg-white text-slate-600'
+                            }`}>
+                              {question.queueStatus.label}
+                            </span>
+                            {question.issueProjection ? (
+                              <>
+                                <span className="app-chip">
+                                  Issue {ISSUE_UNIT_STATUS_LABELS[question.issueProjection.status as keyof typeof ISSUE_UNIT_STATUS_LABELS] ?? question.issueProjection.status}
+                                </span>
+                                <span className="app-chip">{getIssueTypeLabel(question.issueProjection.type)}</span>
+                                {question.issueProjection.blockDev ? (
+                                  <span className="rounded-full bg-red-100 px-2.5 py-1 font-medium text-red-700">
+                                    阻断推进
+                                  </span>
+                                ) : null}
+                              </>
+                            ) : null}
+                          </div>
                           <p className="text-sm text-slate-800">{question.questionText}</p>
-                          <p className="text-xs leading-5 text-slate-500">
-                            {question.issueProjection
-                              ? `已转入 Issue Queue，当前状态为 ${ISSUE_UNIT_STATUS_LABELS[question.issueProjection.status as keyof typeof ISSUE_UNIT_STATUS_LABELS] ?? question.issueProjection.status}。Clarification 继续保留为来源问答记录。`
-                              : question.queueEligibilityReason}
+                          <p className="text-sm leading-6 text-slate-600">
+                            {question.queueStatus.summary}
                           </p>
+                          {question.queueStatus.callbackNeeded ? (
+                            <div className="rounded-[16px] border border-amber-200 bg-amber-50 px-3 py-3 text-sm text-amber-800">
+                              <p className="font-medium">需要回源确认</p>
+                              <p className="mt-1 leading-6">
+                                {question.queueStatus.callbackSummary}
+                              </p>
+                            </div>
+                          ) : null}
                           <Textarea
                             placeholder="输入回答..."
                             value={answerDrafts[question.id] ?? ''}
                             onChange={(event) => setAnswerDrafts((prev) => ({ ...prev, [question.id]: event.target.value }))}
                           />
-                          <div className="flex gap-2">
+                          <div className="flex flex-wrap gap-2">
                             <Button size="sm" onClick={() => handleAnswerQuestion(question.id)}>提交</Button>
-                            {question.status !== 'RESOLVED' && (
+                            {question.issueProjection ? (
+                              <a
+                                href="#issue-queue"
+                                className="inline-flex h-9 items-center justify-center rounded-[1rem] border border-slate-200 bg-white px-3 text-sm text-slate-700 hover:bg-slate-50"
+                              >
+                                回到 Issue Queue
+                              </a>
+                            ) : null}
+                            {question.status !== 'RESOLVED' && !question.issueProjection ? (
                               <Button
                                 size="sm"
                                 variant="outline"
                                 onClick={() => void handleCreateClarificationIssue(question.id)}
-                                disabled={clarificationIssueState[question.id]?.loading || !question.queueEligible || Boolean(question.issueProjection)}
+                                disabled={clarificationIssueState[question.id]?.loading || !question.queueEligible}
                               >
                                 {clarificationIssueState[question.id]?.loading
                                   ? '转换中...'
-                                  : question.issueProjection
-                                    ? '已在 Issue Queue'
-                                    : question.queueEligible
-                                      ? '转入 Issue Queue'
-                                      : '先回答后再转入'}
+                                  : question.queueEligible
+                                    ? '转入 Issue Queue'
+                                    : '先回答后再转入'}
                               </Button>
-                            )}
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={async () => {
-                                await fetch('/api/trpc/clarification.updateQuestionStatus', {
-                                  method: 'POST',
-                                  headers: { 'Content-Type': 'application/json' },
-                                  body: JSON.stringify({ questionId: question.id, status: 'SKIPPED' }),
-                                })
-                                await refreshClarification()
-                                setSummaryRefreshToken((prev) => prev + 1)
-                              }}
-                            >
-                              跳过
-                            </Button>
+                            ) : null}
+                            {question.queueStatus.callbackNeeded && question.status !== 'RESOLVED' ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void handleUpdateClarificationQuestionStatus(question.id, 'RESOLVED')}
+                              >
+                                标记澄清已收敛
+                              </Button>
+                            ) : null}
+                            {question.status !== 'RESOLVED' && !question.issueProjection ? (
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => void handleUpdateClarificationQuestionStatus(question.id, 'SKIPPED')}
+                              >
+                                跳过
+                              </Button>
+                            ) : null}
                           </div>
                           {clarificationIssueState[question.id]?.message ? (
                             <p className="text-xs text-slate-500">{clarificationIssueState[question.id]?.message}</p>
                           ) : null}
                         </div>
                       ))}
+                      {clarificationQuestions.length === 0 ? (
+                        <p className="text-sm text-slate-500">当前还没有 Clarification 问题。</p>
+                      ) : null}
                     </div>
                   </details>
                 </section>

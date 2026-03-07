@@ -9,6 +9,7 @@ import {
 } from '@/lib/requirement-evolution'
 import {
   ACTIVE_ISSUE_UNIT_STATUSES,
+  buildClarificationQueueStatusMeta,
   getIssueTypeDescription,
   getIssueTypeLabel,
   ISSUE_UNIT_TYPE_OPTIONS,
@@ -547,7 +548,16 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
 
       {!loading && !error && filteredItems.length > 0 ? (
         <ul className="space-y-3">
-          {filteredItems.map((item) => (
+          {filteredItems.map((item) => {
+            const clarificationQueueStatus = item.sourceType === 'clarification'
+              ? buildClarificationQueueStatusMeta({
+                  category: item.sourceCategory ?? 'OTHER',
+                  clarificationStatus: item.sourceStatus ?? 'OPEN',
+                  issueStatus: item.status,
+                })
+              : null
+
+            return (
             <li key={item.id} className="rounded-[22px] border border-slate-200/80 bg-slate-50/70 p-4">
               <div className="flex flex-wrap items-center gap-2">
                 <span className={`rounded-full px-2.5 py-1 text-xs font-medium ${ISSUE_UNIT_SEVERITY_CLASSES[item.severity]}`}>
@@ -564,6 +574,11 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                 {item.blockDev ? (
                   <span className="rounded-full bg-red-100 px-2.5 py-1 text-xs font-medium text-red-700">
                     阻断开发
+                  </span>
+                ) : null}
+                {clarificationQueueStatus?.callbackNeeded ? (
+                  <span className="rounded-full bg-amber-100 px-2.5 py-1 text-xs font-medium text-amber-800">
+                    待 Clarification 回源确认
                   </span>
                 ) : null}
                 {item.lifecycle.requiresSourceFollowup ? (
@@ -752,7 +767,8 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                 <p className="mt-2 text-xs text-red-600">{statusDrafts[item.id].error}</p>
               ) : null}
             </li>
-          ))}
+            )
+          })}
         </ul>
       ) : null}
     </section>

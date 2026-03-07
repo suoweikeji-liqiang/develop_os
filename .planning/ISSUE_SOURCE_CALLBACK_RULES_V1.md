@@ -106,3 +106,27 @@
 - 更明确的来源回链
 - Issue 关闭后的来源对象状态建议
 - 与 impact summary / stability guidance 的进一步联动
+
+## 状态更新
+
+### 已完成
+- `clarification.list` 已补 `queueStatus`，可直接表达：
+  - 先在 Clarification 收敛
+  - 可转入 Issue Queue
+  - 已在 Issue Queue 跟踪
+  - 待回源确认
+  - 回源已确认
+- Requirement 详情页的 Clarification 区已补：
+  - queue eligibility 解释
+  - issue 跟踪关系展示
+  - issue 关闭后的回源确认提示
+  - “标记澄清已收敛”的轻量辅助动作
+- Issue Queue 已补更直接的 Clarification 回源确认标识
+
+### 当前残留
+- Clarification 关闭仍然依赖人工确认，不做自动闭环
+- 回源确认当前只是一条轻量动作，不是完整状态机
+
+### 下一轮可继续推进
+- Clarification 与 Requirement Unit 的更直接回链
+- Clarification 回源确认后的更多摘要联动

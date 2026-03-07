@@ -472,6 +472,28 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
     })
     expect(clarificationList?.questions.find((item) => item.id === question.id)?.issueProjection?.id).toBe(createdIssue.issueId)
     expect(clarificationList?.questions.find((item) => item.id === scopeQuestion.id)?.queueEligible).toBe(true)
+    expect(clarificationList?.questions.find((item) => item.id === question.id)?.queueStatus.label).toBe('Issue Queue 跟踪中')
+
+    await ownerCaller.issueUnit.updateStatus({
+      issueUnitId: skippedClarificationIssue.issueId,
+      status: 'RESOLVED',
+    })
+
+    const callbackClarificationList = await ownerCaller.clarification.list({
+      requirementId: requirement.id,
+    })
+    expect(callbackClarificationList?.questions.find((item) => item.id === scopeQuestion.id)?.queueStatus.callbackNeeded).toBe(true)
+    expect(callbackClarificationList?.questions.find((item) => item.id === scopeQuestion.id)?.queueStatus.label).toBe('待回源确认')
+
+    await ownerCaller.clarification.updateQuestionStatus({
+      questionId: scopeQuestion.id,
+      status: 'RESOLVED',
+    })
+
+    const resolvedCallbackClarificationList = await ownerCaller.clarification.list({
+      requirementId: requirement.id,
+    })
+    expect(resolvedCallbackClarificationList?.questions.find((item) => item.id === scopeQuestion.id)?.queueStatus.label).toBe('回源已确认')
 
     await prisma.requirementConflict.create({
       data: {
@@ -493,7 +515,7 @@ describe.skipIf(!runDatabaseSuite).sequential('API business flow', () => {
     expect(queue.find((item) => item.entityId === createdIssue.issueId)?.sourceLabel).toBe('Clarification')
     expect(queue.find((item) => item.entityId === createdIssue.issueId)?.sourceStatusLabel).toBe('待回答')
     expect(queue.find((item) => item.entityId === createdIssue.issueId)?.lifecycle.requiresSourceFollowup).toBe(true)
-    expect(queue.find((item) => item.entityId === skippedClarificationIssue.issueId)?.sourceStatusLabel).toBe('已跳过待跟进')
+    expect(queue.find((item) => item.entityId === skippedClarificationIssue.issueId)?.sourceStatusLabel).toBe('已收敛')
     expect(queue.find((item) => item.queueKind === 'conflict')?.lifecycle.closeMeaning).toContain('同步原 Conflict')
 
     const createdChange = await ownerCaller.changeUnit.create({

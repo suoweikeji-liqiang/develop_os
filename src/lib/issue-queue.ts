@@ -1,5 +1,9 @@
 import { z } from 'zod'
-import type { IssueUnitSeverity, IssueUnitStatus } from './requirement-evolution'
+import {
+  ISSUE_UNIT_STATUS_LABELS,
+  type IssueUnitSeverity,
+  type IssueUnitStatus,
+} from './requirement-evolution'
 
 export const IssueUnitTypeEnum = z.enum([
   'ambiguity',
@@ -15,6 +19,12 @@ export const IssueUnitTypeEnum = z.enum([
 export type IssueUnitType = z.infer<typeof IssueUnitTypeEnum>
 export type IssueQueueKind = 'issue' | 'conflict'
 export type ConflictQueueStatus = 'OPEN' | 'DISMISSED' | 'RESOLVED'
+export type ClarificationQueueStatus =
+  | 'stay_in_clarification'
+  | 'eligible_for_issue_queue'
+  | 'tracking_in_issue_queue'
+  | 'closed_needs_confirmation'
+  | 'closed_confirmed'
 export type ClarificationQuestionCategory =
   | 'GOAL'
   | 'SCOPE'
@@ -187,6 +197,99 @@ export function getClarificationIssueQueueReason(input: {
   }
 
   return '当前仍建议先在 Clarification 中完成回答或判断风险，再决定是否转入 Issue Queue。'
+}
+
+function getIssueUnitStatusLabel(status: string | null | undefined): string | null {
+  if (!status) return null
+  if (!Object.prototype.hasOwnProperty.call(ISSUE_UNIT_STATUS_LABELS, status)) return status
+  return ISSUE_UNIT_STATUS_LABELS[status as IssueUnitStatus]
+}
+
+export interface ClarificationQueueStatusMeta {
+  state: ClarificationQueueStatus
+  label: string
+  summary: string
+  callbackNeeded: boolean
+  callbackSummary: string | null
+}
+
+export function doesClarificationIssueNeedSourceConfirmation(input: {
+  clarificationStatus: string | null | undefined
+  issueStatus: string | null | undefined
+}): boolean {
+  if (!input.issueStatus) return false
+  if (isActiveIssueStatus(input.issueStatus)) return false
+  return input.clarificationStatus !== 'RESOLVED'
+}
+
+export function buildClarificationQueueStatusMeta(input: {
+  category: string
+  clarificationStatus: string
+  issueStatus?: string | null
+}): ClarificationQueueStatusMeta {
+  const clarificationStatusLabel = getClarificationStatusLabel(input.clarificationStatus) ?? input.clarificationStatus
+  const issueStatusLabel = getIssueUnitStatusLabel(input.issueStatus)
+  const callbackNeeded = doesClarificationIssueNeedSourceConfirmation({
+    clarificationStatus: input.clarificationStatus,
+    issueStatus: input.issueStatus,
+  })
+
+  if (input.issueStatus) {
+    if (callbackNeeded) {
+      return {
+        state: 'closed_needs_confirmation',
+        label: '待回源确认',
+        summary: `对应 Issue 已${issueStatusLabel ?? input.issueStatus}，但原 Clarification 当前仍为${clarificationStatusLabel}。如结论已明确，请人工确认该澄清是否已收敛。`,
+        callbackNeeded: true,
+        callbackSummary: 'Issue Queue 已结束当前问题推进；Clarification 仍需人工确认是否可以标记为已收敛。',
+      }
+    }
+
+    if (isActiveIssueStatus(input.issueStatus)) {
+      return {
+        state: 'tracking_in_issue_queue',
+        label: 'Issue Queue 跟踪中',
+        summary: `已转入 Issue Queue，当前状态为${issueStatusLabel ?? input.issueStatus}。问题推进默认在上方 Issue Queue 中进行，Clarification 继续保留为来源问答记录。`,
+        callbackNeeded: false,
+        callbackSummary: null,
+      }
+    }
+
+    return {
+      state: 'closed_confirmed',
+      label: '回源已确认',
+      summary: `对应 Issue 已${issueStatusLabel ?? input.issueStatus}，Clarification 也已标记为已收敛，当前仅保留来源记录。`,
+      callbackNeeded: false,
+      callbackSummary: null,
+    }
+  }
+
+  if (shouldClarificationEnterIssueQueue({
+    category: input.category,
+    status: input.clarificationStatus,
+  })) {
+    return {
+      state: 'eligible_for_issue_queue',
+      label: '可转入 Issue Queue',
+      summary: getClarificationIssueQueueReason({
+        category: input.category,
+        status: input.clarificationStatus,
+      }),
+      callbackNeeded: false,
+      callbackSummary: null,
+    }
+  }
+
+  return {
+    state: 'stay_in_clarification',
+    label: '先在 Clarification 收敛',
+    summary: `${getClarificationIssueQueueReason({
+      category: input.category,
+      status: input.clarificationStatus,
+    })} 当前仍以 Clarification 原始问答收敛为主。`,
+    callbackNeeded: false,
+    callbackSummary: null,
+  }
 }
 
 export function getIssueQueueSourceStatusLabel(input: {
