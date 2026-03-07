@@ -56,6 +56,21 @@
    - 不自动生成正文
    - 不自动落写 Requirement Unit 字段
 
+### 当前状态更新
+- Worksurface 1.0 closing iteration 已在现有 `conclusionSignal` 上补出一层 sink detail：
+  - `Boundary / Scope Note`
+  - `Risk Note`
+  - `Missing Info 补充`
+  - `Conflict Decision`
+  - `Assumption Resolution`
+  - `Implementation Hint`
+  - `尚未形成内容块落点`
+- Clarification、Issue Queue、Requirement Unit、Impact Summary / Conclusion Sink Highlights 已统一展示这层信息
+- 当前用户已经可以同时看见：
+  - 主要沉淀到哪个 Unit
+  - 更像沉淀到哪类内容块
+  - 是否仍需人工把结论正式写回正文
+
 ### 哪些只是提示，哪些仍不自动改状态
 自动提示：
 - 更像沉到哪类内容块

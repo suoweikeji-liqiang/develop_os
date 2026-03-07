@@ -185,6 +185,8 @@ interface WorksurfaceSummary {
       questionText: string
       label: string
       effectLabel: string
+      sinkDetailLabel: string
+      sinkDetailSummary: string
       summary: string
       nextStep: string
       unitKey: string | null
@@ -1047,10 +1049,12 @@ export function RequirementDetailClient({
                     <div className="flex flex-wrap items-center gap-2 text-xs">
                       <span className="app-chip">{item.label}</span>
                       <span className="app-chip">{item.effectLabel}</span>
+                      <span className="app-chip">{item.sinkDetailLabel}</span>
                       {item.unitKey ? <span className="app-chip">沉淀到 {item.unitKey}</span> : null}
                     </div>
                     <p className="mt-2 text-sm leading-6 text-slate-700">{item.questionText}</p>
                     <p className="mt-2 text-sm leading-6 text-slate-600">{item.summary}</p>
+                    <p className="mt-2 text-xs leading-5 text-slate-500">{item.sinkDetailSummary}</p>
                     <p className="mt-2 text-xs leading-5 text-slate-500">{item.nextStep}</p>
                     <div className="mt-2 flex flex-wrap gap-2 text-xs">
                       {item.unitKey ? (
@@ -1678,11 +1682,13 @@ export function RequirementDetailClient({
                                     <div className="mt-2 flex flex-wrap gap-2 text-xs">
                                       <span className="app-chip">{question.conclusionSignal.label}</span>
                                       <span className="app-chip">{question.conclusionSignal.effectLabel}</span>
+                                      <span className="app-chip">{question.conclusionSignal.sinkDetailLabel}</span>
                                       <span className={`app-chip ${question.conclusionSignal.requiresManualContentUpdate ? 'text-amber-700' : ''}`}>
                                         {question.conclusionSignal.sinkLabel}
                                       </span>
                                     </div>
                                     <p className="mt-2 leading-6">{question.conclusionSignal.summary}</p>
+                                    <p className="mt-2 text-xs leading-5">{question.conclusionSignal.sinkDetailSummary}</p>
                                     <p className="mt-2 text-xs leading-5">{question.conclusionSignal.nextStep}</p>
                                   </>
                                 ) : (
@@ -1719,11 +1725,13 @@ export function RequirementDetailClient({
                                 <div className="mt-2 flex flex-wrap gap-2 text-xs">
                                   <span className="app-chip">{question.conclusionSignal.label}</span>
                                   <span className="app-chip">{question.conclusionSignal.effectLabel}</span>
+                                  <span className="app-chip">{question.conclusionSignal.sinkDetailLabel}</span>
                                   <span className={`app-chip ${question.conclusionSignal.requiresManualContentUpdate ? 'text-amber-700' : ''}`}>
                                     {question.conclusionSignal.sinkLabel}
                                   </span>
                                 </div>
                                 <p className="mt-2 leading-6">{question.conclusionSignal.summary}</p>
+                                <p className="mt-2 text-xs leading-5">{question.conclusionSignal.sinkDetailSummary}</p>
                                 <p className="mt-2 text-xs leading-5">{question.conclusionSignal.nextStep}</p>
                               </div>
                             ) : null}

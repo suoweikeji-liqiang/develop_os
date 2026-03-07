@@ -247,12 +247,24 @@ export type ClarificationConclusionKind =
   | 'conflict_decided'
   | 'closed_without_content_sink'
 
+export type ClarificationConclusionSinkDetailKind =
+  | 'boundary_note'
+  | 'risk_note'
+  | 'missing_info'
+  | 'conflict_decision'
+  | 'assumption_resolution'
+  | 'implementation_hint'
+  | 'no_content_sink'
+
 export interface ClarificationConclusionMeta {
   state: 'projected' | 'concluded'
   kind: ClarificationConclusionKind
   label: string
   effectLabel: string
   sinkLabel: string
+  sinkDetailKind: ClarificationConclusionSinkDetailKind
+  sinkDetailLabel: string
+  sinkDetailSummary: string
   summary: string
   nextStep: string
   requiresManualContentUpdate: boolean
@@ -272,6 +284,16 @@ const CLARIFICATION_CONCLUSION_EFFECT_LABELS: Record<ClarificationConclusionKind
   missing_filled: '减少待确认项',
   conflict_decided: '改善稳定度判断',
   closed_without_content_sink: '仍需人工补内容',
+}
+
+const CLARIFICATION_CONCLUSION_SINK_DETAIL_LABELS: Record<ClarificationConclusionSinkDetailKind, string> = {
+  boundary_note: 'Boundary / Scope Note',
+  risk_note: 'Risk Note',
+  missing_info: 'Missing Info 补充',
+  conflict_decision: 'Conflict Decision',
+  assumption_resolution: 'Assumption Resolution',
+  implementation_hint: 'Implementation Hint',
+  no_content_sink: '尚未形成内容块落点',
 }
 
 function getClarificationConclusionKind(input: {
@@ -314,6 +336,66 @@ function getClarificationConclusionEffectSummary(kind: ClarificationConclusionKi
   return '这会降低当前推进面的边界不确定性。'
 }
 
+function getClarificationConclusionSinkDetailKind(input: {
+  issueType?: string | null
+  clarificationCategory?: string | null
+  hasSink: boolean
+  kind: ClarificationConclusionKind
+}): ClarificationConclusionSinkDetailKind {
+  if (!input.hasSink || input.kind === 'closed_without_content_sink') {
+    return 'no_content_sink'
+  }
+
+  if (input.issueType === 'conflict') return 'conflict_decision'
+  if (input.issueType === 'risk' || input.clarificationCategory === 'RISK') return 'risk_note'
+  if (input.issueType === 'missing') return 'missing_info'
+  if (input.issueType === 'permission_gap' || input.issueType === 'exception_gap' || input.issueType === 'prototype_doc_mismatch') {
+    return 'implementation_hint'
+  }
+  if (input.issueType === 'pending_confirmation' || input.clarificationCategory === 'GOAL' || input.clarificationCategory === 'ACCEPTANCE' || input.clarificationCategory === 'OTHER') {
+    return 'assumption_resolution'
+  }
+
+  return 'boundary_note'
+}
+
+function getClarificationConclusionSinkDetailSummary(input: {
+  detailKind: ClarificationConclusionSinkDetailKind
+  primaryRequirementUnit?: {
+    unitKey: string
+  } | null
+}): string {
+  const unitPrefix = input.primaryRequirementUnit?.unitKey
+    ? `建议优先补到 ${input.primaryRequirementUnit.unitKey} 的`
+    : '当前还没有稳定的 Unit 落点，后续更像应补到'
+
+  if (input.detailKind === 'risk_note') {
+    return `${unitPrefix} 风险说明或稳定度备注。`
+  }
+
+  if (input.detailKind === 'missing_info') {
+    return `${unitPrefix} 补充信息、输入输出或缺失说明。`
+  }
+
+  if (input.detailKind === 'conflict_decision') {
+    return `${unitPrefix} 冲突裁定或处理结论说明。`
+  }
+
+  if (input.detailKind === 'assumption_resolution') {
+    return `${unitPrefix} 假设消解、待确认项结论或业务确认备注。`
+  }
+
+  if (input.detailKind === 'implementation_hint') {
+    return `${unitPrefix} 实现提示、权限限制或异常处理说明。`
+  }
+
+  if (input.detailKind === 'no_content_sink') {
+    return '当前只说明问题已关闭，还不能判断应写入 Unit 的哪类内容块。'
+  }
+
+  return `${unitPrefix} 边界说明或 scope note。`
+}
+
 export function buildClarificationConclusionMeta(input: {
   issueType?: string | null
   issueStatus?: string | null
@@ -338,6 +420,17 @@ export function buildClarificationConclusionMeta(input: {
     ? `${input.primaryRequirementUnit.unitKey} · ${input.primaryRequirementUnit.title}`
     : null
   const effectSummary = getClarificationConclusionEffectSummary(kind)
+  const sinkDetailKind = getClarificationConclusionSinkDetailKind({
+    issueType: input.issueType,
+    clarificationCategory: input.clarificationCategory,
+    hasSink,
+    kind,
+  })
+  const sinkDetailLabel = CLARIFICATION_CONCLUSION_SINK_DETAIL_LABELS[sinkDetailKind]
+  const sinkDetailSummary = getClarificationConclusionSinkDetailSummary({
+    detailKind: sinkDetailKind,
+    primaryRequirementUnit: input.primaryRequirementUnit,
+  })
 
   let summary: string
   if (kind === 'closed_without_content_sink') {
@@ -366,15 +459,15 @@ export function buildClarificationConclusionMeta(input: {
   if (input.callbackNeeded) {
     nextStep = '下一步请先回到 Clarification 完成人工确认，再决定是否把该结论视为真正收敛。'
   } else if (!sinkTarget || kind === 'closed_without_content_sink') {
-    nextStep = '下一步请补齐主要受影响的 Requirement Unit 或内容落点，避免只关问题不沉淀结论。'
+    nextStep = `${sinkDetailSummary} 下一步请补齐主要受影响的 Requirement Unit 或内容落点，避免只关问题不沉淀结论。`
   } else if (kind === 'risk_confirmed') {
-    nextStep = `下一步可优先复核 ${input.primaryRequirementUnit?.unitKey} 的风险说明与稳定度判断是否可以更新。`
+    nextStep = `${sinkDetailSummary} 下一步可优先复核 ${input.primaryRequirementUnit?.unitKey} 的风险说明与稳定度判断是否可以更新。`
   } else if (kind === 'missing_filled') {
-    nextStep = `下一步可优先检查 ${input.primaryRequirementUnit?.unitKey} 是否因此减少了待确认项。`
+    nextStep = `${sinkDetailSummary} 下一步可优先检查 ${input.primaryRequirementUnit?.unitKey} 是否因此减少了待确认项。`
   } else if (kind === 'conflict_decided') {
-    nextStep = `下一步可优先确认 ${input.primaryRequirementUnit?.unitKey} 是否已经采用新的裁定结果继续推进。`
+    nextStep = `${sinkDetailSummary} 下一步可优先确认 ${input.primaryRequirementUnit?.unitKey} 是否已经采用新的裁定结果继续推进。`
   } else {
-    nextStep = `下一步可优先检查 ${input.primaryRequirementUnit?.unitKey} 的边界定义是否因此更适合继续推进。`
+    nextStep = `${sinkDetailSummary} 下一步可优先检查 ${input.primaryRequirementUnit?.unitKey} 的边界定义是否因此更适合继续推进。`
   }
 
   return {
@@ -383,6 +476,9 @@ export function buildClarificationConclusionMeta(input: {
     label: CLARIFICATION_CONCLUSION_LABELS[kind],
     effectLabel: CLARIFICATION_CONCLUSION_EFFECT_LABELS[kind],
     sinkLabel: sinkTarget ? `沉淀到 ${input.primaryRequirementUnit?.unitKey}` : '尚未形成明确落点',
+    sinkDetailKind,
+    sinkDetailLabel,
+    sinkDetailSummary,
     summary,
     nextStep,
     requiresManualContentUpdate: !sinkTarget || kind === 'closed_without_content_sink' || input.callbackNeeded,

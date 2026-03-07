@@ -124,6 +124,8 @@ describe('requirement worksurface impact summary', () => {
           questionText: '异常路径是否需要人工兜底？',
           label: '风险被确认',
           effectLabel: '改善稳定度判断',
+          sinkDetailLabel: 'Risk Note',
+          sinkDetailSummary: '建议优先补到 RU-02 的 风险说明或稳定度备注。',
           summary: '该 Clarification 来源问题已关闭，当前结论主要沉淀到 RU-02 · 异常兜底。',
           nextStep: '下一步请先回到 Clarification 完成人工确认。',
           unitKey: 'RU-02',
@@ -144,6 +146,7 @@ describe('requirement worksurface impact summary', () => {
       '部分已关闭问题仍缺少内容沉淀落点',
     ]))
     expect(summary.clarificationConclusions[0]?.label).toBe('风险被确认')
+    expect(summary.clarificationConclusions[0]?.sinkDetailLabel).toBe('Risk Note')
     expect(summary.nextActions.some((action) => action.includes('Clarification'))).toBe(true)
     expect(summary.actionPlan.some((action) => action.targetSection === 'clarification-queue')).toBe(true)
   })

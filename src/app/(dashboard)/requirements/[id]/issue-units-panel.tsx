@@ -692,11 +692,13 @@ export function IssueUnitsPanel({ requirementId, refreshToken = 0, onDataChanged
                       <div className="mt-2 flex flex-wrap gap-2 text-xs">
                         <span className="app-chip">{item.conclusionSignal.label}</span>
                         <span className="app-chip">{item.conclusionSignal.effectLabel}</span>
+                        <span className="app-chip">{item.conclusionSignal.sinkDetailLabel}</span>
                         <span className={`app-chip ${item.conclusionSignal.requiresManualContentUpdate ? 'text-amber-700' : ''}`}>
                           {item.conclusionSignal.sinkLabel}
                         </span>
                       </div>
                       <p className="mt-2 leading-6">{item.conclusionSignal.summary}</p>
+                      <p className="mt-2 text-xs leading-5">{item.conclusionSignal.sinkDetailSummary}</p>
                       <p className="mt-2 text-xs leading-5">{item.conclusionSignal.nextStep}</p>
                     </>
                   ) : (

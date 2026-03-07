@@ -68,6 +68,8 @@ describe('clarification issue queue callback rules', () => {
     expect(conclusion?.label).toBe('风险被确认')
     expect(conclusion?.effectLabel).toBe('改善稳定度判断')
     expect(conclusion?.sinkLabel).toBe('沉淀到 RU-03')
+    expect(conclusion?.sinkDetailLabel).toBe('Risk Note')
+    expect(conclusion?.sinkDetailSummary).toContain('RU-03')
     expect(conclusion?.summary).toContain('RU-03 · 异常兜底')
     expect(conclusion?.summary).toContain('人工确认')
     expect(conclusion?.requiresManualContentUpdate).toBe(true)
@@ -85,6 +87,7 @@ describe('clarification issue queue callback rules', () => {
     expect(conclusion?.label).toBe('仅关闭问题，尚未形成内容沉淀')
     expect(conclusion?.effectLabel).toBe('仍需人工补内容')
     expect(conclusion?.sinkLabel).toBe('尚未形成明确落点')
+    expect(conclusion?.sinkDetailLabel).toBe('尚未形成内容块落点')
     expect(conclusion?.nextStep).toContain('补齐')
   })
 

@@ -634,11 +634,13 @@ export function RequirementUnitsPanel({ requirementId, hasModel, summaryHighligh
                               <div className="flex flex-wrap gap-2 text-xs">
                                 <span className="app-chip">{clarification.conclusionSignal.label}</span>
                                 <span className="app-chip">{clarification.conclusionSignal.effectLabel}</span>
+                                <span className="app-chip">{clarification.conclusionSignal.sinkDetailLabel}</span>
                                 <span className={`app-chip ${clarification.conclusionSignal.requiresManualContentUpdate ? 'text-amber-700' : ''}`}>
                                   {clarification.conclusionSignal.sinkLabel}
                                 </span>
                               </div>
                               <p className="mt-2 leading-6">{clarification.conclusionSignal.summary}</p>
+                              <p className="mt-2 text-xs leading-5">{clarification.conclusionSignal.sinkDetailSummary}</p>
                               <p className="mt-2 text-xs leading-5">{clarification.conclusionSignal.nextStep}</p>
                             </div>
                           ) : null}

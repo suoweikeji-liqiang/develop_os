@@ -83,6 +83,8 @@ interface RequirementImpactSummarySeed {
     questionText: string
     label: string
     effectLabel: string
+    sinkDetailLabel: string
+    sinkDetailSummary: string
     summary: string
     nextStep: string
     unitKey: string | null
